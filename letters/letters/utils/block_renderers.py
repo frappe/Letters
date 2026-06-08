@@ -1,79 +1,125 @@
 from abc import ABC, abstractmethod
+from html import escape
 from typing import Any
 
 
 class BlockRenderer(ABC):
-    """Base class for all block renderers. Each block type subclasses this."""
-
     @abstractmethod
     def render(self, block: dict[str, Any]) -> str:
-        """Return MJML markup for this block."""
+        """Return email-safe HTML for this block."""
 
 
 class HeroRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
-        props = block.get("props", {})
-        bg = props.get("background_color", "#ffffff")
-        heading = props.get("heading", "")
-        subheading = props.get("subheading", "")
+        p = block.get("props", {})
+        bg = escape(p.get("background_color", "#ffffff"))
+        heading = escape(p.get("heading", ""))
+        subheading = escape(p.get("subheading", ""))
         return (
-            f'<mj-section background-color="{bg}">'
-            f'<mj-column><mj-text font-size="32px" font-weight="bold">{heading}</mj-text>'
-            f'<mj-text font-size="18px">{subheading}</mj-text>'
-            f"</mj-column></mj-section>"
+            f'<table width="100%" cellpadding="0" cellspacing="0" border="0"'
+            f' style="background-color:{bg};">'
+            f'<tr><td align="center" style="padding:48px 32px 32px;">'
+            f'<h1 style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:36px;'
+            f'font-weight:bold;color:#111111;line-height:1.2;">{heading}</h1>'
+            f'<p style="margin:0;font-family:Arial,sans-serif;font-size:18px;'
+            f'color:#444444;line-height:1.5;">{subheading}</p>'
+            f'</td></tr></table>'
         )
 
 
 class TextRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
-        props = block.get("props", {})
-        content = props.get("content", "")
-        return f"<mj-section><mj-column><mj-text>{content}</mj-text></mj-column></mj-section>"
+        p = block.get("props", {})
+        content = escape(p.get("content", ""))
+        align = escape(p.get("align", "left"))
+        size = escape(p.get("font_size", "16px"))
+        return (
+            f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
+            f'<tr><td align="{align}" style="padding:16px 32px;">'
+            f'<p style="margin:0;font-family:Arial,sans-serif;font-size:{size};'
+            f'color:#333333;line-height:1.6;text-align:{align};">{content}</p>'
+            f'</td></tr></table>'
+        )
 
 
 class ImageTextRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
-        props = block.get("props", {})
-        image_url = props.get("image_url", "")
-        text = props.get("text", "")
+        p = block.get("props", {})
+        image_url = escape(p.get("image_url", ""))
+        text = escape(p.get("text", ""))
+        position = p.get("image_position", "left")
+
+        img_cell = (
+            f'<td width="180" valign="top" style="padding:16px 8px 16px 32px;">'
+            f'<img src="{image_url}" width="160" style="display:block;border:0;" alt="" />'
+            f'</td>'
+        ) if image_url else (
+            f'<td width="180" valign="top" style="padding:16px 8px 16px 32px;">'
+            f'<div style="width:160px;height:100px;background:#eeeeee;'
+            f'font-family:Arial,sans-serif;font-size:12px;color:#999;'
+            f'display:table-cell;vertical-align:middle;text-align:center;">Image</div>'
+            f'</td>'
+        )
+        text_cell = (
+            f'<td valign="top" style="padding:16px 32px 16px 8px;">'
+            f'<p style="margin:0;font-family:Arial,sans-serif;font-size:15px;'
+            f'color:#333333;line-height:1.6;">{text}</p>'
+            f'</td>'
+        )
+
+        cells = (img_cell + text_cell) if position == "left" else (text_cell + img_cell)
         return (
-            "<mj-section>"
-            f'<mj-column><mj-image src="{image_url}" /></mj-column>'
-            f"<mj-column><mj-text>{text}</mj-text></mj-column>"
-            "</mj-section>"
+            f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
+            f'<tr>{cells}</tr></table>'
         )
 
 
 class ButtonRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
-        props = block.get("props", {})
-        label = props.get("label", "Click here")
-        url = props.get("url", "#")
-        color = props.get("color", "#000000")
+        p = block.get("props", {})
+        label = escape(p.get("label", "Click here"))
+        url = escape(p.get("url", "#"))
+        bg = escape(p.get("color", "#6366f1"))
+        color = escape(p.get("text_color", "#ffffff"))
+        align = escape(p.get("align", "center"))
         return (
-            "<mj-section><mj-column>"
-            f'<mj-button href="{url}" background-color="{color}">{label}</mj-button>'
-            "</mj-column></mj-section>"
+            f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
+            f'<tr><td align="{align}" style="padding:16px 32px;">'
+            f'<a href="{url}" style="display:inline-block;padding:12px 28px;'
+            f'background-color:{bg};color:{color};font-family:Arial,sans-serif;'
+            f'font-size:15px;font-weight:bold;text-decoration:none;border-radius:4px;">'
+            f'{label}</a>'
+            f'</td></tr></table>'
         )
 
 
 class DividerRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
-        props = block.get("props", {})
-        border_color = props.get("border_color", "#e0e0e0")
+        p = block.get("props", {})
+        color = escape(p.get("border_color", "#e0e0e0"))
+        thickness = int(p.get("thickness", 1))
+        style = escape(p.get("style", "solid"))
         return (
-            f'<mj-section><mj-column><mj-divider border-color="{border_color}" /></mj-column></mj-section>'
+            f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
+            f'<tr><td style="padding:8px 32px;">'
+            f'<hr style="border:0;border-top:{thickness}px {style} {color};margin:0;" />'
+            f'</td></tr></table>'
         )
 
 
 class FooterRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
-        props = block.get("props", {})
-        text = props.get("text", "")
+        p = block.get("props", {})
+        text = escape(p.get("text", ""))
+        bg = escape(p.get("background_color", "#f9fafb"))
+        color = escape(p.get("text_color", "#6b7280"))
         return (
-            '<mj-section background-color="#f5f5f5">'
-            f'<mj-column><mj-text font-size="12px" color="#888888">{text}</mj-text></mj-column>'
-            "</mj-section>"
+            f'<table width="100%" cellpadding="0" cellspacing="0" border="0"'
+            f' style="background-color:{bg};">'
+            f'<tr><td align="center" style="padding:24px 32px;">'
+            f'<p style="margin:0;font-family:Arial,sans-serif;font-size:12px;'
+            f'color:{color};line-height:1.5;">{text}</p>'
+            f'</td></tr></table>'
         )
 
 
