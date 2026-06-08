@@ -2,7 +2,7 @@
   <div
     class="relative rounded border-2 my-1 cursor-pointer transition-colors"
     :class="selected ? 'border-blue-500' : 'border-transparent hover:border-gray-300'"
-    @click.stop="selected = true"
+    @click.stop="store.selectBlock(block.id)"
   >
     <!-- Toolbar -->
     <div
@@ -37,18 +37,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue";
+import { computed } from "vue";
 import { Button } from "frappe-ui";
 import { useEditorStore } from "../stores/editor";
 
 const props = defineProps({ block: Object, index: Number });
 const store = useEditorStore();
-const selected = ref(false);
-
-function handleOutsideClick() {
-  selected.value = false;
-}
-
-onMounted(() => document.addEventListener("click", handleOutsideClick));
-onUnmounted(() => document.removeEventListener("click", handleOutsideClick));
+const selected = computed(() => store.selectedBlockId === props.block.id);
 </script>

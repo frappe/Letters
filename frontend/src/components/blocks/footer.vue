@@ -9,18 +9,8 @@
         :style="{ color: block.props.text_color }"
         contenteditable="true"
         @blur="update('text', $event.target.innerText)"
-        @click.stop
+        @click.stop="store.selectBlock(block.id)"
       >{{ block.props.text }}</div>
-      <div class="flex justify-center gap-3 mt-3" @click.stop>
-        <div class="flex items-center gap-1.5">
-          <span class="text-xs text-gray-400">BG</span>
-          <input type="color" :value="block.props.background_color" @input="update('background_color', $event.target.value)" class="w-7 h-7 rounded cursor-pointer border border-gray-300" />
-        </div>
-        <div class="flex items-center gap-1.5">
-          <span class="text-xs text-gray-400">Text</span>
-          <input type="color" :value="block.props.text_color" @input="update('text_color', $event.target.value)" class="w-7 h-7 rounded cursor-pointer border border-gray-300" />
-        </div>
-      </div>
     </div>
   </BlockWrapper>
 </template>

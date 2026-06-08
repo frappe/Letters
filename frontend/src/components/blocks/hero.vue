@@ -5,23 +5,14 @@
         class="text-3xl font-bold text-gray-900 outline-none mb-2"
         contenteditable="true"
         @blur="update('heading', $event.target.innerText)"
-        @click.stop
+        @click.stop="store.selectBlock(block.id)"
       >{{ block.props.heading }}</div>
       <div
-        class="text-base text-gray-500 outline-none mb-4"
+        class="text-base text-gray-500 outline-none"
         contenteditable="true"
         @blur="update('subheading', $event.target.innerText)"
-        @click.stop
+        @click.stop="store.selectBlock(block.id)"
       >{{ block.props.subheading }}</div>
-      <div class="flex justify-center items-center gap-2 mt-2" @click.stop>
-        <span class="text-xs text-gray-400">Background</span>
-        <input
-          type="color"
-          :value="block.props.background_color"
-          @input="update('background_color', $event.target.value)"
-          class="w-7 h-7 rounded cursor-pointer border border-gray-300"
-        />
-      </div>
     </div>
   </BlockWrapper>
 </template>

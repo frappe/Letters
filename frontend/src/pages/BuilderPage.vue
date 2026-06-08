@@ -25,9 +25,10 @@
       class="flex-1 overflow-y-auto p-8"
       @dragover.prevent
       @drop="onDrop"
+      @click="editorStore.selectBlock(null)"
     >
       <div class="max-w-2xl mx-auto">
-        <!-- Campaign meta bar -->
+        <!-- Top bar -->
         <div class="mb-3 flex flex-col gap-2">
           <div class="flex items-center gap-3">
             <TextInput
@@ -39,8 +40,8 @@
             <Button variant="solid" theme="gray" size="sm" @click="saveCampaign" :loading="saving">
               Save
             </Button>
-            <Button variant="subtle" size="sm" @click="refreshPreview" :loading="previewing">
-              Preview
+            <Button variant="subtle" size="sm" @click="openPreview" :loading="previewing">
+              Preview ↗
             </Button>
             <Button
               variant="solid"
@@ -61,14 +62,14 @@
             />
             <TextInput
               v-model="previewText"
-              placeholder="Preview text…"
+              placeholder="Preview text (shown in inbox)…"
               class="flex-1"
               size="sm"
             />
           </div>
         </div>
 
-        <!-- Save feedback -->
+        <!-- Feedback banners -->
         <div v-if="saveMsg" class="mb-3 px-3 py-2 rounded bg-green-50 text-green-700 text-xs">
           {{ saveMsg }}
         </div>
@@ -81,7 +82,7 @@
           v-if="!editorStore.blocks.length"
           class="border-2 border-dashed border-gray-300 rounded-lg p-16 text-center text-gray-400 text-sm"
         >
-          Drag blocks here to start designing
+          Drag blocks from the left panel to start designing
         </div>
 
         <!-- Block list -->
@@ -95,33 +96,8 @@
       </div>
     </main>
 
-    <!-- Right: Preview -->
-    <aside class="w-80 flex-shrink-0 bg-white border-l border-gray-200 flex flex-col overflow-hidden">
-      <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-        <span class="text-xs font-semibold text-gray-500 uppercase tracking-widest">Preview</span>
-        <div class="flex gap-1">
-          <Button
-            variant="subtle"
-            size="sm"
-            :class="previewMode === 'desktop' ? 'bg-gray-100' : ''"
-            @click="previewMode = 'desktop'"
-          >Desktop</Button>
-          <Button
-            variant="subtle"
-            size="sm"
-            :class="previewMode === 'mobile' ? 'bg-gray-100' : ''"
-            @click="previewMode = 'mobile'"
-          >Mobile</Button>
-        </div>
-      </div>
-      <div class="flex-1 overflow-y-auto p-3">
-        <div
-          class="border border-gray-200 rounded overflow-hidden bg-white transition-all mx-auto"
-          :class="previewMode === 'mobile' ? 'max-w-[375px]' : 'w-full'"
-          v-html="editorStore.renderedHtml || '<div class=\'p-8 text-gray-400 text-sm text-center\'>Click Preview to see the email</div>'"
-        />
-      </div>
-    </aside>
+    <!-- Right: Inspector / properties panel -->
+    <Inspector />
 
   </div>
 
@@ -138,10 +114,10 @@
 import { ref, defineAsyncComponent, onMounted } from "vue";
 import { Button, TextInput } from "frappe-ui";
 import { useEditorStore } from "../stores/editor";
+import Inspector from "../components/Inspector.vue";
 import SendModal from "../components/SendModal.vue";
 
 const editorStore = useEditorStore();
-const previewMode = ref("desktop");
 const saving = ref(false);
 const previewing = ref(false);
 const showSendModal = ref(false);
@@ -150,39 +126,46 @@ const errorMsg = ref("");
 const subject = ref("");
 const previewText = ref("");
 
+// -------------------------------------------------------------------
+// Error helper
+// -------------------------------------------------------------------
 function describeError(e) {
-  // Frappe puts a readable message in different places depending on the failure
-  return (
-    e?._server_messages?.length && JSON.parse(e._server_messages)[0]
-  ) || e?.message || e?.exc || "Something went wrong. Please try again.";
+  try {
+    const msgs = e?._server_messages;
+    if (msgs) {
+      const parsed = JSON.parse(msgs);
+      const first = parsed[0];
+      try { return JSON.parse(first).message || first; } catch { return first; }
+    }
+  } catch { /* fall through */ }
+  return e?.message || e?.exc || "Something went wrong. Please try again.";
 }
 
-// Read campaign name from URL ?name=xxx
+// -------------------------------------------------------------------
+// Load campaign from URL ?name=xxx
+// -------------------------------------------------------------------
 const urlParams = new URLSearchParams(window.location.search);
 const initialName = urlParams.get("name");
 
 onMounted(async () => {
-  if (initialName) {
-    await loadCampaign(initialName);
-  }
+  if (initialName) await loadCampaign(initialName);
 });
 
 async function loadCampaign(name) {
   try {
-    const res = await frappe.call({
-      method: "letters.api.get_campaign",
-      args: { name },
-    });
+    const res = await frappe.call({ method: "letters.api.get_campaign", args: { name } });
     const doc = res.message;
     editorStore.loadFromDoc(doc);
-    subject.value = doc.subject;
-    previewText.value = doc.preview_text;
+    subject.value = doc.subject || "";
+    previewText.value = doc.preview_text || "";
   } catch (e) {
-    console.error("Failed to load campaign", e);
     errorMsg.value = "Couldn't load this campaign: " + describeError(e);
   }
 }
 
+// -------------------------------------------------------------------
+// Save
+// -------------------------------------------------------------------
 async function saveCampaign() {
   saving.value = true;
   saveMsg.value = "";
@@ -204,26 +187,26 @@ async function saveCampaign() {
     const isNew = !editorStore.campaignDoc;
     if (isNew) {
       editorStore.campaignDoc = saved;
-    } else {
-      editorStore.campaignDoc.name = saved.name;
-    }
-    // Update URL so refreshing the page reloads this campaign
-    if (isNew && saved.name) {
       const url = new URL(window.location.href);
       url.searchParams.set("name", saved.name);
       window.history.replaceState({}, "", url.toString());
+    } else {
+      editorStore.campaignDoc.name = saved.name;
     }
     saveMsg.value = "Saved!";
     setTimeout(() => (saveMsg.value = ""), 2500);
   } catch (e) {
-    console.error("Save failed", e);
     errorMsg.value = "Couldn't save: " + describeError(e);
   } finally {
     saving.value = false;
   }
 }
 
-async function refreshPreview() {
+// -------------------------------------------------------------------
+// Preview — compile HTML and open in a new browser window
+// The new window has a floating toolbar for desktop / mobile toggle.
+// -------------------------------------------------------------------
+async function openPreview() {
   previewing.value = true;
   errorMsg.value = "";
   try {
@@ -236,21 +219,74 @@ async function refreshPreview() {
         preview_text: previewText.value,
       },
     });
-    editorStore.setRenderedHtml(res.message.html);
+    const html = res.message.html;
+    const campaignTitle = editorStore.campaignName || "Email Preview";
+
+    // Floating desktop/mobile toolbar injected into the preview page
+    const toolbar = `
+<style>
+  #__preview-toolbar {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 4px;
+    background: #111827; border-radius: 9999px;
+    padding: 6px 10px; box-shadow: 0 8px 32px rgba(0,0,0,.5);
+    z-index: 9999; font-family: -apple-system, sans-serif;
+  }
+  #__preview-toolbar span {
+    color: #9ca3af; font-size: 11px; padding: 0 8px 0 4px;
+    border-right: 1px solid #374151; margin-right: 4px;
+  }
+  #__preview-toolbar button {
+    color: #e5e7eb; background: none; border: none; cursor: pointer;
+    font-size: 12px; padding: 5px 12px; border-radius: 6px;
+    transition: background .15s;
+  }
+  #__preview-toolbar button:hover { background: #1f2937; }
+  #__preview-toolbar button.active { background: #2563eb; color: #fff; }
+  #__email-wrap { transition: max-width .3s; }
+</style>
+<div id="__preview-toolbar">
+  <span>${campaignTitle}</span>
+  <button class="active" onclick="setMode('desktop', this)">🖥 Desktop</button>
+  <button onclick="setMode('mobile', this)">📱 Mobile (390px)</button>
+</div>
+<script>
+  function setMode(mode, btn) {
+    document.querySelectorAll('#__preview-toolbar button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.body.style.maxWidth = mode === 'mobile' ? '390px' : '';
+    document.body.style.margin = mode === 'mobile' ? '0 auto' : '';
+  }
+<\/script>`;
+
+    const fullHtml = html.replace("</body>", toolbar + "\n</body>");
+    const win = window.open("", "_blank", "noopener");
+    if (win) {
+      win.document.write(fullHtml);
+      win.document.close();
+      win.document.title = campaignTitle + " — Preview";
+    } else {
+      errorMsg.value = "Pop-up blocked — please allow pop-ups for this site to use Preview.";
+    }
   } catch (e) {
-    console.error("Preview failed", e);
     errorMsg.value = "Couldn't render preview: " + describeError(e);
   } finally {
     previewing.value = false;
   }
 }
 
+// -------------------------------------------------------------------
+// Send
+// -------------------------------------------------------------------
 function onSent() {
   showSendModal.value = false;
   saveMsg.value = "Campaign sent!";
   setTimeout(() => (saveMsg.value = ""), 3000);
 }
 
+// -------------------------------------------------------------------
+// Block palette
+// -------------------------------------------------------------------
 const availableBlocks = [
   { type: "hero",       label: "Hero",         icon: "◉" },
   { type: "text",       label: "Text",         icon: "¶" },
@@ -261,7 +297,6 @@ const availableBlocks = [
 ];
 
 const blockComponentCache = {};
-
 function blockComponent(type) {
   if (!blockComponentCache[type]) {
     blockComponentCache[type] = defineAsyncComponent(
@@ -272,11 +307,7 @@ function blockComponent(type) {
 }
 
 let dragging = null;
-
-function onDragStart(block) {
-  dragging = block;
-}
-
+function onDragStart(block) { dragging = block; }
 function onDrop() {
   if (dragging) {
     editorStore.addBlock(dragging.type);

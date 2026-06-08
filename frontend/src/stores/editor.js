@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { ref, computed } from "vue";
 
 let _idCounter = 0;
 
@@ -8,18 +8,30 @@ export const useEditorStore = defineStore("editor", () => {
   const renderedHtml = ref("");
   const campaignName = ref("");
   const campaignDoc = ref(null); // { name, title, subject, preview_text }
+  const selectedBlockId = ref(null);
+
+  const selectedBlock = computed(
+    () => blocks.value.find((b) => b.id === selectedBlockId.value) || null
+  );
 
   function addBlock(type) {
-    blocks.value.push({ id: ++_idCounter, type, props: defaultProps(type) });
+    const id = ++_idCounter;
+    blocks.value.push({ id, type, props: defaultProps(type) });
+    selectedBlockId.value = id; // select the block we just added
   }
 
   function removeBlock(id) {
     blocks.value = blocks.value.filter((b) => b.id !== id);
+    if (selectedBlockId.value === id) selectedBlockId.value = null;
   }
 
   function moveBlock(fromIndex, toIndex) {
     const item = blocks.value.splice(fromIndex, 1)[0];
     blocks.value.splice(toIndex, 0, item);
+  }
+
+  function selectBlock(id) {
+    selectedBlockId.value = id;
   }
 
   function updateBlockProps(id, props) {
@@ -35,6 +47,7 @@ export const useEditorStore = defineStore("editor", () => {
     campaignDoc.value = doc;
     campaignName.value = doc.title;
     _idCounter = 0;
+    selectedBlockId.value = null;
     blocks.value = (doc.blocks || []).map((b) => ({ ...b, id: ++_idCounter }));
   }
 
@@ -43,9 +56,12 @@ export const useEditorStore = defineStore("editor", () => {
     renderedHtml,
     campaignName,
     campaignDoc,
+    selectedBlockId,
+    selectedBlock,
     addBlock,
     removeBlock,
     moveBlock,
+    selectBlock,
     updateBlockProps,
     setRenderedHtml,
     loadFromDoc,
