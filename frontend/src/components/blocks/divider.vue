@@ -1,6 +1,6 @@
 <template>
   <BlockWrapper :block="block" :index="index">
-    <div class="px-8 py-4">
+    <div :style="paddingStyle">
       <div
         :style="{
           height: block.props.thickness + 'px',
@@ -15,6 +15,11 @@
 </template>
 
 <script setup>
+import { computed } from "vue";
 import BlockWrapper from "../BlockWrapper.vue";
+import { usePadding } from "../../composables/usePadding";
 const props = defineProps({ block: Object, index: Number });
+
+const blockProps = computed(() => props.block.props);
+const paddingStyle = usePadding(blockProps, { top: 16, right: 32, bottom: 16, left: 32 });
 </script>

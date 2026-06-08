@@ -1,6 +1,6 @@
 <template>
   <BlockWrapper :block="block" :index="index">
-    <div class="px-8 py-5">
+    <div :style="paddingStyle">
       <div :class="alignClass">
         <span
           class="inline-block px-6 py-2.5 font-semibold cursor-text outline-none"
@@ -22,9 +22,14 @@
 import BlockWrapper from "../BlockWrapper.vue";
 import { computed } from "vue";
 import { useEditorStore } from "../../stores/editor";
+import { usePadding } from "../../composables/usePadding";
 const props = defineProps({ block: Object, index: Number });
 const store = useEditorStore();
 function update(key, val) { store.updateBlockProps(props.block.id, { [key]: val }); }
+
+const blockProps = computed(() => props.block.props);
+const paddingStyle = usePadding(blockProps);
+
 const alignClass = computed(() => ({
   "text-left": props.block.props.align === "left",
   "text-center": props.block.props.align === "center",

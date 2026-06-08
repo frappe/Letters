@@ -33,22 +33,6 @@ export const BLOCK_SCHEMA = {
           { key: "subheading_color", label: "Subheading color", type: "color" },
         ],
       },
-      {
-        id: "layout",
-        title: "Layout",
-        fields: [
-          {
-            key: "padding",
-            label: "Vertical padding",
-            type: "select",
-            options: [
-              { label: "Compact", value: "compact" },
-              { label: "Normal", value: "normal" },
-              { label: "Spacious", value: "spacious" },
-            ],
-          },
-        ],
-      },
     ],
   },
 

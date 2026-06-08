@@ -1,8 +1,8 @@
 <template>
   <BlockWrapper :block="block" :index="index">
     <div
-      class="px-6 py-5 flex gap-4"
-      :style="{ backgroundColor: block.props.background_color }"
+      class="flex gap-4"
+      :style="{ backgroundColor: block.props.background_color, ...paddingStyle }"
     >
       <div
         v-for="(col, i) in columns"
@@ -45,9 +45,13 @@
 import { computed, watch } from "vue";
 import BlockWrapper from "../BlockWrapper.vue";
 import { useEditorStore } from "../../stores/editor";
+import { usePadding } from "../../composables/usePadding";
 
 const props = defineProps({ block: Object, index: Number });
 const store = useEditorStore();
+
+const blockProps = computed(() => props.block.props);
+const paddingStyle = usePadding(blockProps, { top: 20, right: 24, bottom: 20, left: 24 });
 
 // Computed columns array from props.columns (always kept in sync with column_count)
 const columns = computed(() => props.block.props.columns || []);

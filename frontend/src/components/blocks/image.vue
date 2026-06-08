@@ -1,6 +1,6 @@
 <template>
   <BlockWrapper :block="block" :index="index">
-    <div class="px-8 py-4" :style="{ backgroundColor: block.props.background_color }">
+    <div :style="{ backgroundColor: block.props.background_color, ...paddingStyle }">
 
       <ImageUploader
         :url="block.props.image_url"
@@ -37,11 +37,16 @@
 </template>
 
 <script setup>
+import { computed } from "vue";
 import BlockWrapper from "../BlockWrapper.vue";
 import ImageUploader from "../ImageUploader.vue";
 import { useEditorStore } from "../../stores/editor";
+import { usePadding } from "../../composables/usePadding";
 
 const props = defineProps({ block: Object, index: Number });
 const store = useEditorStore();
 function update(key, val) { store.updateBlockProps(props.block.id, { [key]: val }); }
+
+const blockProps = computed(() => props.block.props);
+const paddingStyle = usePadding(blockProps, { top: 16, right: 32, bottom: 16, left: 32 });
 </script>

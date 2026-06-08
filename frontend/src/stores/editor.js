@@ -78,7 +78,7 @@ function defaultProps(type) {
       heading_color: "#111827",
       heading_size: "30px",
       subheading_color: "#6b7280",
-      padding: "normal",
+      padding_top: 40, padding_right: 32, padding_bottom: 40, padding_left: 32,
     },
     text: {
       content: "Start typing your message...",
@@ -86,12 +86,14 @@ function defaultProps(type) {
       font_size: "15px",
       font_weight: "400",
       text_color: "#374151",
+      padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
     },
     image_text: {
       image_url: "",
       text: "Describe the image here. Keep it short and compelling.",
       image_position: "left",
       background_color: "#ffffff",
+      padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
     },
     button: {
       label: "Click here",
@@ -100,6 +102,7 @@ function defaultProps(type) {
       text_color: "#ffffff",
       align: "center",
       border_radius: "8px",
+      padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
     },
     image: {
       image_url: "",
@@ -108,6 +111,7 @@ function defaultProps(type) {
       background_color: "#ffffff",
       border: "0.5px solid #383838",
       border_radius: "0",
+      padding_top: 16, padding_right: 32, padding_bottom: 16, padding_left: 32,
     },
     section_label: {
       label: "SECTION TITLE",
@@ -115,6 +119,7 @@ function defaultProps(type) {
       line_color: "#ededed",
       line_position: "below",
       align: "left",
+      padding_top: 12, padding_right: 32, padding_bottom: 12, padding_left: 32,
     },
     columns: {
       column_count: "2",
@@ -126,12 +131,17 @@ function defaultProps(type) {
         { heading: "Column One", text: "Add your description here.", button_label: "", button_url: "" },
         { heading: "Column Two", text: "Add your description here.", button_label: "", button_url: "" },
       ],
+      padding_top: 20, padding_right: 24, padding_bottom: 20, padding_left: 24,
     },
-    divider: { border_color: "#e5e7eb", thickness: 1, style: "solid" },
+    divider: {
+      border_color: "#e5e7eb", thickness: 1, style: "solid",
+      padding_top: 16, padding_right: 32, padding_bottom: 16, padding_left: 32,
+    },
     footer: {
       text: "You received this email because you signed up.",
       background_color: "#f9fafb",
       text_color: "#6b7280",
+      padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
     },
   };
   return defaults[type] ?? {};

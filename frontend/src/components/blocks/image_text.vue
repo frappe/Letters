@@ -1,9 +1,9 @@
 <template>
   <BlockWrapper :block="block" :index="index">
     <div
-      class="flex gap-5 px-8 py-5 items-center"
+      class="flex gap-5 items-center"
       :class="{ 'flex-row-reverse': block.props.image_position === 'right' }"
-      :style="{ backgroundColor: block.props.background_color }"
+      :style="{ backgroundColor: block.props.background_color, ...paddingStyle }"
     >
       <!-- Image -->
       <div class="flex-shrink-0" :style="{ width: imageWidth }">
@@ -37,10 +37,14 @@ import { computed } from "vue";
 import BlockWrapper from "../BlockWrapper.vue";
 import ImageUploader from "../ImageUploader.vue";
 import { useEditorStore } from "../../stores/editor";
+import { usePadding } from "../../composables/usePadding";
 
 const props = defineProps({ block: Object, index: Number });
 const store = useEditorStore();
 function update(key, val) { store.updateBlockProps(props.block.id, { [key]: val }); }
+
+const blockProps = computed(() => props.block.props);
+const paddingStyle = usePadding(blockProps);
 
 // Image width from prop (e.g. "33%", "50%", "175px")
 const imageWidth = computed(() => props.block.props.image_width || "175px");

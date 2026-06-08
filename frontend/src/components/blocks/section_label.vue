@@ -1,6 +1,6 @@
 <template>
   <BlockWrapper :block="block" :index="index">
-    <div class="px-8 py-3" :class="alignClass">
+    <div :class="alignClass" :style="paddingStyle">
       <!-- Line above -->
       <div
         v-if="block.props.line_position === 'above'"
@@ -31,10 +31,14 @@
 import { computed } from "vue";
 import BlockWrapper from "../BlockWrapper.vue";
 import { useEditorStore } from "../../stores/editor";
+import { usePadding } from "../../composables/usePadding";
 
 const props = defineProps({ block: Object, index: Number });
 const store = useEditorStore();
 function update(key, val) { store.updateBlockProps(props.block.id, { [key]: val }); }
+
+const blockProps = computed(() => props.block.props);
+const paddingStyle = usePadding(blockProps, { top: 12, right: 32, bottom: 12, left: 32 });
 
 const alignClass = computed(() => ({
   "text-left":   !props.block.props.align || props.block.props.align === "left",

@@ -1,8 +1,8 @@
 <template>
   <BlockWrapper :block="block" :index="index">
     <div
-      class="px-8 py-5 text-center"
-      :style="{ backgroundColor: block.props.background_color }"
+      class="text-center"
+      :style="{ backgroundColor: block.props.background_color, ...paddingStyle }"
     >
       <div
         class="text-xs leading-relaxed outline-none"
@@ -16,9 +16,14 @@
 </template>
 
 <script setup>
+import { computed } from "vue";
 import BlockWrapper from "../BlockWrapper.vue";
 import { useEditorStore } from "../../stores/editor";
+import { usePadding } from "../../composables/usePadding";
 const props = defineProps({ block: Object, index: Number });
 const store = useEditorStore();
 function update(key, val) { store.updateBlockProps(props.block.id, { [key]: val }); }
+
+const blockProps = computed(() => props.block.props);
+const paddingStyle = usePadding(blockProps);
 </script>

@@ -3,6 +3,15 @@ from html import escape
 from typing import Any
 
 
+def _padding(props: dict, dt: int = 20, dr: int = 32, db: int = 20, dl: int = 32) -> str:
+    """Return a CSS padding shorthand from block props, falling back to supplied defaults."""
+    t = int(props.get("padding_top",    dt))
+    r = int(props.get("padding_right",  dr))
+    b = int(props.get("padding_bottom", db))
+    l = int(props.get("padding_left",   dl))
+    return f"{t}px {r}px {b}px {l}px"
+
+
 def _spacing_wrapper(inner_html: str, props: dict) -> str:
     """Wrap a block's HTML in a table row that applies spacing_top / spacing_bottom."""
     top    = int(props.get("spacing_top", 0))
@@ -33,9 +42,7 @@ class HeroRenderer(BlockRenderer):
         heading_size    = escape(p.get("heading_size", "30px"))
         subheading_color = escape(p.get("subheading_color", "#6b7280"))
         text_align      = escape(p.get("text_align", "center"))
-
-        padding_map = {"compact": "24px 32px", "normal": "40px 32px", "spacious": "64px 32px"}
-        padding = padding_map.get(p.get("padding", "normal"), "40px 32px")
+        padding         = _padding(p, 40, 32, 40, 32)
 
         html = (
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0"'
@@ -62,9 +69,10 @@ class TextRenderer(BlockRenderer):
         line_height    = escape(str(p.get("line_height", "1.6")))
         letter_spacing = escape(p.get("letter_spacing", "normal"))
 
+        padding = _padding(p, 20, 32, 20, 32)
         html = (
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
-            f'<tr><td align="{align}" style="padding:12px 32px;">'
+            f'<tr><td align="{align}" style="padding:{padding};">'
             f'<p style="margin:0;font-family:Arial,sans-serif;font-size:{size};'
             f'color:{color};line-height:{line_height};text-align:{align};'
             f'font-weight:{weight};letter-spacing:{letter_spacing};">{content}</p>'
@@ -97,10 +105,11 @@ class ImageRenderer(BlockRenderer):
                 f'font-size:12px;color:{caption_color};line-height:1.4;">{caption}</td></tr>'
             )
 
+        padding = _padding(p, 16, 32, 16, 32)
         html = (
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0"'
             f' style="background-color:{bg};">'
-            f'<tr><td style="padding:0 32px;">'
+            f'<tr><td style="padding:{padding};">'
             f'<img src="{image_url}" width="100%" alt="{alt}"'
             f' style="display:block;max-width:100%;height:auto;{border_style}{radius_style}" />'
             f'</td></tr>'
@@ -123,9 +132,10 @@ class SectionLabelRenderer(BlockRenderer):
         above_line = line_html if line_position == "above" else ""
         below_line = line_html if line_position in ("below", "") or not line_position else ""
 
+        padding = _padding(p, 12, 32, 12, 32)
         html = (
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
-            f'<tr><td style="padding:16px 32px 8px;" align="{align}">'
+            f'<tr><td style="padding:{padding};" align="{align}">'
             f'{above_line}'
             f'<span style="font-family:Arial,sans-serif;font-size:11px;font-weight:600;'
             f'color:{text_color};text-transform:uppercase;letter-spacing:0.99px;'
@@ -148,19 +158,25 @@ class ImageTextRenderer(BlockRenderer):
         width_map = {"25%": "140", "33%": "180", "50%": "260", "175px": "175"}
         img_px = width_map.get(img_width, "175")
 
+        pt = int(p.get("padding_top",    20))
+        pr = int(p.get("padding_right",  32))
+        pb = int(p.get("padding_bottom", 20))
+        pl = int(p.get("padding_left",   32))
+        gap = 8  # fixed inner gap between image and text cells
+
         img_cell = (
-            f'<td width="{img_px}" valign="top" style="padding:16px 8px 16px 32px;">'
+            f'<td width="{img_px}" valign="top" style="padding:{pt}px {gap}px {pb}px {pl}px;">'
             f'<img src="{image_url}" width="{img_px}" style="display:block;border:0;" alt="" />'
             f'</td>'
         ) if image_url else (
-            f'<td width="{img_px}" valign="top" style="padding:16px 8px 16px 32px;">'
+            f'<td width="{img_px}" valign="top" style="padding:{pt}px {gap}px {pb}px {pl}px;">'
             f'<div style="width:{img_px}px;height:100px;background:#eeeeee;'
             f'font-family:Arial,sans-serif;font-size:12px;color:#999;text-align:center;'
             f'padding-top:40px;">Image</div>'
             f'</td>'
         )
         text_cell = (
-            f'<td valign="top" style="padding:16px 32px 16px 8px;">'
+            f'<td valign="top" style="padding:{pt}px {pr}px {pb}px {gap}px;">'
             f'<p style="margin:0;font-family:Arial,sans-serif;font-size:15px;'
             f'color:#333333;line-height:1.6;">{text}</p>'
             f'</td>'
@@ -184,9 +200,10 @@ class ButtonRenderer(BlockRenderer):
         align  = escape(p.get("align", "center"))
         radius = escape(p.get("border_radius", "8px"))
 
+        padding = _padding(p, 20, 32, 20, 32)
         html = (
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
-            f'<tr><td align="{align}" style="padding:16px 32px;">'
+            f'<tr><td align="{align}" style="padding:{padding};">'
             f'<a href="{url}" style="display:inline-block;padding:12px 28px;'
             f'background-color:{bg};color:{color};font-family:Arial,sans-serif;'
             f'font-size:15px;font-weight:bold;text-decoration:none;border-radius:{radius};">'
@@ -203,9 +220,10 @@ class DividerRenderer(BlockRenderer):
         thickness = int(p.get("thickness", 1))
         style     = escape(p.get("style", "solid"))
 
+        padding = _padding(p, 16, 32, 16, 32)
         html = (
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
-            f'<tr><td style="padding:8px 32px;">'
+            f'<tr><td style="padding:{padding};">'
             f'<hr style="border:0;border-top:{thickness}px {style} {color};margin:0;" />'
             f'</td></tr></table>'
         )
@@ -238,9 +256,10 @@ class ColumnsRenderer(BlockRenderer):
                     f'font-size:13px;font-weight:bold;text-decoration:none;border-radius:4px;">'
                     f'{btn_label}</a></p>'
                 )
+            col_pad = _padding(p, 20, 12, 20, 12)
             cells += (
                 f'<td width="{col_width}%" valign="top"'
-                f' style="padding:16px 12px;vertical-align:top;">'
+                f' style="padding:{col_pad};vertical-align:top;">'
                 f'<h3 style="margin:0 0 8px;font-family:Georgia,serif;font-size:16px;'
                 f'font-weight:600;color:{heading_color};line-height:1.3;">{heading}</h3>'
                 f'<p style="margin:0;font-family:Arial,sans-serif;font-size:14px;'
@@ -264,10 +283,11 @@ class FooterRenderer(BlockRenderer):
         bg    = escape(p.get("background_color", "#f9fafb"))
         color = escape(p.get("text_color", "#6b7280"))
 
+        padding = _padding(p, 20, 32, 20, 32)
         html = (
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0"'
             f' style="background-color:{bg};">'
-            f'<tr><td align="center" style="padding:24px 32px;">'
+            f'<tr><td align="center" style="padding:{padding};">'
             f'<p style="margin:0;font-family:Arial,sans-serif;font-size:12px;'
             f'color:{color};line-height:1.5;">{text}</p>'
             f'</td></tr></table>'

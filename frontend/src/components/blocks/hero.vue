@@ -3,7 +3,7 @@
     <div
       :style="{
         backgroundColor: block.props.background_color,
-        padding: paddingValue,
+        ...paddingStyle,
       }"
       :class="textAlignClass"
     >
@@ -29,14 +29,13 @@
 import { computed } from "vue";
 import BlockWrapper from "../BlockWrapper.vue";
 import { useEditorStore } from "../../stores/editor";
+import { usePadding } from "../../composables/usePadding";
 const props = defineProps({ block: Object, index: Number });
 const store = useEditorStore();
 function update(key, val) { store.updateBlockProps(props.block.id, { [key]: val }); }
 
-const paddingValue = computed(() => {
-  const map = { compact: "24px 32px", normal: "40px 32px", spacious: "64px 32px" };
-  return map[props.block.props.padding] || "40px 32px";
-});
+const blockProps = computed(() => props.block.props);
+const paddingStyle = usePadding(blockProps, { top: 40, right: 32, bottom: 40, left: 32 });
 
 const textAlignClass = computed(() => ({
   "text-left":   props.block.props.text_align === "left",

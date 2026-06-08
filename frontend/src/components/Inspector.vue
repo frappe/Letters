@@ -121,6 +121,59 @@
         </div>
       </div>
 
+      <!-- Universal Padding -->
+      <div class="border-b border-gray-100">
+        <button
+          type="button"
+          class="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-gray-50 transition-colors"
+          @click="toggleSection('__padding')"
+        >
+          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Padding</span>
+          <span
+            class="text-gray-400 text-xs transition-transform duration-200"
+            :class="openSections.has('__padding') ? 'rotate-0' : '-rotate-90'"
+          >▾</span>
+        </button>
+        <div v-show="openSections.has('__padding')" class="px-4 pb-4 pt-1 space-y-2">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1.5">Top (px)</label>
+              <input type="number" min="0" max="200"
+                :value="block.props.padding_top ?? 20"
+                @input="set('padding_top', Number($event.target.value))"
+                class="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-300"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1.5">Bottom (px)</label>
+              <input type="number" min="0" max="200"
+                :value="block.props.padding_bottom ?? 20"
+                @input="set('padding_bottom', Number($event.target.value))"
+                class="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-300"
+              />
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1.5">Left (px)</label>
+              <input type="number" min="0" max="200"
+                :value="block.props.padding_left ?? 32"
+                @input="set('padding_left', Number($event.target.value))"
+                class="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-300"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1.5">Right (px)</label>
+              <input type="number" min="0" max="200"
+                :value="block.props.padding_right ?? 32"
+                @input="set('padding_right', Number($event.target.value))"
+                class="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-300"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Universal Spacing -->
       <div class="border-b border-gray-100">
         <button
@@ -192,6 +245,8 @@ watch(
     openSections.clear();
     if (type && BLOCK_SCHEMA[type]) {
       BLOCK_SCHEMA[type].sections.forEach((s) => openSections.add(s.id));
+      openSections.add("__padding");
+      openSections.add("__spacing");
     }
   },
   { immediate: true }
