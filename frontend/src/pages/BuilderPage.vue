@@ -57,18 +57,19 @@
             <Button variant="solid" theme="gray" size="sm" @click="saveCampaign" :loading="saving">
               Save
             </Button>
-            <Button variant="subtle" size="sm" @click="openPreview" :loading="previewing">
-              Preview ↗
-            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              :loading="previewing"
+              title="Open preview in new window"
+              @click="openPreview"
+            >↗</Button>
             <Button
               variant="solid"
               size="sm"
-              class="!bg-blue-600 hover:!bg-blue-700 !text-white"
               :disabled="!editorStore.campaignDoc"
               @click="showSendModal = true"
-            >
-              Send
-            </Button>
+            >Send</Button>
           </div>
           <div class="flex items-center gap-2">
             <TextInput

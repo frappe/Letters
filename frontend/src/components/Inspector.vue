@@ -86,12 +86,13 @@
                 v-for="opt in alignOptions"
                 :key="opt.value"
                 type="button"
-                class="flex-1 py-1.5 text-sm font-medium transition-colors"
+                class="flex-1 py-2 text-xs font-semibold transition-colors"
                 :class="value(field.key) === opt.value
                   ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-400 hover:bg-gray-50 hover:text-gray-600'"
+                  : 'bg-white text-gray-500 hover:bg-gray-50'"
+                :title="opt.label"
                 @click="set(field.key, opt.value)"
-              >{{ opt.icon }}</button>
+              >{{ opt.label }}</button>
             </div>
 
             <!-- Number -->
@@ -165,9 +166,9 @@ function toggleSection(id) {
 }
 
 const alignOptions = [
-  { value: "left",   icon: "≡" },
-  { value: "center", icon: "☰" },
-  { value: "right",  icon: "≣" },
+  { value: "left",   icon: "←", label: "Left" },
+  { value: "center", icon: "↔", label: "Center" },
+  { value: "right",  icon: "→", label: "Right" },
 ];
 
 function value(key) {

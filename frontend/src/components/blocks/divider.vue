@@ -1,13 +1,14 @@
 <template>
   <BlockWrapper :block="block" :index="index">
     <div class="px-8 py-4">
-      <hr
+      <div
         :style="{
-          borderColor: block.props.border_color,
-          borderTopWidth: block.props.thickness + 'px',
-          borderTopStyle: block.props.style,
+          height: block.props.thickness + 'px',
+          backgroundColor: block.props.style === 'solid' ? block.props.border_color : 'transparent',
+          borderTop: block.props.style !== 'solid'
+            ? `${block.props.thickness}px ${block.props.style} ${block.props.border_color}`
+            : 'none',
         }"
-        class="border-0"
       />
     </div>
   </BlockWrapper>
