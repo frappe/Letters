@@ -1,3 +1,4 @@
+from html import escape
 from typing import Any
 
 from .design_tree_processor import DesignTreeProcessor
@@ -12,6 +13,7 @@ _HTML_WRAPPER = """\
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 </head>
 <body style="margin:0;padding:0;background-color:#f3f4f6;">
+{preheader}
 <table width="100%" cellpadding="0" cellspacing="0" border="0"
        style="background-color:#f3f4f6;">
 <tr><td align="center" style="padding:24px 0;">
@@ -30,13 +32,28 @@ _HTML_WRAPPER = """\
 class EmailCompiler:
     """Converts a validated block tree to email-safe HTML (no external dependencies)."""
 
-    def __init__(self, blocks_json: str | list):
+    def __init__(self, blocks_json: str | list, preview_text: str = ""):
         self._processor = DesignTreeProcessor(blocks_json)
+        self._preview_text = preview_text or ""
 
     def compile(self) -> str:
         self._processor.validate()
         blocks_html = self._render_blocks(self._processor.get_tree())
-        return _HTML_WRAPPER.format(blocks=blocks_html)
+        return _HTML_WRAPPER.format(
+            blocks=blocks_html,
+            preheader=self._render_preheader(),
+        )
+
+    def _render_preheader(self) -> str:
+        """Hidden inbox preview line — shown in the inbox list, not in the email body."""
+        if not self._preview_text:
+            return ""
+        return (
+            '<div style="display:none;max-height:0;overflow:hidden;'
+            'mso-hide:all;font-size:1px;line-height:1px;color:#f3f4f6;">'
+            f"{escape(self._preview_text)}"
+            "</div>"
+        )
 
     def _render_blocks(self, tree: list[dict[str, Any]]) -> str:
         parts = []

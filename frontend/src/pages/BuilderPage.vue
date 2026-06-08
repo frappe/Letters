@@ -42,6 +42,15 @@
             <Button variant="subtle" size="sm" @click="refreshPreview" :loading="previewing">
               Preview
             </Button>
+            <Button
+              variant="solid"
+              size="sm"
+              class="!bg-blue-600 hover:!bg-blue-700 !text-white"
+              :disabled="!editorStore.campaignDoc"
+              @click="showSendModal = true"
+            >
+              Send
+            </Button>
           </div>
           <div class="flex items-center gap-2">
             <TextInput
@@ -62,6 +71,9 @@
         <!-- Save feedback -->
         <div v-if="saveMsg" class="mb-3 px-3 py-2 rounded bg-green-50 text-green-700 text-xs">
           {{ saveMsg }}
+        </div>
+        <div v-if="errorMsg" class="mb-3 px-3 py-2 rounded bg-red-50 text-red-700 text-xs">
+          {{ errorMsg }}
         </div>
 
         <!-- Empty state -->
@@ -106,26 +118,44 @@
         <div
           class="border border-gray-200 rounded overflow-hidden bg-white transition-all mx-auto"
           :class="previewMode === 'mobile' ? 'max-w-[375px]' : 'w-full'"
-          v-html="editorStore.renderedHtml || '<div class=\'p-8 text-gray-400 text-sm text-center\'>Save &amp; click Preview</div>'"
+          v-html="editorStore.renderedHtml || '<div class=\'p-8 text-gray-400 text-sm text-center\'>Click Preview to see the email</div>'"
         />
       </div>
     </aside>
 
   </div>
+
+  <SendModal
+    v-if="showSendModal"
+    :campaign-name="editorStore.campaignName"
+    :campaign-doc="editorStore.campaignDoc"
+    @close="showSendModal = false"
+    @sent="onSent"
+  />
 </template>
 
 <script setup>
 import { ref, defineAsyncComponent, onMounted } from "vue";
 import { Button, TextInput } from "frappe-ui";
 import { useEditorStore } from "../stores/editor";
+import SendModal from "../components/SendModal.vue";
 
 const editorStore = useEditorStore();
 const previewMode = ref("desktop");
 const saving = ref(false);
 const previewing = ref(false);
+const showSendModal = ref(false);
 const saveMsg = ref("");
+const errorMsg = ref("");
 const subject = ref("");
 const previewText = ref("");
+
+function describeError(e) {
+  // Frappe puts a readable message in different places depending on the failure
+  return (
+    e?._server_messages?.length && JSON.parse(e._server_messages)[0]
+  ) || e?.message || e?.exc || "Something went wrong. Please try again.";
+}
 
 // Read campaign name from URL ?name=xxx
 const urlParams = new URLSearchParams(window.location.search);
@@ -149,12 +179,14 @@ async function loadCampaign(name) {
     previewText.value = doc.preview_text;
   } catch (e) {
     console.error("Failed to load campaign", e);
+    errorMsg.value = "Couldn't load this campaign: " + describeError(e);
   }
 }
 
 async function saveCampaign() {
   saving.value = true;
   saveMsg.value = "";
+  errorMsg.value = "";
   try {
     const res = await frappe.call({
       method: "letters.api.save_campaign",
@@ -185,6 +217,7 @@ async function saveCampaign() {
     setTimeout(() => (saveMsg.value = ""), 2500);
   } catch (e) {
     console.error("Save failed", e);
+    errorMsg.value = "Couldn't save: " + describeError(e);
   } finally {
     saving.value = false;
   }
@@ -192,6 +225,7 @@ async function saveCampaign() {
 
 async function refreshPreview() {
   previewing.value = true;
+  errorMsg.value = "";
   try {
     const res = await frappe.call({
       method: "letters.api.render_preview",
@@ -199,14 +233,22 @@ async function refreshPreview() {
         blocks: JSON.stringify(
           editorStore.blocks.map(({ id: _id, ...rest }) => rest)
         ),
+        preview_text: previewText.value,
       },
     });
     editorStore.setRenderedHtml(res.message.html);
   } catch (e) {
     console.error("Preview failed", e);
+    errorMsg.value = "Couldn't render preview: " + describeError(e);
   } finally {
     previewing.value = false;
   }
+}
+
+function onSent() {
+  showSendModal.value = false;
+  saveMsg.value = "Campaign sent!";
+  setTimeout(() => (saveMsg.value = ""), 3000);
 }
 
 const availableBlocks = [

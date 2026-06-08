@@ -40,7 +40,8 @@
       "fieldtype": "Code",
       "label": "Blocks JSON",
       "options": "JSON",
-      "description": "Structured design tree for the visual editor"
+      "description": "Structured design tree for the visual editor",
+      "hidden": 1
     }
   ],
   "permissions": [

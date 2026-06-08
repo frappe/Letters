@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /Users/palkanparsana/Desktop/Letters/.claude)",
+      "Bash(npm install *)",
+      "Bash(which node *)",
+      "Bash(find /usr /opt /Applications -name \"npm\" -type f 2>/dev/null | head -3 ; find \"$HOME/Library\" -name \"npm\" -type f 2>/dev/null | head -3)",
+      "Bash(sudo installer -pkg /tmp/node.pkg -target /)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:ui.frappe.io)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(python3 -c \"import json,sys; p=json.load\\(sys.stdin\\); print\\(json.dumps\\(p.get\\('exports',{}\\), indent=2\\)\\)\")",
+      "Bash(sed -i '' 's|import Button from \"frappe-ui/src/components/Button/Button.vue\"|import { Button } from \"frappe-ui\"|g' src/components/BlockWrapper.vue src/pages/BuilderPage.vue)",
+      "Bash(sed -i '' 's|import TextInput from \"frappe-ui/src/components/TextInput/TextInput.vue\"|import { TextInput } from \"frappe-ui\"|g' src/components/blocks/image_text.vue src/components/blocks/button.vue src/pages/BuilderPage.vue)",
+      "Bash(sed -i '' 's|import FormControl from \"frappe-ui/src/components/FormControl/FormControl.vue\"|import { FormControl } from \"frappe-ui\"|g' src/components/blocks/divider.vue src/components/blocks/image_text.vue src/components/blocks/button.vue src/components/blocks/text.vue)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'fix: add pyproject.toml required by Frappe Cloud *)",
+      "Bash(npm run *)"
+    ]
+  }
+}

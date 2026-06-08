@@ -22,9 +22,12 @@ def save_campaign(name=None, title=None, subject=None, preview_text=None, blocks
 
     if name:
         doc = frappe.get_doc("Email Campaign", name)
-        doc.title = title or doc.title
-        doc.subject = subject or doc.subject
-        doc.preview_text = preview_text or doc.preview_text
+        if title is not None:
+            doc.title = title
+        if subject is not None:
+            doc.subject = subject
+        if preview_text is not None:
+            doc.preview_text = preview_text
         doc.blocks_json = blocks_json
         doc.save()
     else:
@@ -42,18 +45,20 @@ def save_campaign(name=None, title=None, subject=None, preview_text=None, blocks
 
 
 @frappe.whitelist()
-def render_preview(name=None, blocks=None):
-    """Compile blocks to email HTML via MJML renderers."""
+def render_preview(name=None, blocks=None, preview_text=None):
+    """Compile blocks to email-safe HTML."""
     from letters.letters.utils.email_compiler import EmailCompiler
 
     if name and not blocks:
         doc = frappe.get_doc("Email Campaign", name)
         blocks_data = doc.blocks_json or "[]"
+        if preview_text is None:
+            preview_text = doc.preview_text
     else:
         blocks_data = blocks if isinstance(blocks, list) else json.loads(blocks or "[]")
 
     try:
-        compiler = EmailCompiler(blocks_data)
+        compiler = EmailCompiler(blocks_data, preview_text=preview_text or "")
         html = compiler.compile()
         return {"html": html}
     except Exception as e:
@@ -62,36 +67,110 @@ def render_preview(name=None, blocks=None):
 
 
 @frappe.whitelist()
-def send_campaign(name):
+def get_doctypes_with_email_fields():
+    """Return doctypes that have at least one field of type Email."""
+    rows = frappe.get_all(
+        "DocField",
+        filters={"fieldtype": "Email"},
+        fields=["parent"],
+        distinct=True,
+        order_by="parent asc",
+    )
+    # Only include non-system doctypes the user can at least read
+    result = []
+    for row in rows:
+        try:
+            if frappe.has_permission(row.parent, "read"):
+                result.append(row.parent)
+        except Exception:
+            pass
+    return result
+
+
+@frappe.whitelist()
+def get_email_fields(doctype):
+    """Return field names/labels of type Email for a given doctype."""
+    frappe.has_permission(doctype, "read", throw=True)
+    fields = frappe.get_all(
+        "DocField",
+        filters={"parent": doctype, "fieldtype": "Email"},
+        fields=["fieldname", "label"],
+        order_by="idx asc",
+    )
+    return fields
+
+
+@frappe.whitelist()
+def get_emails_from_doctype(doctype, email_field, search=None):
+    """Return email values from a doctype's email field, with optional name/email search."""
+    frappe.has_permission(doctype, "read", throw=True)
+
+    meta = frappe.get_meta(doctype)
+    name_field = meta.title_field or "name"
+
+    filters = {email_field: ["!=", ""]}
+    if search:
+        filters[email_field] = ["like", f"%{search}%"]
+
+    try:
+        rows = frappe.get_all(
+            doctype,
+            filters=filters,
+            fields=[name_field, email_field],
+            limit=50,
+            order_by=f"{name_field} asc",
+        )
+    except Exception:
+        # title_field may not exist as an actual column — fall back to name
+        rows = frappe.get_all(
+            doctype,
+            filters=filters,
+            fields=["name", email_field],
+            limit=50,
+        )
+        name_field = "name"
+
+    return [
+        {"label": r.get(name_field) or r.get("name"), "email": r.get(email_field)}
+        for r in rows
+        if r.get(email_field)
+    ]
+
+
+@frappe.whitelist()
+def send_campaign(name, recipients):
+    """
+    Compile and send a campaign to the given recipients.
+    `recipients` is a JSON string or list of email addresses.
+    Creates an Email Send record for tracking.
+    """
+    if isinstance(recipients, str):
+        recipients = json.loads(recipients)
+
+    recipients = [r.strip() for r in recipients if r.strip()]
+    if not recipients:
+        frappe.throw(_("No recipients provided."))
+
     doc = frappe.get_doc("Email Campaign", name)
     if not doc.blocks_json:
         frappe.throw(_("Campaign has no content to send."))
-
-    sends = frappe.get_all(
-        "Email Send",
-        filters={"campaign": name, "status": "Draft"},
-        fields=["name", "recipient_emails"],
-    )
-    if not sends:
-        frappe.throw(_("No draft Email Send records found for this campaign."))
+    if not doc.subject:
+        frappe.throw(_("Campaign has no subject line."))
 
     from letters.letters.utils.email_compiler import EmailCompiler
-    compiler = EmailCompiler(doc.blocks_json)
+    compiler = EmailCompiler(doc.blocks_json, preview_text=doc.preview_text)
     html = compiler.compile()
 
-    for send_record in sends:
-        send_doc = frappe.get_doc("Email Send", send_record["name"])
-        recipients = [
-            r.strip()
-            for r in (send_doc.recipient_emails or "").splitlines()
-            if r.strip()
-        ]
-        if not recipients:
-            continue
+    # Create a tracking record
+    send_doc = frappe.get_doc({
+        "doctype": "Email Send",
+        "campaign": name,
+        "status": "Sending",
+        "recipient_emails": "\n".join(recipients),
+    })
+    send_doc.insert(ignore_permissions=True)
 
-        send_doc.status = "Sending"
-        send_doc.save(ignore_permissions=True)
-
+    try:
         for email in recipients:
             frappe.sendmail(
                 recipients=[email],
@@ -99,11 +178,16 @@ def send_campaign(name):
                 message=html,
                 now=False,
             )
-
         send_doc.status = "Sent"
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "Letters send_campaign error")
+        send_doc.status = "Failed"
         send_doc.save(ignore_permissions=True)
+        frappe.throw(_("Failed to queue emails. Check the error log."))
+
+    send_doc.save(ignore_permissions=True)
 
     doc.status = "Ready"
     doc.save(ignore_permissions=True)
 
-    return {"sent": True}
+    return {"sent": True, "count": len(recipients)}
