@@ -34,7 +34,8 @@
       <div class="flex items-center gap-1.5 flex-shrink-0">
         <Button variant="ghost" size="sm" :loading="previewing" title="Preview in new window" @click="openPreview">↗</Button>
         <Button variant="ghost" size="sm" :loading="saving" title="Save" @click="saveCampaign">
-          <template #prefix><FeatherIcon name="save" class="w-3.5 h-3.5" /></template>
+          <template #prefix><FeatherIcon name="upload-cloud" class="w-3.5 h-3.5" /></template>
+          Save
         </Button>
         <Button variant="subtle" size="sm" :disabled="!editorStore.campaignDoc" @click="showSendModal = true">Send</Button>
       </div>

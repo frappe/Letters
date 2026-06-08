@@ -21,7 +21,8 @@
       "WebFetch(domain:frappe.io)",
       "Bash(curl -s \"https://frappe.io/times/may-2026\")",
       "Bash(curl -s \"https://frappe.io/files/page_styles/CSS-3eacf-fc1dd5f243.css\")",
-      "Bash(curl -s \"https://frappe.io/files/page_styles/CSS-ff9cd-e3f33dfc51.css\")"
+      "Bash(curl -s \"https://frappe.io/files/page_styles/CSS-ff9cd-e3f33dfc51.css\")",
+      "Bash(yarn build *)"
     ]
   }
 }

@@ -13,9 +13,9 @@
     {
       "color": "Blue",
       "doc_view": "List",
-      "format": "{} Email Campaign",
-      "label": "Email Campaign",
-      "link_to": "Email Campaign",
+      "format": "{} Letters Campaign",
+      "label": "Letters Campaign",
+      "link_to": "Letters Campaign",
       "stats_filter": "{}",
       "type": "DocType"
     },
@@ -40,7 +40,7 @@
       "hidden": 0,
       "is_query_report": 0,
       "label": "Campaigns",
-      "link_to": "Email Campaign",
+      "link_to": "Letters Campaign",
       "link_type": "DocType",
       "onboard": 1,
       "type": "Link"

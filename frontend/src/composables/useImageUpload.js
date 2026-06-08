@@ -38,7 +38,7 @@ export function useImageUpload(onUploaded) {
       const fd = new FormData();
       fd.append("file", file, file.name);
       fd.append("is_private", "0");
-      fd.append("doctype", "Email Campaign");
+      fd.append("folder", "Home/Attachments");
 
       // Frappe CSRF token — always available on window.frappe in Desk context
       const csrf = window?.frappe?.csrf_token || "";

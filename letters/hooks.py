@@ -28,7 +28,7 @@ required_apps = ["frappe"]
 # so there is no separate .css file to register via page_css.
 page_js = {"letters-builder": "public/js/letters-builder.js"}
 
-doctype_js = {"Email Campaign": "public/frappe_customizations/email_campaign.js"}
+doctype_js = {"Letters Campaign": "public/frappe_customizations/email_campaign.js"}
 
 # Override standard DocType forms
 # override_doctype_class = {}

@@ -92,6 +92,7 @@ function defaultProps(type) {
       image_url: "",
       text: "Describe the image here. Keep it short and compelling.",
       image_position: "left",
+      image_width: "175px",
       background_color: "#ffffff",
       padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
     },

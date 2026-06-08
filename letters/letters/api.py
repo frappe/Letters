@@ -5,7 +5,7 @@ from frappe import _
 
 @frappe.whitelist()
 def get_campaign(name):
-    doc = frappe.get_doc("Email Campaign", name)
+    doc = frappe.get_doc("Letters Campaign", name)
     return {
         "name": doc.name,
         "title": doc.title,
@@ -21,7 +21,7 @@ def save_campaign(name=None, title=None, subject=None, preview_text=None, blocks
     blocks_json = json.dumps(blocks if isinstance(blocks, list) else json.loads(blocks or "[]"))
 
     if name:
-        doc = frappe.get_doc("Email Campaign", name)
+        doc = frappe.get_doc("Letters Campaign", name)
         if title is not None:
             doc.title = title
         if subject is not None:
@@ -32,7 +32,7 @@ def save_campaign(name=None, title=None, subject=None, preview_text=None, blocks
         doc.save()
     else:
         doc = frappe.get_doc({
-            "doctype": "Email Campaign",
+            "doctype": "Letters Campaign",
             "title": title or "Untitled Campaign",
             "subject": subject or "",
             "preview_text": preview_text or "",
@@ -50,7 +50,7 @@ def render_preview(name=None, blocks=None, preview_text=None):
     from letters.letters.utils.email_compiler import EmailCompiler
 
     if name and not blocks:
-        doc = frappe.get_doc("Email Campaign", name)
+        doc = frappe.get_doc("Letters Campaign", name)
         blocks_data = doc.blocks_json or "[]"
         if preview_text is None:
             preview_text = doc.preview_text
@@ -178,7 +178,7 @@ def send_campaign(name, recipients=None, email_group=None):
       - email_group: name of a Frappe Email Group (respects unsubscribes, adds unsubscribe link)
       - recipients:  JSON string or list of email addresses (direct send, no unsubscribe tracking)
     """
-    doc = frappe.get_doc("Email Campaign", name)
+    doc = frappe.get_doc("Letters Campaign", name)
     if not doc.blocks_json:
         frappe.throw(_("Campaign has no content to send."))
     if not doc.subject:
