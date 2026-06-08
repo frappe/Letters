@@ -1,0 +1,57 @@
+{
+  "name": "Email Campaign",
+  "module": "Letters",
+  "doctype": "DocType",
+  "issingle": 0,
+  "istable": 0,
+  "is_submittable": 0,
+  "track_changes": 1,
+  "fields": [
+    {
+      "fieldname": "title",
+      "fieldtype": "Data",
+      "label": "Title",
+      "reqd": 1,
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "subject",
+      "fieldtype": "Data",
+      "label": "Subject Line",
+      "reqd": 1
+    },
+    {
+      "fieldname": "preview_text",
+      "fieldtype": "Data",
+      "label": "Preview Text"
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "label": "Status",
+      "options": "Draft\nReady",
+      "default": "Draft",
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "blocks_json",
+      "fieldtype": "Code",
+      "label": "Blocks JSON",
+      "options": "JSON",
+      "description": "Structured design tree for the visual editor"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1,
+      "create": 1,
+      "delete": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC"
+}

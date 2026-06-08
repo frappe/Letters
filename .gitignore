@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+
+node_modules/
+frontend/dist/
+
+.env
+.DS_Store
+*.swp
