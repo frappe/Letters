@@ -309,6 +309,41 @@ export const BLOCK_SCHEMA = {
     ],
   },
 
+  container: {
+    label: "Container",
+    icon: "▢",
+    sections: [
+      {
+        id: "content",
+        title: "Content",
+        fields: [
+          { key: "heading", label: "Heading", type: "text", placeholder: "Optional heading…" },
+          { key: "text",    label: "Body text", type: "text", placeholder: "Optional text…" },
+        ],
+      },
+      {
+        id: "style",
+        title: "Style",
+        fields: [
+          { key: "background_color", label: "Background", type: "color" },
+          { key: "border_color",     label: "Border color", type: "color" },
+          {
+            key: "border_radius",
+            label: "Corners",
+            type: "select",
+            options: [
+              { label: "Sharp",       value: "0" },
+              { label: "Small (4px)", value: "4px" },
+              { label: "Rounded (8px)", value: "8px" },
+              { label: "Large (12px)", value: "12px" },
+              { label: "XL (16px)",   value: "16px" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+
   footer: {
     label: "Footer",
     icon: "≡",

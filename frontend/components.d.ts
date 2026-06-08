@@ -8,9 +8,11 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    BlockAdderRow: typeof import('./src/components/BlockAdderRow.vue')['default']
     BlockWrapper: typeof import('./src/components/BlockWrapper.vue')['default']
     Button: typeof import('./src/components/blocks/button.vue')['default']
     Columns: typeof import('./src/components/blocks/columns.vue')['default']
+    Container: typeof import('./src/components/blocks/container.vue')['default']
     Divider: typeof import('./src/components/blocks/divider.vue')['default']
     Footer: typeof import('./src/components/blocks/footer.vue')['default']
     Hero: typeof import('./src/components/blocks/hero.vue')['default']

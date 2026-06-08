@@ -276,6 +276,40 @@ class ColumnsRenderer(BlockRenderer):
         return _spacing_wrapper(html, p)
 
 
+class ContainerRenderer(BlockRenderer):
+    def render(self, block: dict[str, Any]) -> str:
+        p = block.get("props", {})
+        heading       = escape(p.get("heading", ""))
+        text          = escape(p.get("text", ""))
+        bg            = escape(p.get("background_color", "#f8fafc"))
+        border_color  = escape(p.get("border_color", "#e2e8f0"))
+        border_radius = escape(p.get("border_radius", "12px"))
+        padding       = _padding(p, 24, 24, 24, 24)
+
+        heading_html = ""
+        if heading:
+            heading_html = (
+                f'<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:16px;'
+                f'font-weight:600;color:#111827;line-height:1.3;">{heading}</p>'
+            )
+        text_html = ""
+        if text:
+            text_html = (
+                f'<p style="margin:0;font-family:Arial,sans-serif;font-size:14px;'
+                f'color:#6b7280;line-height:1.6;">{text}</p>'
+            )
+
+        html = (
+            f'<table width="100%" cellpadding="0" cellspacing="0" border="0"'
+            f' style="background-color:{bg};border-radius:{border_radius};">'
+            f'<tr><td style="padding:{padding};border:1px solid {border_color};'
+            f'border-radius:{border_radius};">'
+            f'{heading_html}{text_html}'
+            f'</td></tr></table>'
+        )
+        return _spacing_wrapper(html, p)
+
+
 class FooterRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
         p = block.get("props", {})
@@ -303,6 +337,7 @@ RENDERER_MAP: dict[str, BlockRenderer] = {
     "image_text":    ImageTextRenderer(),
     "button":        ButtonRenderer(),
     "columns":       ColumnsRenderer(),
+    "container":     ContainerRenderer(),
     "divider":       DividerRenderer(),
     "footer":        FooterRenderer(),
 }

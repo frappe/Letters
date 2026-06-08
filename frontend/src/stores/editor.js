@@ -14,10 +14,17 @@ export const useEditorStore = defineStore("editor", () => {
     () => blocks.value.find((b) => b.id === selectedBlockId.value) || null
   );
 
-  function addBlock(type) {
+  function addBlock(type, afterIndex = null) {
     const id = ++_idCounter;
-    blocks.value.push({ id, type, props: defaultProps(type) });
-    selectedBlockId.value = id; // select the block we just added
+    const newBlock = { id, type, props: defaultProps(type) };
+    if (afterIndex === null || afterIndex === undefined) {
+      blocks.value.push(newBlock);
+    } else if (afterIndex < 0) {
+      blocks.value.unshift(newBlock);
+    } else {
+      blocks.value.splice(afterIndex + 1, 0, newBlock);
+    }
+    selectedBlockId.value = id;
   }
 
   function removeBlock(id) {
@@ -133,6 +140,14 @@ function defaultProps(type) {
         { heading: "Column Two", text: "Add your description here.", button_label: "", button_url: "" },
       ],
       padding_top: 20, padding_right: 24, padding_bottom: 20, padding_left: 24,
+    },
+    container: {
+      heading: "",
+      text: "",
+      background_color: "#f8fafc",
+      border_color: "#e2e8f0",
+      border_radius: "12px",
+      padding_top: 24, padding_right: 24, padding_bottom: 24, padding_left: 24,
     },
     divider: {
       border_color: "#e5e7eb", thickness: 1, style: "solid",

@@ -3,11 +3,29 @@
 
     <!-- ── Top bar ─────────────────────────────────────────────────────────── -->
     <header class="flex-shrink-0 h-12 bg-white border-b border-gray-200 flex items-center px-4 gap-3">
+
+      <!-- Layers toggle -->
+      <button
+        type="button"
+        title="Layers"
+        class="w-8 h-8 flex items-center justify-center rounded-lg transition-colors flex-shrink-0"
+        :class="showLayers ? 'bg-gray-900 text-white' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'"
+        @click="showLayers = !showLayers"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="3" width="12" height="1.5" rx="0.75" fill="currentColor"/>
+          <rect x="2" y="7.25" width="12" height="1.5" rx="0.75" fill="currentColor"/>
+          <rect x="2" y="11.5" width="12" height="1.5" rx="0.75" fill="currentColor"/>
+        </svg>
+      </button>
+
+      <div class="w-px h-5 bg-gray-200 flex-shrink-0"></div>
+
       <!-- Campaign name -->
       <TextInput
         v-model="editorStore.campaignName"
         placeholder="Campaign name…"
-        class="w-52"
+        class="w-44"
         size="sm"
       />
 
@@ -41,69 +59,81 @@
       </div>
     </header>
 
-    <!-- ── Three-panel body ───────────────────────────────────────────────── -->
-    <div class="flex flex-1 overflow-hidden">
+    <!-- ── Body ──────────────────────────────────────────────────────────────── -->
+    <div class="flex flex-1 overflow-hidden relative">
 
-      <!-- Left: Block Palette + Layers -->
-      <aside class="w-52 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col overflow-hidden">
-        <!-- Tabs -->
-        <div class="flex border-b border-gray-200 flex-shrink-0">
-          <button
-            v-for="tab in ['Blocks', 'Layers']"
-            :key="tab"
-            type="button"
-            class="flex-1 py-2.5 text-xs font-semibold transition-colors"
-            :class="leftTab === tab
-              ? 'text-gray-900 border-b-2 border-gray-900'
-              : 'text-gray-400 hover:text-gray-600'"
-            @click="leftTab = tab"
-          >{{ tab }}</button>
-        </div>
-
-        <!-- Blocks list -->
-        <div v-if="leftTab === 'Blocks'" class="p-3 flex flex-col gap-1 overflow-y-auto">
-          <div
-            v-for="block in availableBlocks"
-            :key="block.type"
-            class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-gray-700 cursor-grab select-none hover:bg-gray-100 active:cursor-grabbing transition-colors border border-transparent hover:border-gray-200"
-            draggable="true"
-            @dragstart="onDragStart(block)"
-          >
-            <span class="text-gray-400 text-base leading-none w-4 text-center">{{ block.icon }}</span>
-            <span class="font-medium">{{ block.label }}</span>
+      <!-- Layers drawer (slide-in overlay) -->
+      <transition
+        enter-active-class="transition-transform duration-200 ease-out"
+        enter-from-class="-translate-x-full"
+        enter-to-class="translate-x-0"
+        leave-active-class="transition-transform duration-150 ease-in"
+        leave-from-class="translate-x-0"
+        leave-to-class="-translate-x-full"
+      >
+        <div
+          v-if="showLayers"
+          class="absolute left-0 top-0 bottom-0 z-30 w-56 bg-white border-r border-gray-200 flex flex-col shadow-xl"
+        >
+          <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 flex-shrink-0">
+            <span class="text-xs font-semibold text-gray-500 uppercase tracking-widest">Layers</span>
+            <button
+              type="button"
+              class="w-6 h-6 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 text-sm"
+              @click="showLayers = false"
+            >✕</button>
           </div>
-        </div>
-
-        <!-- Layers -->
-        <div v-else class="flex-1 overflow-hidden flex flex-col">
           <LayersPanel />
         </div>
-      </aside>
+      </transition>
 
-      <!-- Center: Canvas -->
+      <!-- Backdrop for layers drawer -->
+      <div
+        v-if="showLayers"
+        class="absolute inset-0 z-20"
+        @click="showLayers = false"
+      ></div>
+
+      <!-- Canvas -->
       <main
         class="flex-1 overflow-y-auto p-6"
         @dragover.prevent
-        @drop="onDrop"
+        @drop="onCanvasDrop"
         @click="editorStore.selectBlock(null)"
       >
         <div class="mx-auto" style="max-width:600px">
+
           <!-- Empty state -->
           <div
             v-if="!editorStore.blocks.length"
-            class="border-2 border-dashed border-gray-300 rounded-xl p-20 text-center text-gray-400 text-sm select-none bg-white/50"
+            class="border-2 border-dashed border-gray-300 rounded-xl p-16 text-center text-gray-400 bg-white/50 select-none"
           >
-            Drag blocks from the left panel to start designing
+            <div class="text-4xl mb-3 opacity-40">✦</div>
+            <p class="text-sm font-medium mb-4">Your canvas is empty</p>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-semibold rounded-lg hover:bg-gray-700 transition-colors"
+              @click.stop="openPicker(-1)"
+            >
+              <span class="text-base leading-none">+</span> Add first block
+            </button>
           </div>
 
-          <!-- Block list -->
-          <component
-            v-for="(block, index) in editorStore.blocks"
-            :key="block.id"
-            :is="blockComponent(block.type)"
-            :block="block"
-            :index="index"
-          />
+          <!-- Block list with inline adders -->
+          <template v-else>
+            <!-- Adder before first block -->
+            <BlockAdderRow :after-index="-1" @open="openPicker" />
+
+            <template v-for="(block, index) in editorStore.blocks" :key="block.id">
+              <component
+                :is="blockComponent(block.type)"
+                :block="block"
+                :index="index"
+              />
+              <!-- Adder after each block -->
+              <BlockAdderRow :after-index="index" @open="openPicker" />
+            </template>
+          </template>
         </div>
       </main>
 
@@ -112,6 +142,39 @@
 
     </div>
   </div>
+
+  <!-- ── Block Picker overlay ───────────────────────────────────────────────── -->
+  <Teleport to="body">
+    <div
+      v-if="pickerAfterIndex !== null"
+      class="fixed inset-0 z-50 flex items-center justify-center"
+      style="background: rgba(0,0,0,0.25); backdrop-filter: blur(2px);"
+      @click.self="closePicker"
+    >
+      <div class="bg-white rounded-2xl shadow-2xl border border-gray-100 p-5 w-80">
+        <div class="flex items-center justify-between mb-4">
+          <span class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Add a block</span>
+          <button
+            type="button"
+            class="w-6 h-6 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 text-sm"
+            @click="closePicker"
+          >✕</button>
+        </div>
+        <div class="grid grid-cols-3 gap-1.5">
+          <button
+            v-for="b in availableBlocks"
+            :key="b.type"
+            type="button"
+            class="flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl text-gray-600 hover:bg-gray-900 hover:text-white transition-colors group"
+            @click="insertBlock(b.type)"
+          >
+            <span class="text-xl leading-none">{{ b.icon }}</span>
+            <span class="text-xs font-medium leading-none">{{ b.label }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 
   <SendModal
     v-if="showSendModal"
@@ -129,16 +192,20 @@ import { useEditorStore } from "../stores/editor";
 import Inspector from "../components/Inspector.vue";
 import LayersPanel from "../components/LayersPanel.vue";
 import SendModal from "../components/SendModal.vue";
+import BlockAdderRow from "../components/BlockAdderRow.vue";
 
 const editorStore = useEditorStore();
-const leftTab    = ref("Blocks");
 const saving     = ref(false);
 const previewing = ref(false);
 const showSendModal = ref(false);
+const showLayers = ref(false);
 const saveMsg    = ref("");
 const errorMsg   = ref("");
 const subject    = ref("");
 const previewText = ref("");
+
+// null = closed; any number = open, insert after that index
+const pickerAfterIndex = ref(null);
 
 // ── Error helper ──────────────────────────────────────────────────────────────
 function describeError(e) {
@@ -279,19 +346,32 @@ function onSent() {
   setTimeout(() => (saveMsg.value = ""), 3000);
 }
 
-// ── Block palette ─────────────────────────────────────────────────────────────
+// ── Block picker ──────────────────────────────────────────────────────────────
 const availableBlocks = [
-  { type: "hero",          label: "Hero",          icon: "◉" },
-  { type: "section_label", label: "Section Label", icon: "§" },
-  { type: "text",          label: "Text",          icon: "¶" },
-  { type: "image",         label: "Image",         icon: "🖼" },
-  { type: "image_text",    label: "Image + Text",  icon: "▣" },
-  { type: "button",        label: "Button",        icon: "▷" },
-  { type: "columns",       label: "Columns",       icon: "⊞" },
-  { type: "divider",       label: "Divider",       icon: "—" },
-  { type: "footer",        label: "Footer",        icon: "≡" },
+  { type: "hero",          label: "Hero",       icon: "◉" },
+  { type: "text",          label: "Text",        icon: "¶" },
+  { type: "image",         label: "Image",       icon: "🖼" },
+  { type: "image_text",    label: "Img + Text",  icon: "▣" },
+  { type: "button",        label: "Button",      icon: "▷" },
+  { type: "columns",       label: "Columns",     icon: "⊞" },
+  { type: "container",     label: "Container",   icon: "▢" },
+  { type: "section_label", label: "Label",       icon: "§" },
+  { type: "divider",       label: "Divider",     icon: "—" },
+  { type: "footer",        label: "Footer",      icon: "≡" },
 ];
 
+function openPicker(afterIndex) {
+  pickerAfterIndex.value = afterIndex;
+}
+function closePicker() {
+  pickerAfterIndex.value = null;
+}
+function insertBlock(type) {
+  editorStore.addBlock(type, pickerAfterIndex.value);
+  closePicker();
+}
+
+// ── Block components (lazy) ───────────────────────────────────────────────────
 const blockComponentCache = {};
 function blockComponent(type) {
   if (!blockComponentCache[type]) {
@@ -302,9 +382,9 @@ function blockComponent(type) {
   return blockComponentCache[type];
 }
 
+// ── Drag-to-canvas drop (still supported — appends at end) ────────────────────
 let dragging = null;
-function onDragStart(block) { dragging = block; }
-function onDrop() {
+function onCanvasDrop() {
   if (dragging) {
     editorStore.addBlock(dragging.type);
     dragging = null;
