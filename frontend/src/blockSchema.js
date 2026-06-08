@@ -194,6 +194,38 @@ export const BLOCK_SCHEMA = {
     ],
   },
 
+  columns: {
+    label: "Columns",
+    icon: "⊞",
+    sections: [
+      {
+        id: "layout",
+        title: "Layout",
+        fields: [
+          {
+            key: "column_count",
+            label: "Columns",
+            type: "select",
+            options: [
+              { label: "2 Columns", value: "2" },
+              { label: "3 Columns", value: "3" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "style",
+        title: "Style",
+        fields: [
+          { key: "background_color", label: "Background", type: "color" },
+          { key: "heading_color", label: "Heading color", type: "color" },
+          { key: "text_color", label: "Text color", type: "color" },
+          { key: "button_color", label: "Button color", type: "color" },
+        ],
+      },
+    ],
+  },
+
   footer: {
     label: "Footer",
     icon: "≡",

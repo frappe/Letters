@@ -107,6 +107,50 @@ class DividerRenderer(BlockRenderer):
         )
 
 
+class ColumnsRenderer(BlockRenderer):
+    def render(self, block: dict[str, Any]) -> str:
+        p = block.get("props", {})
+        bg = escape(p.get("background_color", "#ffffff"))
+        heading_color = escape(p.get("heading_color", "#111827"))
+        text_color = escape(p.get("text_color", "#6b7280"))
+        button_color = escape(p.get("button_color", "#111827"))
+        cols = p.get("columns", [])
+        count = max(len(cols), 1)
+        col_width = round(100 / count)
+
+        cells = ""
+        for col in cols:
+            heading = escape(col.get("heading", ""))
+            text = escape(col.get("text", ""))
+            btn_label = escape(col.get("button_label", ""))
+            btn_url = escape(col.get("button_url", "#"))
+            btn_html = ""
+            if btn_label:
+                btn_html = (
+                    f'<p style="margin:12px 0 0;">'
+                    f'<a href="{btn_url}" style="display:inline-block;padding:8px 20px;'
+                    f'background-color:{button_color};color:#ffffff;font-family:Arial,sans-serif;'
+                    f'font-size:13px;font-weight:bold;text-decoration:none;border-radius:4px;">'
+                    f'{btn_label}</a></p>'
+                )
+            cells += (
+                f'<td width="{col_width}%" valign="top"'
+                f' style="padding:16px 12px;vertical-align:top;">'
+                f'<h3 style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:16px;'
+                f'font-weight:600;color:{heading_color};line-height:1.3;">{heading}</h3>'
+                f'<p style="margin:0;font-family:Arial,sans-serif;font-size:14px;'
+                f'color:{text_color};line-height:1.6;">{text}</p>'
+                f'{btn_html}'
+                f'</td>'
+            )
+
+        return (
+            f'<table width="100%" cellpadding="0" cellspacing="0" border="0"'
+            f' style="background-color:{bg};">'
+            f'<tr>{cells}</tr></table>'
+        )
+
+
 class FooterRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
         p = block.get("props", {})
@@ -128,6 +172,7 @@ RENDERER_MAP: dict[str, BlockRenderer] = {
     "text": TextRenderer(),
     "image_text": ImageTextRenderer(),
     "button": ButtonRenderer(),
+    "columns": ColumnsRenderer(),
     "divider": DividerRenderer(),
     "footer": FooterRenderer(),
 }

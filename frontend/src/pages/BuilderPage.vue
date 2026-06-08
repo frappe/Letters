@@ -284,6 +284,7 @@ const availableBlocks = [
   { type: "text",       label: "Text",         icon: "¶" },
   { type: "image_text", label: "Image + Text", icon: "▣" },
   { type: "button",     label: "Button",       icon: "▷" },
+  { type: "columns",    label: "Columns",      icon: "⊞" },
   { type: "divider",    label: "Divider",      icon: "—" },
   { type: "footer",     label: "Footer",       icon: "≡" },
 ];

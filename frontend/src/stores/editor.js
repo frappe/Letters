@@ -101,6 +101,17 @@ function defaultProps(type) {
       align: "center",
       border_radius: "8px",
     },
+    columns: {
+      column_count: "2",
+      background_color: "#ffffff",
+      heading_color: "#111827",
+      text_color: "#6b7280",
+      button_color: "#111827",
+      columns: [
+        { heading: "Column One", text: "Add your description here.", button_label: "", button_url: "" },
+        { heading: "Column Two", text: "Add your description here.", button_label: "", button_url: "" },
+      ],
+    },
     divider: { border_color: "#e5e7eb", thickness: 1, style: "solid" },
     footer: {
       text: "You received this email because you signed up.",
