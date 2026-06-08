@@ -15,6 +15,7 @@ declare module 'vue' {
     Hero: typeof import('./src/components/blocks/hero.vue')['default']
     Image_text: typeof import('./src/components/blocks/image_text.vue')['default']
     Inspector: typeof import('./src/components/Inspector.vue')['default']
+    LayersPanel: typeof import('./src/components/LayersPanel.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SendModal: typeof import('./src/components/SendModal.vue')['default']

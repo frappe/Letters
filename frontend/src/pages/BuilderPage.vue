@@ -1,12 +1,24 @@
 <template>
   <div class="flex h-screen w-screen bg-gray-100 font-sans overflow-hidden">
 
-    <!-- Left: Block Palette -->
-    <aside class="w-52 flex-shrink-0 bg-gray-900 flex flex-col overflow-y-auto">
-      <div class="px-4 py-3 border-b border-gray-700">
-        <span class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Blocks</span>
+    <!-- Left: Block Palette + Layers -->
+    <aside class="w-52 flex-shrink-0 bg-gray-900 flex flex-col overflow-hidden">
+      <!-- Tab bar -->
+      <div class="flex border-b border-gray-700 flex-shrink-0">
+        <button
+          v-for="tab in ['Blocks', 'Layers']"
+          :key="tab"
+          type="button"
+          class="flex-1 py-2.5 text-xs font-semibold transition-colors"
+          :class="leftTab === tab
+            ? 'text-white border-b-2 border-blue-500'
+            : 'text-gray-400 hover:text-gray-200'"
+          @click="leftTab = tab"
+        >{{ tab }}</button>
       </div>
-      <div class="p-3 flex flex-col gap-1.5">
+
+      <!-- Blocks tab -->
+      <div v-if="leftTab === 'Blocks'" class="p-3 flex flex-col gap-1.5 overflow-y-auto">
         <div
           v-for="block in availableBlocks"
           :key="block.type"
@@ -17,6 +29,11 @@
           <span class="text-gray-400 text-xs">{{ block.icon }}</span>
           {{ block.label }}
         </div>
+      </div>
+
+      <!-- Layers tab -->
+      <div v-else class="flex-1 overflow-hidden flex flex-col bg-white">
+        <LayersPanel />
       </div>
     </aside>
 
@@ -115,9 +132,11 @@ import { ref, defineAsyncComponent, onMounted } from "vue";
 import { Button, TextInput } from "frappe-ui";
 import { useEditorStore } from "../stores/editor";
 import Inspector from "../components/Inspector.vue";
+import LayersPanel from "../components/LayersPanel.vue";
 import SendModal from "../components/SendModal.vue";
 
 const editorStore = useEditorStore();
+const leftTab = ref("Blocks");
 const saving = ref(false);
 const previewing = ref(false);
 const showSendModal = ref(false);

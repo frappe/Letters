@@ -3,6 +3,7 @@
     <div
       class="flex gap-5 px-8 py-5 items-center"
       :class="{ 'flex-row-reverse': block.props.image_position === 'right' }"
+      :style="{ backgroundColor: block.props.background_color }"
     >
       <!-- Image slot -->
       <div class="flex-shrink-0 w-44">
@@ -11,7 +12,7 @@
           v-else
           class="w-full h-28 border-2 border-dashed border-gray-300 rounded flex items-center justify-center bg-gray-50"
         >
-          <span class="text-xs text-gray-400">Set image URL in panel →</span>
+          <span class="text-xs text-gray-400">Set image URL →</span>
         </div>
       </div>
 

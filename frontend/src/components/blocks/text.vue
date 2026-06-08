@@ -2,8 +2,13 @@
   <BlockWrapper :block="block" :index="index">
     <div class="px-8 py-5">
       <div
-        class="outline-none min-h-10 leading-relaxed text-gray-700"
-        :style="{ textAlign: block.props.align, fontSize: block.props.font_size }"
+        class="outline-none min-h-10 leading-relaxed"
+        :style="{
+          textAlign: block.props.align,
+          fontSize: block.props.font_size,
+          fontWeight: block.props.font_weight,
+          color: block.props.text_color,
+        }"
         contenteditable="true"
         @blur="update('content', $event.target.innerText)"
         @click.stop="store.selectBlock(block.id)"
