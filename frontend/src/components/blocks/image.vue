@@ -31,7 +31,7 @@
 
       <!-- Caption -->
       <div
-        v-if="block.props.image_url || block.props.caption"
+        v-if="block.props.caption"
         class="mt-2 text-xs outline-none"
         :style="{ color: block.props.caption_color || '#9ca3af' }"
         contenteditable="true"

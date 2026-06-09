@@ -1,6 +1,6 @@
 <template>
   <div
-    class="relative rounded border-2 transition-colors"
+    class="relative rounded border-2 transition-colors group/block"
     :class="[
       selected ? 'border-gray-900 shadow-sm' : 'border-transparent hover:border-gray-200',
       isDragOver === 'before' ? 'border-t-blue-500' : '',
@@ -15,12 +15,13 @@
 
     <!-- ── Drag reorder grip ──────────────────────────────────────────────── -->
     <div
-      v-if="selected"
       title="Drag to reorder"
       draggable="true"
       class="absolute top-1/2 -translate-y-1/2 -left-7 w-6 h-8 flex items-center justify-center
              cursor-grab active:cursor-grabbing select-none rounded
-             text-gray-300 hover:text-gray-600 hover:bg-gray-100 transition-colors z-10"
+             text-gray-300 hover:text-gray-600 hover:bg-gray-100 transition-all z-10
+             opacity-0 group-hover/block:opacity-100"
+      :class="selected ? 'opacity-100' : ''"
       @dragstart="onDragStart"
       @dragend="onDragEnd"
       @click.stop

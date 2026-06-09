@@ -21,10 +21,15 @@ declare module 'vue' {
     ImageUploader: typeof import('./src/components/ImageUploader.vue')['default']
     Inspector: typeof import('./src/components/Inspector.vue')['default']
     LayersPanel: typeof import('./src/components/LayersPanel.vue')['default']
+    Product_card: typeof import('./src/components/blocks/product_card.vue')['default']
+    Quote: typeof import('./src/components/blocks/quote.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     Section_label: typeof import('./src/components/blocks/section_label.vue')['default']
     SendModal: typeof import('./src/components/SendModal.vue')['default']
+    Social: typeof import('./src/components/blocks/social.vue')['default']
+    Spacer: typeof import('./src/components/blocks/spacer.vue')['default']
     Text: typeof import('./src/components/blocks/text.vue')['default']
+    Video_thumb: typeof import('./src/components/blocks/video_thumb.vue')['default']
   }
 }

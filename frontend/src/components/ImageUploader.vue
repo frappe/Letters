@@ -1,12 +1,12 @@
 <template>
-  <div>
+  <div style="line-height:0;font-size:0;">
     <!-- Hidden native file input (shared by dropzone + replace button) -->
     <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="onFileSelect" />
 
     <!-- Uploaded image — rendering delegated to the parent via slot so each
          block controls its own framing (full-width, fixed-width, borders…) -->
     <template v-if="url">
-      <div v-if="!hideReplace" class="relative group/img">
+      <div v-if="!hideReplace" class="relative group/img" style="line-height:0;font-size:0;">
         <slot :url="url">
           <img :src="url" class="w-full block" :alt="alt" />
         </slot>

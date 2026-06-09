@@ -140,7 +140,7 @@
             class="flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl text-gray-600 hover:bg-gray-900 hover:text-white transition-colors group"
             @click="insertBlock(b.type)"
           >
-            <span class="text-xl leading-none">{{ b.icon }}</span>
+            <FeatherIcon :name="b.icon" class="w-4 h-4" />
             <span class="text-xs font-medium leading-none">{{ b.label }}</span>
           </button>
         </div>
@@ -319,21 +319,21 @@ function onSent() {
 
 // ── Block picker ──────────────────────────────────────────────────────────────
 const availableBlocks = [
-  { type: "hero",          label: "Hero",        icon: "◉" },
-  { type: "text",          label: "Text",         icon: "¶" },
-  { type: "image",         label: "Image",        icon: "◻" },
-  { type: "image_text",    label: "Img + Text",   icon: "▣" },
-  { type: "button",        label: "Button",       icon: "▷" },
-  { type: "columns",       label: "Columns",      icon: "⊞" },
-  { type: "container",     label: "Container",    icon: "▢" },
-  { type: "quote",         label: "Quote",        icon: "❝" },
-  { type: "social",        label: "Social",       icon: "⇄" },
-  { type: "product_card",  label: "Product",      icon: "🛍" },
-  { type: "video_thumb",   label: "Video",        icon: "▶" },
-  { type: "spacer",        label: "Spacer",       icon: "↕" },
-  { type: "section_label", label: "Label",        icon: "§" },
-  { type: "divider",       label: "Divider",      icon: "—" },
-  { type: "footer",        label: "Footer",       icon: "≡" },
+  { type: "hero",          label: "Hero",        icon: "layout" },
+  { type: "text",          label: "Text",        icon: "type" },
+  { type: "image",         label: "Image",       icon: "image" },
+  { type: "image_text",    label: "Img + Text",  icon: "sidebar" },
+  { type: "button",        label: "Button",      icon: "square" },
+  { type: "columns",       label: "Columns",     icon: "columns" },
+  { type: "container",     label: "Container",   icon: "box" },
+  { type: "quote",         label: "Quote",       icon: "message-square" },
+  { type: "social",        label: "Social",      icon: "share-2" },
+  { type: "product_card",  label: "Product",     icon: "shopping-bag" },
+  { type: "video_thumb",   label: "Video",       icon: "play-circle" },
+  { type: "spacer",        label: "Spacer",      icon: "minus" },
+  { type: "section_label", label: "Label",       icon: "tag" },
+  { type: "divider",       label: "Divider",     icon: "more-horizontal" },
+  { type: "footer",        label: "Footer",      icon: "align-justify" },
 ];
 
 function openPicker(afterIndex) {

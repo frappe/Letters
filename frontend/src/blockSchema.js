@@ -5,7 +5,7 @@
 export const BLOCK_SCHEMA = {
   hero: {
     label: "Hero",
-    icon: "◉",
+    icon: "layout",
     sections: [
       {
         id: "style",
@@ -38,7 +38,7 @@ export const BLOCK_SCHEMA = {
 
   text: {
     label: "Text",
-    icon: "¶",
+    icon: "type",
     sections: [
       {
         id: "typography",
@@ -98,7 +98,7 @@ export const BLOCK_SCHEMA = {
 
   image: {
     label: "Image",
-    icon: "◻",
+    icon: "image",
     sections: [
       {
         id: "content",
@@ -144,7 +144,7 @@ export const BLOCK_SCHEMA = {
 
   section_label: {
     label: "Section Label",
-    icon: "§",
+    icon: "tag",
     sections: [
       {
         id: "style",
@@ -196,7 +196,7 @@ export const BLOCK_SCHEMA = {
 
   image_text: {
     label: "Image + Text",
-    icon: "▣",
+    icon: "sidebar",
     sections: [
       {
         id: "image",
@@ -246,7 +246,7 @@ export const BLOCK_SCHEMA = {
 
   button: {
     label: "Button",
-    icon: "▷",
+    icon: "square",
     sections: [
       {
         id: "content",
@@ -306,7 +306,7 @@ export const BLOCK_SCHEMA = {
 
   divider: {
     label: "Divider",
-    icon: "—",
+    icon: "more-horizontal",
     sections: [
       {
         id: "style",
@@ -343,7 +343,7 @@ export const BLOCK_SCHEMA = {
 
   columns: {
     label: "Columns",
-    icon: "⊞",
+    icon: "columns",
     sections: [
       {
         id: "layout",
@@ -402,7 +402,7 @@ export const BLOCK_SCHEMA = {
 
   container: {
     label: "Container",
-    icon: "▢",
+    icon: "box",
     sections: [
       {
         id: "content",
@@ -437,7 +437,7 @@ export const BLOCK_SCHEMA = {
 
   footer: {
     label: "Footer",
-    icon: "≡",
+    icon: "align-justify",
     sections: [
       {
         id: "style",
@@ -452,7 +452,7 @@ export const BLOCK_SCHEMA = {
 
   spacer: {
     label: "Spacer",
-    icon: "↕",
+    icon: "minus",
     sections: [
       {
         id: "style",
@@ -479,7 +479,7 @@ export const BLOCK_SCHEMA = {
 
   quote: {
     label: "Quote",
-    icon: "❝",
+    icon: "message-square",
     sections: [
       {
         id: "style",
@@ -505,7 +505,7 @@ export const BLOCK_SCHEMA = {
 
   social: {
     label: "Social",
-    icon: "⇄",
+    icon: "share-2",
     sections: [
       {
         id: "links",
@@ -534,7 +534,7 @@ export const BLOCK_SCHEMA = {
 
   product_card: {
     label: "Product",
-    icon: "🛍",
+    icon: "shopping-bag",
     sections: [
       {
         id: "content",
@@ -572,7 +572,7 @@ export const BLOCK_SCHEMA = {
 
   video_thumb: {
     label: "Video",
-    icon: "▶",
+    icon: "play-circle",
     sections: [
       {
         id: "content",
