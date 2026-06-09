@@ -2,6 +2,7 @@
   <BlockWrapper :block="block" :index="index">
     <div :style="paddingStyle">
       <div
+        ref="contentRef"
         class="outline-none min-h-10 leading-relaxed"
         :class="alignClass"
         :style="{
@@ -12,9 +13,10 @@
           letterSpacing: block.props.letter_spacing || 'normal',
         }"
         contenteditable="true"
-        @blur="update('content', $event.target.innerText)"
+        @focus="onFocus"
+        @blur="onBlur"
         @click.stop="store.selectBlock(block.id)"
-      >{{ block.props.content }}</div>
+      />
     </div>
   </BlockWrapper>
 </template>
@@ -24,12 +26,19 @@ import { computed } from "vue";
 import BlockWrapper from "../BlockWrapper.vue";
 import { useEditorStore } from "../../stores/editor";
 import { usePadding } from "../../composables/usePadding";
+import { useContentEditable } from "../../composables/useContentEditable";
+
 const props = defineProps({ block: Object, index: Number });
 const store = useEditorStore();
 function update(key, val) { store.updateBlockProps(props.block.id, { [key]: val }); }
 
 const blockProps = computed(() => props.block.props);
 const paddingStyle = usePadding(blockProps);
+
+const { elRef: contentRef, onFocus, onBlur } = useContentEditable(
+  () => props.block.props.content,
+  (val) => update("content", val)
+);
 
 const alignClass = computed(() => ({
   "text-left":   props.block.props.align === "left" || !props.block.props.align,

@@ -3,12 +3,14 @@
     <div :style="paddingStyle">
       <div :class="alignClass">
         <span
+          ref="labelRef"
           class="inline-block font-semibold cursor-text outline-none"
           :style="buttonStyle"
           contenteditable="true"
-          @blur="update('label', $event.target.innerText)"
+          @focus="onFocus"
+          @blur="onBlur"
           @click.stop="store.selectBlock(block.id)"
-        >{{ block.props.label }}</span>
+        />
       </div>
     </div>
   </BlockWrapper>
@@ -19,12 +21,19 @@ import BlockWrapper from "../BlockWrapper.vue";
 import { computed } from "vue";
 import { useEditorStore } from "../../stores/editor";
 import { usePadding } from "../../composables/usePadding";
+import { useContentEditable } from "../../composables/useContentEditable";
+
 const props = defineProps({ block: Object, index: Number });
 const store = useEditorStore();
 function update(key, val) { store.updateBlockProps(props.block.id, { [key]: val }); }
 
 const blockProps = computed(() => props.block.props);
 const paddingStyle = usePadding(blockProps);
+
+const { elRef: labelRef, onFocus, onBlur } = useContentEditable(
+  () => props.block.props.label,
+  (val) => update("label", val)
+);
 
 const PADDING_MAP = {
   compact: "6px 14px",

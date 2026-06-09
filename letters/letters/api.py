@@ -6,6 +6,7 @@ from frappe import _
 @frappe.whitelist()
 def get_campaign(name):
     doc = frappe.get_doc("Letters Campaign", name)
+    frappe.has_permission("Letters Campaign", "read", doc=doc, throw=True)
     return {
         "name": doc.name,
         "title": doc.title,
@@ -22,6 +23,7 @@ def save_campaign(name=None, title=None, subject=None, preview_text=None, blocks
 
     if name:
         doc = frappe.get_doc("Letters Campaign", name)
+        frappe.has_permission("Letters Campaign", "write", doc=doc, throw=True)
         if title is not None:
             doc.title = title
         if subject is not None:
@@ -31,6 +33,7 @@ def save_campaign(name=None, title=None, subject=None, preview_text=None, blocks
         doc.blocks_json = blocks_json
         doc.save()
     else:
+        frappe.has_permission("Letters Campaign", "create", throw=True)
         doc = frappe.get_doc({
             "doctype": "Letters Campaign",
             "title": title or "Untitled Campaign",
@@ -51,6 +54,7 @@ def render_preview(name=None, blocks=None, preview_text=None):
 
     if name and not blocks:
         doc = frappe.get_doc("Letters Campaign", name)
+        frappe.has_permission("Letters Campaign", "read", doc=doc, throw=True)
         blocks_data = doc.blocks_json or "[]"
         if preview_text is None:
             preview_text = doc.preview_text
@@ -179,6 +183,17 @@ def send_campaign(name, recipients=None, email_group=None):
       - recipients:  JSON string or list of email addresses (direct send, no unsubscribe tracking)
     """
     doc = frappe.get_doc("Letters Campaign", name)
+    frappe.has_permission("Letters Campaign", "write", doc=doc, throw=True)
+
+    # Idempotency guard — prevent duplicate sends
+    if doc.status == "Ready":
+        frappe.throw(_("This campaign has already been sent. Duplicate sends are not allowed."))
+    already_sent = frappe.db.exists(
+        "Email Send", {"campaign": name, "status": "Sent"}
+    )
+    if already_sent:
+        frappe.throw(_("This campaign has already been sent. Duplicate sends are not allowed."))
+
     if not doc.blocks_json:
         frappe.throw(_("Campaign has no content to send."))
     if not doc.subject:

@@ -4,6 +4,14 @@ from typing import Any
 import re
 
 
+def _safe_url(url: str) -> str:
+    """Return an HTML-escaped URL, rejecting dangerous protocol schemes."""
+    url = (url or "").strip()
+    if url.lower().lstrip("\x00\t\n\r\f ").startswith(("javascript:", "data:", "vbscript:")):
+        return "#"
+    return escape(url)
+
+
 def _hex_to_rgba(hex_color: str, alpha: float) -> str:
     """Convert a #RRGGBB hex string to an rgba() value safe for all email clients."""
     hex_color = hex_color.strip().lstrip("#")
@@ -236,7 +244,7 @@ class ButtonRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
         p = block.get("props", {})
         label          = escape(p.get("label", "Click here"))
-        url            = escape(p.get("url", "#"))
+        url            = _safe_url(p.get("url", "#"))
         bg             = escape(p.get("color", "#111827"))
         color          = escape(p.get("text_color", "#ffffff"))
         align          = escape(p.get("align", "center"))
@@ -300,7 +308,7 @@ class ColumnsRenderer(BlockRenderer):
             heading   = escape(col.get("heading", ""))
             text      = escape(col.get("text", ""))
             btn_label = escape(col.get("button_label", ""))
-            btn_url   = escape(col.get("button_url", "#"))
+            btn_url   = _safe_url(col.get("button_url", "#"))
             is_last   = idx == len(cols) - 1
 
             heading_html = ""
@@ -551,7 +559,7 @@ class SocialRenderer(BlockRenderer):
             url = p.get(key, "").strip()
             if url:
                 links.append(
-                    f'<a href="{escape(url)}" style="display:inline-block;margin:4px;'
+                    f'<a href="{_safe_url(url)}" style="display:inline-block;margin:4px;'
                     f'padding:6px 14px;background-color:{bg_rgba};color:{color};'
                     f'font-family:Arial,sans-serif;font-size:12px;font-weight:600;'
                     f'text-decoration:none;border-radius:999px;'
@@ -579,7 +587,7 @@ class ProductCardRenderer(BlockRenderer):
         description   = escape(p.get("description", ""))
         price         = escape(p.get("price", ""))
         button_label  = escape(p.get("button_label", ""))
-        button_url    = escape(p.get("button_url", "#"))
+        button_url    = _safe_url(p.get("button_url", "#"))
         bg            = escape(p.get("background_color", "#ffffff"))
         border_color  = escape(p.get("border_color", "#e5e7eb"))
         border_radius = escape(p.get("border_radius", "12px"))
@@ -636,7 +644,7 @@ class VideoThumbRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
         p             = block.get("props", {})
         thumbnail_url = escape(p.get("thumbnail_url", ""))
-        video_url     = escape(p.get("video_url", "#"))
+        video_url     = _safe_url(p.get("video_url", "#"))
         caption       = escape(p.get("caption", ""))
         border_radius = escape(p.get("border_radius", "8px"))
         padding       = _padding(p, 16, 32, 16, 32)
