@@ -42,7 +42,7 @@
       <template v-else>
         <FeatherIcon name="image" class="w-6 h-6 text-gray-400" />
         <span class="text-xs text-gray-600 font-medium">Click or drop image</span>
-        <span class="text-xs text-gray-400">PNG, JPG, GIF, WebP</span>
+        <span class="text-xs text-gray-400">PNG, JPG or WebP, max 5 MB</span>
       </template>
     </div>
 

@@ -44,7 +44,7 @@ def save_campaign(name=None, title=None, subject=None, preview_text=None, blocks
         })
         doc.insert()
 
-    return {"name": doc.name, "title": doc.title}
+    return {"name": doc.name, "title": doc.title, "status": doc.status}
 
 
 @frappe.whitelist()
@@ -159,18 +159,26 @@ def get_emails_from_doctype(doctype, email_field, search=None):
 
 @frappe.whitelist()
 def get_email_groups():
-    """Return all Email Groups available on the site."""
+    """Return all Email Groups with active member counts (single GROUP BY query)."""
     groups = frappe.get_all(
         "Email Group",
         fields=["name", "title"],
         order_by="title asc",
     )
-    # Attach member count to each group
+    if not groups:
+        return groups
+
+    # Single aggregation query instead of N separate frappe.db.count() calls
+    count_rows = frappe.db.get_all(
+        "Email Group Member",
+        filters={"unsubscribed": 0},
+        fields=["email_group", "count(*) as cnt"],
+        group_by="email_group",
+    )
+    counts = {r["email_group"]: r["cnt"] for r in count_rows}
+
     for g in groups:
-        g["count"] = frappe.db.count(
-            "Email Group Member",
-            filters={"email_group": g["name"], "unsubscribed": 0},
-        )
+        g["count"] = counts.get(g["name"], 0)
     return groups
 
 

@@ -262,6 +262,7 @@ async function loadCampaign(name) {
     editorStore.loadFromDoc(doc);
     subject.value     = doc.subject || "";
     previewText.value = doc.preview_text || "";
+    document.title = (doc.title || "Untitled Campaign") + " — Letters";
     // Allow one Vue flush cycle before re-enabling dirty tracking
     await Promise.resolve();
   } catch (e) {
@@ -297,6 +298,8 @@ async function saveCampaign() {
       window.history.replaceState({}, "", url.toString());
     }
     editorStore.clearDirty();
+    // Keep browser tab title in sync with the campaign name
+    document.title = (editorStore.campaignName || "Untitled Campaign") + " — Letters";
     toast.success("Saved!");
   } catch (e) {
     toast.error("Couldn't save: " + describeError(e));
@@ -397,7 +400,7 @@ const availableBlocks = [
   { type: "hero",          label: "Hero",        icon: "layout" },
   { type: "text",          label: "Text",        icon: "type" },
   { type: "image",         label: "Image",       icon: "image" },
-  { type: "image_text",    label: "Img + Text",  icon: "sidebar" },
+  { type: "image_text",    label: "Image + Text", icon: "sidebar" },
   { type: "button",        label: "Button",      icon: "square" },
   { type: "columns",       label: "Columns",     icon: "columns" },
   { type: "quote",         label: "Quote",       icon: "message-square" },

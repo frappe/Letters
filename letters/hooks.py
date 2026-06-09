@@ -2,7 +2,7 @@ app_name = "letters"
 app_title = "Letters"
 app_publisher = "Palkan Parsana"
 app_description = "Visual email design and campaign system for Frappe"
-app_email = ""
+app_email = "palkan@frappe.io"
 app_license = "MIT"
 
 # Frappe version compatibility

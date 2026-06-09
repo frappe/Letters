@@ -162,7 +162,7 @@ class SectionLabelRenderer(BlockRenderer):
             f'<tr><td style="padding:{padding};" align="{align}">'
             f'{above_line}'
             f'<span style="font-family:Arial,sans-serif;font-size:{font_size};font-weight:{font_weight};'
-            f'color:{text_color};text-transform:uppercase;letter-spacing:0.99px;'
+            f'color:{text_color};text-transform:uppercase;letter-spacing:1px;'
             f'line-height:1.2;">{label}</span>'
             f'{below_line}'
             f'</td></tr></table>'

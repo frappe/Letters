@@ -10,7 +10,7 @@
       <div
         ref="headingRef"
         class="font-bold outline-none mb-2 leading-tight"
-        :style="{ color: block.props.heading_color, fontSize: block.props.heading_size || '30px' }"
+        :style="{ color: block.props.heading_color, fontSize: block.props.heading_size || '30px', fontFamily: 'Georgia, \'Times New Roman\', serif' }"
         contenteditable="true"
         @focus="onHeadingFocus"
         @blur="onHeadingBlur"
@@ -21,7 +21,7 @@
       <div
         ref="subheadingRef"
         class="text-base outline-none leading-relaxed"
-        :style="{ color: block.props.subheading_color }"
+        :style="{ color: block.props.subheading_color, fontFamily: 'Arial, sans-serif' }"
         contenteditable="true"
         @focus="onSubheadingFocus"
         @blur="onSubheadingBlur"

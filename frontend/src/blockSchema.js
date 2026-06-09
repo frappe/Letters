@@ -420,6 +420,13 @@ export const BLOCK_SCHEMA = {
     },
     sections: [
       {
+        id: "content",
+        title: "Content",
+        fields: [
+          { key: "text", label: "Footer text", type: "text", placeholder: "You received this email because you signed up." },
+        ],
+      },
+      {
         id: "style",
         title: "Style",
         fields: [
