@@ -12,41 +12,40 @@
           :style="colStyle(i)"
         >
           <!-- ── Heading (optional) ──────────────────────────────────────── -->
-          <div
+          <EditableDiv
             class="font-semibold text-base outline-none leading-tight transition-opacity"
             :class="col.heading ? 'mb-1.5 opacity-100' : 'opacity-30'"
             :style="{ color: block.props.heading_color || '#111827' }"
-            contenteditable="true"
-            :data-placeholder="'Heading…'"
-            @blur="updateCol(i, 'heading', $event.target.innerText.trim())"
+            :model-value="col.heading"
+            @update:model-value="updateCol(i, 'heading', $event.trim())"
             @click.stop="store.selectBlock(block.id)"
-          >{{ col.heading }}</div>
+          />
 
           <!-- ── Body text ───────────────────────────────────────────────── -->
-          <div
+          <EditableDiv
             class="text-sm outline-none leading-relaxed flex-1"
             :style="{ color: block.props.text_color || '#6b7280' }"
-            contenteditable="true"
-            @blur="updateCol(i, 'text', $event.target.innerText)"
+            :model-value="col.text"
+            @update:model-value="updateCol(i, 'text', $event)"
             @click.stop="store.selectBlock(block.id)"
-          >{{ col.text }}</div>
+          />
 
           <!-- ── CTA ────────────────────────────────────────────────────── -->
           <div class="mt-2.5">
             <!-- Active / editing button -->
             <template v-if="col.button_label || editingCtaCol === i">
-              <div
+              <EditableDiv
                 class="inline-block text-xs font-semibold px-3 py-1.5 rounded outline-none cursor-text"
                 :style="{ backgroundColor: block.props.button_color || '#111827', color: '#fff' }"
-                contenteditable="true"
-                @focus="editingCtaCol = i"
-                @blur="onCtaLabelBlur(i, $event)"
+                :model-value="col.button_label || 'Button text'"
+                @update:model-value="onCtaLabelBlur(i, $event)"
+                @focus.native="editingCtaCol = i"
                 @click.stop="editingCtaCol = i; store.selectBlock(block.id)"
-              >{{ col.button_label || 'Button text' }}</div>
+              />
 
               <!-- URL row (shows while editing this CTA) -->
               <div v-if="editingCtaCol === i" class="mt-1 flex items-center gap-1">
-                <span class="text-xs text-gray-400 flex-shrink-0">↗</span>
+                <FeatherIcon name="external-link" class="w-3 h-3 text-gray-400 flex-shrink-0" />
                 <input
                   type="text"
                   :value="col.button_url"
@@ -59,10 +58,12 @@
                 />
                 <button
                   type="button"
-                  class="text-xs text-gray-300 hover:text-red-400 transition-colors flex-shrink-0"
+                  class="text-gray-300 hover:text-red-400 transition-colors flex-shrink-0 w-4 h-4 flex items-center justify-center"
                   title="Remove button"
                   @click.stop="removeCtaCol(i)"
-                >✕</button>
+                >
+                  <FeatherIcon name="x" class="w-3 h-3" />
+                </button>
               </div>
             </template>
 
@@ -70,9 +71,12 @@
             <button
               v-else
               type="button"
-              class="text-xs text-gray-300 hover:text-gray-500 transition-colors"
+              class="text-xs text-gray-300 hover:text-gray-500 transition-colors flex items-center gap-1"
               @click.stop="addCta(i)"
-            >+ Add button</button>
+            >
+              <FeatherIcon name="plus" class="w-3 h-3" />
+              Add button
+            </button>
           </div>
         </div>
       </div>
@@ -81,8 +85,10 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, nextTick } from "vue";
 import BlockWrapper from "../BlockWrapper.vue";
+import EditableDiv from "../EditableDiv.vue";
+import { FeatherIcon } from "frappe-ui";
 import { useEditorStore } from "../../stores/editor";
 import { usePadding } from "../../composables/usePadding";
 
@@ -110,12 +116,38 @@ function colStyle(i) {
   };
 }
 
-// Resize columns array when column_count changes
+// Resize columns array when column_count changes.
+// Guard prevents the revert call from re-triggering this watcher.
+let _watchGuard = false;
 watch(
   () => props.block.props.column_count,
-  (count) => {
-    const n = parseInt(count) || 2;
+  (newCount, oldCount) => {
+    if (_watchGuard) return;
+    const n   = parseInt(newCount) || 2;
+    const old = parseInt(oldCount) || 2;
     const current = [...(props.block.props.columns || [])];
+
+    // H-02: warn before silently destroying column content
+    if (n < current.length) {
+      const removedCols = current.slice(n);
+      const hasContent  = removedCols.some(
+        (col) => col.heading || col.text || col.button_label
+      );
+      if (hasContent) {
+        const label = removedCols.length === 1 ? "column" : "columns";
+        const confirmed = window.confirm(
+          `Reducing to ${n} ${n === 1 ? "column" : "columns"} will permanently delete the content in the removed ${label}. Continue?`
+        );
+        if (!confirmed) {
+          // Revert the column_count change without re-triggering this watcher
+          _watchGuard = true;
+          store.updateBlockProps(props.block.id, { column_count: String(old) });
+          nextTick(() => { _watchGuard = false; });
+          return;
+        }
+      }
+    }
+
     while (current.length < n) {
       current.push({ heading: "", text: "Add your text here.", button_label: "", button_url: "" });
     }
@@ -140,12 +172,12 @@ function addCta(i) {
   editingCtaCol.value = i;
 }
 
-function onCtaLabelBlur(i, e) {
-  const label = e.target.innerText.trim();
-  if (!label) {
+function onCtaLabelBlur(i, label) {
+  const trimmed = (label || "").trim();
+  if (!trimmed || trimmed === "Button text") {
     removeCtaCol(i);
   } else {
-    updateCol(i, "button_label", label);
+    updateCol(i, "button_label", trimmed);
   }
 }
 

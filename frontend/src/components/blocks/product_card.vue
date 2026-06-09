@@ -27,32 +27,32 @@
         <!-- Content -->
         <div class="p-4">
           <!-- Title -->
-          <div
+          <EditableDiv
             class="font-semibold text-base leading-snug outline-none mb-1"
             :style="{ color: block.props.title_color }"
-            contenteditable="true"
-            @blur="update('title', $event.target.innerText)"
+            :model-value="block.props.title"
+            @update:model-value="update('title', $event)"
             @click.stop="store.selectBlock(block.id)"
-          >{{ block.props.title }}</div>
+          />
 
           <!-- Description -->
-          <div
+          <EditableDiv
             class="text-sm leading-relaxed outline-none mb-3"
             :style="{ color: block.props.text_color }"
-            contenteditable="true"
-            @blur="update('description', $event.target.innerText)"
+            :model-value="block.props.description"
+            @update:model-value="update('description', $event)"
             @click.stop="store.selectBlock(block.id)"
-          >{{ block.props.description }}</div>
+          />
 
           <!-- Price + CTA row -->
           <div class="flex items-center justify-between gap-3">
-            <div
+            <EditableDiv
               class="text-lg font-bold outline-none"
               :style="{ color: block.props.title_color }"
-              contenteditable="true"
-              @blur="update('price', $event.target.innerText)"
+              :model-value="block.props.price"
+              @update:model-value="update('price', $event)"
               @click.stop="store.selectBlock(block.id)"
-            >{{ block.props.price }}</div>
+            />
             <a
               v-if="block.props.button_label"
               :href="block.props.button_url || '#'"
@@ -71,6 +71,7 @@
 import { computed } from "vue";
 import BlockWrapper from "../BlockWrapper.vue";
 import ImageUploader from "../ImageUploader.vue";
+import EditableDiv from "../EditableDiv.vue";
 import { useEditorStore } from "../../stores/editor";
 import { usePadding } from "../../composables/usePadding";
 

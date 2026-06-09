@@ -30,15 +30,14 @@
       </ImageUploader>
 
       <!-- Caption -->
-      <div
+      <EditableDiv
         v-if="block.props.caption"
         class="mt-2 text-xs outline-none"
         :style="{ color: block.props.caption_color || '#9ca3af' }"
-        contenteditable="true"
-        data-placeholder="Add a caption…"
-        @blur="update('caption', $event.target.innerText)"
+        :model-value="block.props.caption"
+        @update:model-value="update('caption', $event)"
         @click.stop="store.selectBlock(block.id)"
-      >{{ block.props.caption }}</div>
+      />
     </div>
   </BlockWrapper>
 </template>
@@ -47,6 +46,7 @@
 import { computed } from "vue";
 import BlockWrapper from "../BlockWrapper.vue";
 import ImageUploader from "../ImageUploader.vue";
+import EditableDiv from "../EditableDiv.vue";
 import { useEditorStore } from "../../stores/editor";
 import { usePadding } from "../../composables/usePadding";
 

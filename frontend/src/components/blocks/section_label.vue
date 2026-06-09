@@ -9,7 +9,7 @@
       />
 
       <!-- Label text -->
-      <div
+      <EditableDiv
         class="inline-block tracking-widest uppercase outline-none"
         :style="{
           color: block.props.text_color || '#383838',
@@ -17,10 +17,10 @@
           fontWeight: block.props.font_weight || '600',
           letterSpacing: '0.99px',
         }"
-        contenteditable="true"
-        @blur="update('label', $event.target.innerText)"
+        :model-value="block.props.label"
+        @update:model-value="update('label', $event)"
         @click.stop="store.selectBlock(block.id)"
-      >{{ block.props.label }}</div>
+      />
 
       <!-- Line below -->
       <div
@@ -35,6 +35,7 @@
 <script setup>
 import { computed } from "vue";
 import BlockWrapper from "../BlockWrapper.vue";
+import EditableDiv from "../EditableDiv.vue";
 import { useEditorStore } from "../../stores/editor";
 import { usePadding } from "../../composables/usePadding";
 

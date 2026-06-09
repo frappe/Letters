@@ -33,12 +33,12 @@
                    px-1.5 py-0.5 rounded pointer-events-none whitespace-nowrap font-mono z-20"
           >{{ resizeTip }}</div>
         </div>
-        <div
+        <EditableDiv
           class="outline-none leading-relaxed text-gray-700"
-          contenteditable="true"
-          @blur="update('text', $event.target.innerText)"
+          :model-value="block.props.text"
+          @update:model-value="update('text', $event)"
           @click.stop="store.selectBlock(block.id)"
-        >{{ block.props.text }}</div>
+        />
         <!-- clearfix -->
         <div style="clear:both"></div>
       </template>
@@ -83,12 +83,12 @@
 
           <!-- Text -->
           <div class="flex-1">
-            <div
+            <EditableDiv
               class="outline-none min-h-10 leading-relaxed text-gray-700"
-              contenteditable="true"
-              @blur="update('text', $event.target.innerText)"
+              :model-value="block.props.text"
+              @update:model-value="update('text', $event)"
               @click.stop="store.selectBlock(block.id)"
-            >{{ block.props.text }}</div>
+            />
           </div>
         </div>
       </template>
@@ -100,6 +100,7 @@
 import { ref, computed } from "vue";
 import BlockWrapper from "../BlockWrapper.vue";
 import ImageUploader from "../ImageUploader.vue";
+import EditableDiv from "../EditableDiv.vue";
 import { useEditorStore } from "../../stores/editor";
 import { usePadding } from "../../composables/usePadding";
 
