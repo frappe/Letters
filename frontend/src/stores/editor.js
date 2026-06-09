@@ -1,14 +1,22 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-
-let _idCounter = 0;
+import { BLOCK_SCHEMA } from "../blockSchema";
 
 export const useEditorStore = defineStore("editor", () => {
-  const blocks = ref([]);
-  const renderedHtml = ref("");
-  const campaignName = ref("");
-  const campaignDoc = ref(null);
+  const blocks         = ref([]);
+  const renderedHtml   = ref("");
+  const campaignName   = ref("");
+  const campaignDoc    = ref(null);
   const selectedBlockId = ref(null);
+  const isDirty        = ref(false);
+
+  // ID counter lives inside the store so it resets correctly with the store
+  // and is not shared as a stale module-level variable across HMR reloads.
+  const _idCounter = ref(0);
+  function nextId() { return ++_idCounter.value; }
+
+  function markDirty() { isDirty.value = true; }
+  function clearDirty() { isDirty.value = false; }
 
   // ── Recursive helpers ────────────────────────────────────────────────────────
   function findBlock(id, list = blocks.value) {
@@ -26,8 +34,7 @@ export const useEditorStore = defineStore("editor", () => {
 
   // ── Top-level block operations ───────────────────────────────────────────────
   function addBlock(type, afterIndex = null) {
-    const id = ++_idCounter;
-    const newBlock = createBlock(type, id);
+    const newBlock = _createBlock(type, nextId());
     if (afterIndex === null || afterIndex === undefined) {
       blocks.value.push(newBlock);
     } else if (afterIndex < 0) {
@@ -35,7 +42,8 @@ export const useEditorStore = defineStore("editor", () => {
     } else {
       blocks.value.splice(afterIndex + 1, 0, newBlock);
     }
-    selectedBlockId.value = id;
+    selectedBlockId.value = newBlock.id;
+    markDirty();
   }
 
   function removeBlock(id) {
@@ -49,11 +57,13 @@ export const useEditorStore = defineStore("editor", () => {
     }
     removeFrom(blocks.value);
     if (selectedBlockId.value === id) selectedBlockId.value = null;
+    markDirty();
   }
 
   function moveBlock(fromIndex, toIndex) {
     const item = blocks.value.splice(fromIndex, 1)[0];
     blocks.value.splice(toIndex, 0, item);
+    markDirty();
   }
 
   function selectBlock(id) {
@@ -62,7 +72,7 @@ export const useEditorStore = defineStore("editor", () => {
 
   function updateBlockProps(id, props) {
     const block = findBlock(id);
-    if (block) Object.assign(block.props, props);
+    if (block) { Object.assign(block.props, props); markDirty(); }
   }
 
   // ── Child block operations (for containers) ──────────────────────────────────
@@ -70,8 +80,7 @@ export const useEditorStore = defineStore("editor", () => {
     const parent = findBlock(parentId);
     if (!parent) return;
     if (!parent.children) parent.children = [];
-    const id = ++_idCounter;
-    const newBlock = createBlock(type, id);
+    const newBlock = _createBlock(type, nextId());
     if (afterIndex === null || afterIndex === undefined) {
       parent.children.push(newBlock);
     } else if (afterIndex < 0) {
@@ -79,7 +88,8 @@ export const useEditorStore = defineStore("editor", () => {
     } else {
       parent.children.splice(afterIndex + 1, 0, newBlock);
     }
-    selectedBlockId.value = id;
+    selectedBlockId.value = newBlock.id;
+    markDirty();
   }
 
   function moveChildBlock(parentId, fromIndex, toIndex) {
@@ -87,6 +97,95 @@ export const useEditorStore = defineStore("editor", () => {
     if (!parent?.children) return;
     const item = parent.children.splice(fromIndex, 1)[0];
     parent.children.splice(toIndex, 0, item);
+    markDirty();
+  }
+
+  // Move any block to any location (cross-level drag from the layers panel)
+  function moveBlockTo(blockId, targetParentId, targetIndex) {
+    if (targetParentId !== null && _isDescendant(blockId, targetParentId)) return;
+
+    let moved = null;
+    function detach(list) {
+      const idx = list.findIndex((b) => b.id === blockId);
+      if (idx !== -1) { moved = list.splice(idx, 1)[0]; return true; }
+      for (const b of list) {
+        if (b.children && detach(b.children)) return true;
+      }
+      return false;
+    }
+    detach(blocks.value);
+    if (!moved) return;
+
+    if (targetParentId === null) {
+      const idx = Math.min(targetIndex, blocks.value.length);
+      blocks.value.splice(idx, 0, moved);
+    } else {
+      const parent = findBlock(targetParentId);
+      if (parent) {
+        if (!parent.children) parent.children = [];
+        const idx = Math.min(targetIndex, parent.children.length);
+        parent.children.splice(idx, 0, moved);
+      }
+    }
+    markDirty();
+  }
+
+  function _isDescendant(blockId, ofId) {
+    const ancestor = findBlock(ofId);
+    if (!ancestor?.children) return false;
+    function check(list) {
+      for (const b of list) {
+        if (b.id === blockId) return true;
+        if (b.children && check(b.children)) return true;
+      }
+      return false;
+    }
+    return check(ancestor.children);
+  }
+
+  function duplicateBlock(id) {
+    // Deep-clone the block, assign fresh IDs to it and all descendants
+    function cloneWithNewIds(b) {
+      const clone = JSON.parse(JSON.stringify(b));
+      clone.id = nextId();
+      if (clone.children) clone.children = clone.children.map(cloneWithNewIds);
+      return clone;
+    }
+
+    // Try top-level first
+    const topIdx = blocks.value.findIndex((b) => b.id === id);
+    if (topIdx !== -1) {
+      const clone = cloneWithNewIds(blocks.value[topIdx]);
+      blocks.value.splice(topIdx + 1, 0, clone);
+      selectedBlockId.value = clone.id;
+      markDirty();
+      return;
+    }
+
+    // Try inside containers
+    function duplicateIn(list) {
+      for (let i = 0; i < list.length; i++) {
+        if (list[i].id === id) {
+          const clone = cloneWithNewIds(list[i]);
+          list.splice(i + 1, 0, clone);
+          selectedBlockId.value = clone.id;
+          markDirty();
+          return true;
+        }
+        if (list[i].children && duplicateIn(list[i].children)) return true;
+      }
+      return false;
+    }
+    duplicateIn(blocks.value);
+  }
+
+  function setBlockLabel(id, label) {
+    const block = findBlock(id);
+    if (!block) return;
+    const trimmed = label?.trim();
+    if (trimmed) block.label = trimmed;
+    else delete block.label;
+    markDirty();
   }
 
   // ── Persistence ──────────────────────────────────────────────────────────────
@@ -94,20 +193,23 @@ export const useEditorStore = defineStore("editor", () => {
     renderedHtml.value = html;
   }
 
-  function assignIds(list) {
+  function _assignIds(list) {
     return (list || []).map((b) => ({
       ...b,
-      id: ++_idCounter,
-      children: b.children ? assignIds(b.children) : (b.type === "container" ? [] : undefined),
+      id: nextId(),
+      children: b.children
+        ? _assignIds(b.children)
+        : (b.type === "container" ? [] : undefined),
     }));
   }
 
   function loadFromDoc(doc) {
-    campaignDoc.value = doc;
+    campaignDoc.value  = doc;
     campaignName.value = doc.title;
-    _idCounter = 0;
+    _idCounter.value   = 0;
     selectedBlockId.value = null;
-    blocks.value = assignIds(doc.blocks || []);
+    blocks.value = _assignIds(doc.blocks || []);
+    clearDirty();
   }
 
   return {
@@ -117,6 +219,7 @@ export const useEditorStore = defineStore("editor", () => {
     campaignDoc,
     selectedBlockId,
     selectedBlock,
+    isDirty,
     addBlock,
     removeBlock,
     moveBlock,
@@ -124,166 +227,28 @@ export const useEditorStore = defineStore("editor", () => {
     updateBlockProps,
     addChildBlock,
     moveChildBlock,
+    moveBlockTo,
+    duplicateBlock,
+    setBlockLabel,
     setRenderedHtml,
     loadFromDoc,
     findBlock,
+    markDirty,
+    clearDirty,
   };
 });
 
-function createBlock(type, id) {
+// ── Block factory ─────────────────────────────────────────────────────────────
+// Defaults come from BLOCK_SCHEMA[type].defaults — single source of truth.
+// No separate defaultProps() function needed.
+function _createBlock(type, id) {
+  const defaults = BLOCK_SCHEMA[type]?.defaults ?? {};
   return {
     id,
     type,
-    props: defaultProps(type),
+    // Spread a deep copy of defaults so mutations on one block don't affect others
+    // (only relevant for object/array props like `columns` in the columns block).
+    props: JSON.parse(JSON.stringify(defaults)),
     ...(type === "container" ? { children: [] } : {}),
   };
-}
-
-function defaultProps(type) {
-  const defaults = {
-    hero: {
-      heading: "Your heading",
-      subheading: "Your subheading",
-      background_color: "#ffffff",
-      text_align: "center",
-      heading_color: "#111827",
-      heading_size: "30px",
-      subheading_color: "#6b7280",
-      padding_top: 40, padding_right: 32, padding_bottom: 40, padding_left: 32,
-    },
-    text: {
-      content: "Start typing your message...",
-      align: "left",
-      font_size: "15px",
-      font_weight: "400",
-      text_color: "#374151",
-      padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
-    },
-    image_text: {
-      image_url: "",
-      text: "Describe the image here. Keep it short and compelling.",
-      image_position: "left",
-      image_width: "160px",
-      layout_mode: "side",
-      background_color: "#ffffff",
-      padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
-    },
-    button: {
-      label: "Click here",
-      url: "#",
-      color: "#111827",
-      text_color: "#ffffff",
-      align: "center",
-      border_radius: "8px",
-      font_size: "14px",
-      button_padding: "normal",
-      padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
-    },
-    image: {
-      image_url: "",
-      caption: "",
-      alt: "",
-      background_color: "#ffffff",
-      border: "0.5px solid #383838",
-      border_radius: "0",
-      padding_top: 16, padding_right: 32, padding_bottom: 16, padding_left: 32,
-      spacing_top: 0, spacing_bottom: 0,
-    },
-    section_label: {
-      label: "SECTION TITLE",
-      text_color: "#383838",
-      line_color: "#ededed",
-      line_position: "below",
-      align: "left",
-      padding_top: 12, padding_right: 32, padding_bottom: 12, padding_left: 32,
-    },
-    columns: {
-      column_count: "2",
-      background_color: "#ffffff",
-      heading_color: "#111827",
-      text_color: "#6b7280",
-      button_color: "#111827",
-      show_dividers: false,
-      divider_color: "#e5e7eb",
-      col_gap: 24,
-      columns: [
-        { heading: "", text: "Add your text here.", button_label: "", button_url: "" },
-        { heading: "", text: "Add your text here.", button_label: "", button_url: "" },
-      ],
-      padding_top: 20, padding_right: 24, padding_bottom: 20, padding_left: 24,
-    },
-    container: {
-      layout: "column",
-      gap: 12,
-      background_color: "#f8fafc",
-      border_color: "#e2e8f0",
-      border_radius: "12px",
-      padding_top: 16, padding_right: 16, padding_bottom: 16, padding_left: 16,
-    },
-    divider: {
-      border_color: "#e5e7eb", thickness: 1, style: "solid",
-      width: "100%", align: "center",
-      padding_top: 16, padding_right: 32, padding_bottom: 16, padding_left: 32,
-    },
-    footer: {
-      text: "You received this email because you signed up.",
-      background_color: "#f9fafb",
-      text_color: "#6b7280",
-      padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
-    },
-    spacer: {
-      height: 32,
-      background_color: "transparent",
-    },
-    quote: {
-      quote: "This is a wonderful product that changed how we work.",
-      author: "Jane Doe",
-      role: "CEO, Acme Inc.",
-      style: "left-border",
-      quote_color: "#111827",
-      author_color: "#6b7280",
-      border_color: "#e5e7eb",
-      background_color: "#f9fafb",
-      padding_top: 24, padding_right: 32, padding_bottom: 24, padding_left: 32,
-    },
-    social: {
-      x_url: "",
-      linkedin_url: "",
-      instagram_url: "",
-      facebook_url: "",
-      youtube_url: "",
-      github_url: "",
-      website_url: "",
-      color: "#374151",
-      background_color: "#ffffff",
-      align: "center",
-      padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
-    },
-    product_card: {
-      image_url: "",
-      title: "Product Name",
-      description: "Short description of your product that highlights its key benefits.",
-      price: "$99",
-      button_label: "Shop Now",
-      button_url: "#",
-      background_color: "#ffffff",
-      border_color: "#e5e7eb",
-      border_radius: "12px",
-      button_color: "#111827",
-      title_color: "#111827",
-      text_color: "#6b7280",
-      padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
-    },
-    video_thumb: {
-      thumbnail_url: "",
-      video_url: "#",
-      caption: "Watch the video →",
-      play_button_color: "#ffffff",
-      play_icon_color: "#111827",
-      overlay_color: "rgba(0,0,0,0.3)",
-      border_radius: "8px",
-      padding_top: 16, padding_right: 32, padding_bottom: 16, padding_left: 32,
-    },
-  };
-  return defaults[type] ?? {};
 }

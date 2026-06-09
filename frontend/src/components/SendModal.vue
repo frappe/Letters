@@ -12,24 +12,17 @@
             <h2 class="text-base font-semibold text-gray-900">Send Campaign</h2>
             <p class="text-xs text-gray-400 mt-0.5">{{ campaignName }}</p>
           </div>
-          <button class="text-gray-400 hover:text-gray-600 text-xl leading-none" @click="$emit('close')">✕</button>
+          <button class="w-7 h-7 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors" @click="$emit('close')"><FeatherIcon name="x" class="w-4 h-4" /></button>
         </div>
 
         <!-- Body -->
         <div class="flex-1 overflow-y-auto px-6 py-5 space-y-5">
 
           <!-- Mode tabs -->
-          <div class="flex gap-1 bg-gray-100 rounded-lg p-1">
-            <button
-              v-for="tab in tabs"
-              :key="tab.id"
-              class="flex-1 text-xs font-medium py-1.5 rounded-md transition-colors"
-              :class="mode === tab.id
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'"
-              @click="mode = tab.id"
-            >{{ tab.label }}</button>
-          </div>
+          <TabButtons
+            :buttons="tabs.map(t => ({ label: t.label, value: t.id }))"
+            v-model="mode"
+          />
 
           <!-- ── Tab: Email Group ── -->
           <div v-if="mode === 'group'" class="space-y-4">
@@ -37,7 +30,7 @@
             <div v-else-if="emailGroups.length === 0" class="rounded-lg border border-dashed border-gray-200 px-4 py-6 text-center">
               <p class="text-sm text-gray-500 font-medium">No Email Groups found</p>
               <p class="text-xs text-gray-400 mt-1">
-                Create one in <strong>Frappe → Email Group</strong> to manage subscriber lists with unsubscribe support.
+                Create one by searching for <strong>Email Group</strong> in the Frappe search bar to manage subscriber lists with unsubscribe support.
               </p>
             </div>
             <div v-else class="space-y-2">
@@ -64,13 +57,13 @@
 
           <!-- ── Tab: Paste emails ── -->
           <div v-if="mode === 'paste'" class="space-y-3">
-            <textarea
+            <Textarea
               v-model="pastedEmails"
-              rows="6"
+              :rows="6"
               placeholder="one@example.com&#10;two@example.com&#10;three@example.com"
-              class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 placeholder-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-400 resize-none font-mono"
+              size="sm"
             />
-            <p class="text-xs text-gray-400">One email per line, or comma-separated.</p>
+            <p class="text-xs text-gray-400">One email per line, or comma- or semicolon-separated.</p>
             <div v-if="parsedPasted.length > 0" class="text-xs text-gray-500 font-medium">
               {{ parsedPasted.length }} valid email{{ parsedPasted.length === 1 ? "" : "s" }} detected
             </div>
@@ -81,29 +74,25 @@
             <!-- DocType select -->
             <div>
               <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">DocType</label>
-              <select
+              <Select
                 v-model="selectedDoctype"
-                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-400 bg-white"
-                @change="onDoctypeChange"
-              >
-                <option value="">— Select DocType —</option>
-                <option v-for="dt in doctypes" :key="dt" :value="dt">{{ dt }}</option>
-              </select>
+                :options="doctypes"
+                placeholder="Select DocType"
+                size="sm"
+                @update:modelValue="onDoctypeChange"
+              />
             </div>
 
             <!-- Email field (only if multiple) -->
             <div v-if="emailFields.length > 1">
               <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Email field</label>
-              <select
+              <Select
                 v-model="selectedField"
-                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-gray-400 bg-white"
-                @change="loadRecords"
-              >
-                <option value="">— Select field —</option>
-                <option v-for="f in emailFields" :key="f.fieldname" :value="f.fieldname">
-                  {{ f.label }} ({{ f.fieldname }})
-                </option>
-              </select>
+                :options="emailFields.map(f => ({ label: `${f.label} (${f.fieldname})`, value: f.fieldname }))"
+                placeholder="Select field"
+                size="sm"
+                @update:modelValue="loadRecords"
+              />
             </div>
 
             <!-- Search + records -->
@@ -155,8 +144,9 @@
           <div v-if="sendError" class="bg-red-50 rounded-lg px-4 py-3 text-xs text-red-600">{{ sendError }}</div>
 
           <!-- Success -->
-          <div v-if="sentCount" class="bg-green-50 rounded-lg px-4 py-3 text-xs text-green-700 font-medium">
-            ✓ Queued for {{ sentCount }} recipient{{ sentCount === 1 ? "" : "s" }}. Campaign marked as Ready.
+          <div v-if="sentCount" class="bg-green-50 rounded-lg px-4 py-3 text-xs text-green-700 font-medium flex items-center gap-2">
+            <FeatherIcon name="check" class="w-3.5 h-3.5 flex-shrink-0" />
+            Queued for {{ sentCount }} recipient{{ sentCount === 1 ? "" : "s" }}. Campaign marked as Ready.
           </div>
 
         </div>
@@ -180,7 +170,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { Button } from "frappe-ui";
+import { Button, TabButtons, Textarea, Select, FeatherIcon } from "frappe-ui";
 
 const props = defineProps({
   campaignName: String,
@@ -217,9 +207,9 @@ async function loadEmailGroups() {
 const pastedEmails = ref("");
 const parsedPasted = computed(() =>
   pastedEmails.value
-    .split(/[\n,]/)
+    .split(/[\n,;]/)
     .map((e) => e.trim().toLowerCase())
-    .filter((e) => e.includes("@"))
+    .filter((e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))
 );
 
 // ── DocType picker ────────────────────────────────────────────────────────────

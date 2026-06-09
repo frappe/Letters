@@ -27,18 +27,22 @@
         />
       </div>
 
-      <!-- Feedback banners inline -->
-      <span v-if="saveMsg" class="text-xs text-green-600 font-medium">{{ saveMsg }}</span>
-      <span v-if="errorMsg" class="text-xs text-red-500 font-medium truncate max-w-xs" :title="errorMsg">{{ errorMsg }}</span>
-
       <!-- Actions -->
       <div class="flex items-center gap-1.5 flex-shrink-0">
-        <Button variant="ghost" size="sm" :loading="previewing" title="Preview in new window" @click="openPreview">↗</Button>
-        <Button variant="ghost" size="sm" :loading="saving" title="Save" @click="saveCampaign">
-          <template #prefix><FeatherIcon name="upload-cloud" class="w-3.5 h-3.5" /></template>
+        <Button variant="ghost" size="sm" :loading="previewing" title="Preview in new window" aria-label="Preview in new tab" @click="openPreview">
+          <template #prefix><FeatherIcon name="external-link" class="w-3.5 h-3.5" /></template>
+          Preview
+        </Button>
+        <Button variant="ghost" size="sm" :loading="saving" :title="editorStore.isDirty ? 'Unsaved changes' : 'Up to date'" @click="saveCampaign">
+          <template #prefix>
+            <span class="relative">
+              <FeatherIcon name="upload-cloud" class="w-3.5 h-3.5" />
+              <span v-if="editorStore.isDirty" class="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-orange-400 rounded-full" />
+            </span>
+          </template>
           Save
         </Button>
-        <Button variant="subtle" size="sm" :disabled="!editorStore.campaignDoc" @click="showSendModal = true">Send</Button>
+        <Button variant="subtle" size="sm" :disabled="!editorStore.campaignDoc" @click="openSendModal">Send</Button>
       </div>
     </header>
 
@@ -58,16 +62,25 @@
           <LayersPanel />
         </div>
 
-        <!-- Add block button pinned to bottom -->
-        <div class="flex-shrink-0 p-3 border-t border-gray-100">
+        <!-- Add block / Add container buttons pinned to bottom -->
+        <div class="flex-shrink-0 p-3 border-t border-gray-100 flex flex-col gap-2">
           <button
             type="button"
             class="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl
                    bg-gray-900 text-white text-xs font-semibold
                    hover:bg-gray-700 transition-colors"
-            @click.stop="openPicker({ mode: 'top', afterIndex: editorStore.blocks.length - 1 })"
+            @click.stop="onAddBlock"
           >
-            <span class="text-base leading-none">+</span> Add block
+            <FeatherIcon name="plus" class="w-3.5 h-3.5" /> Add block
+          </button>
+          <button
+            type="button"
+            class="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl
+                   border border-gray-200 text-gray-600 text-xs font-semibold
+                   hover:bg-gray-100 hover:border-gray-300 transition-colors"
+            @click.stop="addContainer"
+          >
+            <FeatherIcon name="box" class="w-3.5 h-3.5" /> Add container
           </button>
         </div>
       </aside>
@@ -86,7 +99,7 @@
             v-if="!editorStore.blocks.length"
             class="border-2 border-dashed border-gray-300 rounded-xl p-16 text-center text-gray-400 bg-white/50 select-none"
           >
-            <div class="text-4xl mb-3 opacity-40">✦</div>
+            <div class="mb-3 opacity-40"><FeatherIcon name="inbox" class="w-10 h-10 mx-auto text-gray-400" /></div>
             <p class="text-sm font-medium mb-1">Your canvas is empty</p>
             <p class="text-xs opacity-60">Use <strong>+ Add block</strong> in the left panel to get started</p>
           </div>
@@ -115,8 +128,7 @@
   <Teleport to="body">
     <div
       v-if="pickerTarget !== null"
-      class="fixed inset-0 z-50 flex items-center justify-center"
-      style="background: rgba(0,0,0,0.25); backdrop-filter: blur(2px);"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/25 backdrop-blur-sm"
       @click.self="closePicker"
     >
       <div class="bg-white rounded-2xl shadow-2xl border border-gray-100 p-5 w-80">
@@ -124,9 +136,9 @@
           <span class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Add a block</span>
           <button
             type="button"
-            class="w-6 h-6 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 text-sm"
+            class="w-6 h-6 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100"
             @click="closePicker"
-          >✕</button>
+          ><FeatherIcon name="x" class="w-3.5 h-3.5" /></button>
         </div>
         <div class="grid grid-cols-3 gap-1.5">
           <button
@@ -154,8 +166,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, provide } from "vue";
-import { Button, TextInput, FeatherIcon } from "frappe-ui";
+import { ref, onMounted, onUnmounted, watch, provide } from "vue";
+import { Button, TextInput, FeatherIcon, toast } from "frappe-ui";
 import { useEditorStore } from "../stores/editor";
 import Inspector from "../components/Inspector.vue";
 import LayersPanel from "../components/LayersPanel.vue";
@@ -164,13 +176,29 @@ import BlockAdderRow from "../components/BlockAdderRow.vue";
 import BlockRenderer from "../components/BlockRenderer.vue";
 
 const editorStore = useEditorStore();
-const saving     = ref(false);
-const previewing = ref(false);
+const saving        = ref(false);
+const previewing    = ref(false);
 const showSendModal = ref(false);
-const saveMsg    = ref("");
-const errorMsg   = ref("");
 const subject    = ref("");
 const previewText = ref("");
+
+// ── Unsaved changes protection ────────────────────────────────────────────────
+function beforeUnloadHandler(e) {
+  if (editorStore.isDirty) {
+    e.preventDefault();
+    e.returnValue = ""; // required for Chrome
+  }
+}
+onMounted(() => window.addEventListener("beforeunload", beforeUnloadHandler));
+onUnmounted(() => window.removeEventListener("beforeunload", beforeUnloadHandler));
+
+// Track subject/previewText/campaignName changes as dirty.
+// _suppressDirty is set during programmatic loads so the initial population
+// of these fields (from loadCampaign) doesn't immediately re-dirty the store.
+let _suppressDirty = false;
+watch([subject, previewText, () => editorStore.campaignName], () => {
+  if (!_suppressDirty) editorStore.markDirty();
+});
 
 // pickerTarget: null = closed
 //   { mode: 'top', afterIndex: N }      — add to top-level canvas
@@ -214,19 +242,21 @@ async function loadCampaign(name) {
   try {
     const res = await frappe.call({ method: "letters.letters.api.get_campaign", args: { name } });
     const doc = res.message;
+    _suppressDirty = true;
     editorStore.loadFromDoc(doc);
     subject.value     = doc.subject || "";
     previewText.value = doc.preview_text || "";
+    // Allow one Vue flush cycle before re-enabling dirty tracking
+    await Promise.resolve();
+    _suppressDirty = false;
   } catch (e) {
-    errorMsg.value = "Couldn't load campaign: " + describeError(e);
+    toast.error("Couldn't load campaign: " + describeError(e));
   }
 }
 
 // ── Save ──────────────────────────────────────────────────────────────────────
 async function saveCampaign() {
-  saving.value   = true;
-  saveMsg.value  = "";
-  errorMsg.value = "";
+  saving.value = true;
   try {
     const res = await frappe.call({
       method: "letters.letters.api.save_campaign",
@@ -247,10 +277,10 @@ async function saveCampaign() {
     } else {
       editorStore.campaignDoc.name = saved.name;
     }
-    saveMsg.value = "Saved!";
-    setTimeout(() => (saveMsg.value = ""), 2500);
+    editorStore.clearDirty();
+    toast.success("Saved!");
   } catch (e) {
-    errorMsg.value = "Couldn't save: " + describeError(e);
+    toast.error("Couldn't save: " + describeError(e));
   } finally {
     saving.value = false;
   }
@@ -259,7 +289,6 @@ async function saveCampaign() {
 // ── Preview ───────────────────────────────────────────────────────────────────
 async function openPreview() {
   previewing.value = true;
-  errorMsg.value   = "";
   try {
     const res = await frappe.call({
       method: "letters.letters.api.render_preview",
@@ -269,7 +298,12 @@ async function openPreview() {
       },
     });
     const html          = res.message.html;
-    const campaignTitle = editorStore.campaignName || "Email Preview";
+    const rawTitle      = editorStore.campaignName || "Email Preview";
+    const campaignTitle = rawTitle
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
 
     const toolbar = `
 <style>
@@ -310,22 +344,33 @@ async function openPreview() {
     if (win) {
       win.document.write(fullHtml);
       win.document.close();
-      win.document.title = campaignTitle + " — Preview";
+      win.document.title = rawTitle + " — Preview";
     } else {
-      errorMsg.value = "Pop-up blocked — allow pop-ups to use Preview.";
+      toast.warning("Pop-up blocked — allow pop-ups to use Preview.");
     }
   } catch (e) {
-    errorMsg.value = "Preview failed: " + describeError(e);
+    toast.error("Preview failed: " + describeError(e));
   } finally {
     previewing.value = false;
   }
 }
 
 // ── Send ──────────────────────────────────────────────────────────────────────
+function openSendModal() {
+  if (!subject.value?.trim()) {
+    toast.warning("Add a subject line before sending.");
+    return;
+  }
+  if (!editorStore.blocks.length) {
+    toast.warning("Your canvas is empty. Add some blocks before sending.");
+    return;
+  }
+  showSendModal.value = true;
+}
+
 function onSent() {
   showSendModal.value = false;
-  saveMsg.value = "Campaign sent!";
-  setTimeout(() => (saveMsg.value = ""), 3000);
+  toast.success("Campaign sent!");
 }
 
 // ── Block picker ──────────────────────────────────────────────────────────────
@@ -336,7 +381,6 @@ const availableBlocks = [
   { type: "image_text",    label: "Img + Text",  icon: "sidebar" },
   { type: "button",        label: "Button",      icon: "square" },
   { type: "columns",       label: "Columns",     icon: "columns" },
-  { type: "container",     label: "Container",   icon: "box" },
   { type: "quote",         label: "Quote",       icon: "message-square" },
   { type: "social",        label: "Social",      icon: "share-2" },
   { type: "product_card",  label: "Product",     icon: "shopping-bag" },
@@ -346,6 +390,26 @@ const availableBlocks = [
   { type: "divider",       label: "Divider",     icon: "more-horizontal" },
   { type: "footer",        label: "Footer",      icon: "align-justify" },
 ];
+
+// Smart "Add block": if a container is selected, add inside it; else append to canvas
+function onAddBlock() {
+  const sel = editorStore.selectedBlock;
+  if (sel?.type === "container") {
+    openPicker({ mode: "child", parentId: sel.id, afterIndex: (sel.children?.length ?? 1) - 1 });
+  } else {
+    openPicker({ mode: "top", afterIndex: editorStore.blocks.length - 1 });
+  }
+}
+
+// Smart "Add container": if a container is selected, nest inside it; else append to canvas
+function addContainer() {
+  const sel = editorStore.selectedBlock;
+  if (sel?.type === "container") {
+    editorStore.addChildBlock(sel.id, "container", (sel.children?.length ?? 1) - 1);
+  } else {
+    editorStore.addBlock("container", editorStore.blocks.length - 1);
+  }
+}
 
 function closePicker() {
   pickerTarget.value = null;
