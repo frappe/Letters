@@ -13,8 +13,9 @@
     @drop.prevent="onDrop"
   >
 
-    <!-- ── Drag reorder grip ──────────────────────────────────────────────── -->
+    <!-- ── Drag reorder grip (top-level blocks only) ───────────────────── -->
     <div
+      v-if="isTopLevel"
       title="Drag to reorder"
       draggable="true"
       class="absolute top-1/2 -translate-y-1/2 -left-7 w-6 h-8 flex items-center justify-center
@@ -92,6 +93,10 @@ const props  = defineProps({ block: Object, index: Number });
 const store  = useEditorStore();
 const selected = computed(() => store.selectedBlockId === props.block.id);
 
+// Only top-level blocks (directly in store.blocks) support drag-to-reorder.
+// Child blocks inside containers should not interfere with the top-level order.
+const isTopLevel = computed(() => store.blocks.some((b) => b.id === props.block.id));
+
 // ── Spacing wrapper style ────────────────────────────────────────────────────
 const spacingStyle = computed(() => {
   const t = props.block.props?.spacing_top;
@@ -108,6 +113,7 @@ let _dragSourceIndex = null;
 const isDragOver = ref(null); // 'before' | 'after' | null
 
 function onDragStart(e) {
+  if (!isTopLevel.value) return;
   _dragSourceIndex = props.index;
   e.dataTransfer.effectAllowed = "move";
   // Set minimal ghost (transparent 1×1 pixel)
@@ -124,13 +130,14 @@ function onDragEnd() {
 }
 
 function onDragOver(e) {
+  if (!isTopLevel.value) return;
   if (_dragSourceIndex === null || _dragSourceIndex === props.index) return;
   const rect = e.currentTarget.getBoundingClientRect();
   isDragOver.value = e.clientY < rect.top + rect.height / 2 ? "before" : "after";
 }
 
 function onDrop(e) {
-  if (_dragSourceIndex === null) return;
+  if (!isTopLevel.value || _dragSourceIndex === null) return;
   const fromIndex  = _dragSourceIndex;
   const dropBefore = isDragOver.value === "before";
   isDragOver.value = null;

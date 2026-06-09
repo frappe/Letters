@@ -7,16 +7,27 @@ export const useEditorStore = defineStore("editor", () => {
   const blocks = ref([]);
   const renderedHtml = ref("");
   const campaignName = ref("");
-  const campaignDoc = ref(null); // { name, title, subject, preview_text }
+  const campaignDoc = ref(null);
   const selectedBlockId = ref(null);
 
-  const selectedBlock = computed(
-    () => blocks.value.find((b) => b.id === selectedBlockId.value) || null
-  );
+  // ── Recursive helpers ────────────────────────────────────────────────────────
+  function findBlock(id, list = blocks.value) {
+    for (const b of list) {
+      if (b.id === id) return b;
+      if (b.children?.length) {
+        const found = findBlock(id, b.children);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
 
+  const selectedBlock = computed(() => findBlock(selectedBlockId.value));
+
+  // ── Top-level block operations ───────────────────────────────────────────────
   function addBlock(type, afterIndex = null) {
     const id = ++_idCounter;
-    const newBlock = { id, type, props: defaultProps(type) };
+    const newBlock = createBlock(type, id);
     if (afterIndex === null || afterIndex === undefined) {
       blocks.value.push(newBlock);
     } else if (afterIndex < 0) {
@@ -28,7 +39,15 @@ export const useEditorStore = defineStore("editor", () => {
   }
 
   function removeBlock(id) {
-    blocks.value = blocks.value.filter((b) => b.id !== id);
+    function removeFrom(list) {
+      const idx = list.findIndex((b) => b.id === id);
+      if (idx !== -1) { list.splice(idx, 1); return true; }
+      for (const b of list) {
+        if (b.children && removeFrom(b.children)) return true;
+      }
+      return false;
+    }
+    removeFrom(blocks.value);
     if (selectedBlockId.value === id) selectedBlockId.value = null;
   }
 
@@ -42,12 +61,45 @@ export const useEditorStore = defineStore("editor", () => {
   }
 
   function updateBlockProps(id, props) {
-    const block = blocks.value.find((b) => b.id === id);
+    const block = findBlock(id);
     if (block) Object.assign(block.props, props);
   }
 
+  // ── Child block operations (for containers) ──────────────────────────────────
+  function addChildBlock(parentId, type, afterIndex = null) {
+    const parent = findBlock(parentId);
+    if (!parent) return;
+    if (!parent.children) parent.children = [];
+    const id = ++_idCounter;
+    const newBlock = createBlock(type, id);
+    if (afterIndex === null || afterIndex === undefined) {
+      parent.children.push(newBlock);
+    } else if (afterIndex < 0) {
+      parent.children.unshift(newBlock);
+    } else {
+      parent.children.splice(afterIndex + 1, 0, newBlock);
+    }
+    selectedBlockId.value = id;
+  }
+
+  function moveChildBlock(parentId, fromIndex, toIndex) {
+    const parent = findBlock(parentId);
+    if (!parent?.children) return;
+    const item = parent.children.splice(fromIndex, 1)[0];
+    parent.children.splice(toIndex, 0, item);
+  }
+
+  // ── Persistence ──────────────────────────────────────────────────────────────
   function setRenderedHtml(html) {
     renderedHtml.value = html;
+  }
+
+  function assignIds(list) {
+    return (list || []).map((b) => ({
+      ...b,
+      id: ++_idCounter,
+      children: b.children ? assignIds(b.children) : (b.type === "container" ? [] : undefined),
+    }));
   }
 
   function loadFromDoc(doc) {
@@ -55,7 +107,7 @@ export const useEditorStore = defineStore("editor", () => {
     campaignName.value = doc.title;
     _idCounter = 0;
     selectedBlockId.value = null;
-    blocks.value = (doc.blocks || []).map((b) => ({ ...b, id: ++_idCounter }));
+    blocks.value = assignIds(doc.blocks || []);
   }
 
   return {
@@ -70,10 +122,22 @@ export const useEditorStore = defineStore("editor", () => {
     moveBlock,
     selectBlock,
     updateBlockProps,
+    addChildBlock,
+    moveChildBlock,
     setRenderedHtml,
     loadFromDoc,
+    findBlock,
   };
 });
+
+function createBlock(type, id) {
+  return {
+    id,
+    type,
+    props: defaultProps(type),
+    ...(type === "container" ? { children: [] } : {}),
+  };
+}
 
 function defaultProps(type) {
   const defaults = {
@@ -149,12 +213,12 @@ function defaultProps(type) {
       padding_top: 20, padding_right: 24, padding_bottom: 20, padding_left: 24,
     },
     container: {
-      heading: "",
-      text: "",
+      layout: "column",
+      gap: 12,
       background_color: "#f8fafc",
       border_color: "#e2e8f0",
       border_radius: "12px",
-      padding_top: 24, padding_right: 24, padding_bottom: 24, padding_left: 24,
+      padding_top: 16, padding_right: 16, padding_bottom: 16, padding_left: 16,
     },
     divider: {
       border_color: "#e5e7eb", thickness: 1, style: "solid",

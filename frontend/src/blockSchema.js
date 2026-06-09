@@ -405,11 +405,19 @@ export const BLOCK_SCHEMA = {
     icon: "box",
     sections: [
       {
-        id: "content",
-        title: "Content",
+        id: "layout",
+        title: "Layout",
         fields: [
-          { key: "heading", label: "Heading", type: "text", placeholder: "Optional heading…" },
-          { key: "text",    label: "Body text", type: "text", placeholder: "Optional text…" },
+          {
+            key: "layout",
+            label: "Direction",
+            type: "select",
+            options: [
+              { label: "Column (stacked)", value: "column" },
+              { label: "Row (side by side)", value: "row" },
+            ],
+          },
+          { key: "gap", label: "Gap between blocks", type: "number", min: 0, max: 64, unit: "px" },
         ],
       },
       {
@@ -423,11 +431,11 @@ export const BLOCK_SCHEMA = {
             label: "Corners",
             type: "select",
             options: [
-              { label: "Sharp",       value: "0" },
-              { label: "Small (4px)", value: "4px" },
+              { label: "Sharp",        value: "0" },
+              { label: "Small (4px)",  value: "4px" },
               { label: "Rounded (8px)", value: "8px" },
               { label: "Large (12px)", value: "12px" },
-              { label: "XL (16px)",   value: "16px" },
+              { label: "XL (16px)",    value: "16px" },
             ],
           },
         ],

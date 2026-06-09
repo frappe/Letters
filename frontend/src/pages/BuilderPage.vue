@@ -65,7 +65,7 @@
             class="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl
                    bg-gray-900 text-white text-xs font-semibold
                    hover:bg-gray-700 transition-colors"
-            @click.stop="openPicker(-1)"
+            @click.stop="openPicker({ mode: 'top', afterIndex: editorStore.blocks.length - 1 })"
           >
             <span class="text-base leading-none">+</span> Add block
           </button>
@@ -94,16 +94,12 @@
           <!-- Block list with inline adders -->
           <template v-else>
             <!-- Adder before first block -->
-            <BlockAdderRow :after-index="-1" @open="openPicker" />
+            <BlockAdderRow :after-index="-1" @open="(i) => openPicker({ mode: 'top', afterIndex: i })" />
 
             <template v-for="(block, index) in editorStore.blocks" :key="block.id">
-              <component
-                :is="blockComponent(block.type)"
-                :block="block"
-                :index="index"
-              />
+              <BlockRenderer :block="block" :index="index" />
               <!-- Adder after each block -->
-              <BlockAdderRow :after-index="index" @open="openPicker" />
+              <BlockAdderRow :after-index="index" @open="(i) => openPicker({ mode: 'top', afterIndex: i })" />
             </template>
           </template>
         </div>
@@ -118,7 +114,7 @@
   <!-- ── Block Picker overlay ───────────────────────────────────────────────── -->
   <Teleport to="body">
     <div
-      v-if="pickerAfterIndex !== null"
+      v-if="pickerTarget !== null"
       class="fixed inset-0 z-50 flex items-center justify-center"
       style="background: rgba(0,0,0,0.25); backdrop-filter: blur(2px);"
       @click.self="closePicker"
@@ -158,13 +154,14 @@
 </template>
 
 <script setup>
-import { ref, defineAsyncComponent, onMounted } from "vue";
+import { ref, onMounted, provide } from "vue";
 import { Button, TextInput, FeatherIcon } from "frappe-ui";
 import { useEditorStore } from "../stores/editor";
 import Inspector from "../components/Inspector.vue";
 import LayersPanel from "../components/LayersPanel.vue";
 import SendModal from "../components/SendModal.vue";
 import BlockAdderRow from "../components/BlockAdderRow.vue";
+import BlockRenderer from "../components/BlockRenderer.vue";
 
 const editorStore = useEditorStore();
 const saving     = ref(false);
@@ -175,8 +172,22 @@ const errorMsg   = ref("");
 const subject    = ref("");
 const previewText = ref("");
 
-// null = closed; any number = open, insert after that index
-const pickerAfterIndex = ref(null);
+// pickerTarget: null = closed
+//   { mode: 'top', afterIndex: N }      — add to top-level canvas
+//   { mode: 'child', parentId: X, afterIndex: N } — add inside a container
+const pickerTarget = ref(null);
+
+// Provide openPicker so container blocks (and any nested component) can call it
+function openPicker(target) {
+  if (typeof target === "number") {
+    // legacy: called with just an afterIndex number (from BlockAdderRow)
+    pickerTarget.value = { mode: "top", afterIndex: target };
+  } else {
+    // called from container with { parentId, afterIndex }
+    pickerTarget.value = { mode: "child", ...target };
+  }
+}
+provide("openPicker", openPicker);
 
 // ── Error helper ──────────────────────────────────────────────────────────────
 function describeError(e) {
@@ -224,7 +235,7 @@ async function saveCampaign() {
         title:        editorStore.campaignName || "Untitled Campaign",
         subject:      subject.value,
         preview_text: previewText.value,
-        blocks:       JSON.stringify(editorStore.blocks.map(({ id: _id, ...rest }) => rest)),
+        blocks:       JSON.stringify(editorStore.blocks.map(stripIds)),
       },
     });
     const saved = res.message;
@@ -253,7 +264,7 @@ async function openPreview() {
     const res = await frappe.call({
       method: "letters.letters.api.render_preview",
       args: {
-        blocks:       JSON.stringify(editorStore.blocks.map(({ id: _id, ...rest }) => rest)),
+        blocks:       JSON.stringify(editorStore.blocks.map(stripIds)),
         preview_text: previewText.value,
       },
     });
@@ -336,26 +347,26 @@ const availableBlocks = [
   { type: "footer",        label: "Footer",      icon: "align-justify" },
 ];
 
-function openPicker(afterIndex) {
-  pickerAfterIndex.value = afterIndex;
-}
 function closePicker() {
-  pickerAfterIndex.value = null;
+  pickerTarget.value = null;
 }
 function insertBlock(type) {
-  editorStore.addBlock(type, pickerAfterIndex.value);
+  if (!pickerTarget.value) return;
+  if (pickerTarget.value.mode === "child") {
+    editorStore.addChildBlock(pickerTarget.value.parentId, type, pickerTarget.value.afterIndex);
+  } else {
+    editorStore.addBlock(type, pickerTarget.value.afterIndex);
+  }
   closePicker();
 }
 
-// ── Block components (lazy) ───────────────────────────────────────────────────
-const blockComponentCache = {};
-function blockComponent(type) {
-  if (!blockComponentCache[type]) {
-    blockComponentCache[type] = defineAsyncComponent(
-      () => import(`../components/blocks/${type}.vue`)
-    );
+// ── Strip runtime IDs before saving (recursive for nested children) ──────────
+function stripIds(block) {
+  const { id: _id, ...rest } = block;
+  if (rest.children?.length) {
+    rest.children = rest.children.map(stripIds);
   }
-  return blockComponentCache[type];
+  return rest;
 }
 
 // ── Drag-to-canvas drop (still supported — appends at end) ────────────────────

@@ -335,33 +335,60 @@ class ColumnsRenderer(BlockRenderer):
 
 class ContainerRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
-        p = block.get("props", {})
-        heading       = escape(p.get("heading", ""))
-        text          = escape(p.get("text", ""))
+        p             = block.get("props", {})
         bg            = escape(p.get("background_color", "#f8fafc"))
         border_color  = escape(p.get("border_color", "#e2e8f0"))
         border_radius = escape(p.get("border_radius", "12px"))
-        padding       = _padding(p, 24, 24, 24, 24)
+        layout        = p.get("layout", "column")
+        gap           = int(p.get("gap", 12))
+        padding       = _padding(p, 16, 16, 16, 16)
+        children      = block.get("children", [])
 
-        heading_html = ""
-        if heading:
-            heading_html = (
-                f'<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:16px;'
-                f'font-weight:600;color:#111827;line-height:1.3;">{heading}</p>'
+        if not children:
+            return ""  # Don't render empty containers
+
+        def render_child(child: dict) -> str:
+            renderer = RENDERER_MAP.get(child.get("type", ""))
+            return renderer.render(child) if renderer else ""
+
+        if layout == "row":
+            # Side-by-side columns using table cells
+            count     = max(len(children), 1)
+            col_width = round(100 / count)
+            half_gap  = max(gap // 2, 0)
+            cells = ""
+            for idx, child in enumerate(children):
+                left_pad  = 0 if idx == 0 else half_gap
+                right_pad = 0 if idx == len(children) - 1 else half_gap
+                cells += (
+                    f'<td width="{col_width}%" valign="top"'
+                    f' style="padding:0 {right_pad}px 0 {left_pad}px;vertical-align:top;">'
+                    f'{render_child(child)}'
+                    f'</td>'
+                )
+            inner = (
+                f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
+                f'<tr>{cells}</tr></table>'
             )
-        text_html = ""
-        if text:
-            text_html = (
-                f'<p style="margin:0;font-family:Arial,sans-serif;font-size:14px;'
-                f'color:#6b7280;line-height:1.6;">{text}</p>'
-            )
+        else:
+            # Column (stacked) — each child is a full-width block
+            parts = []
+            for idx, child in enumerate(children):
+                child_html = render_child(child)
+                if child_html:
+                    margin = f'margin-bottom:{gap}px;' if idx < len(children) - 1 else ''
+                    parts.append(
+                        f'<div style="{margin}">{child_html}</div>'
+                        if margin else child_html
+                    )
+            inner = "\n".join(parts)
 
         html = (
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0"'
             f' style="background-color:{bg};border-radius:{border_radius};">'
             f'<tr><td style="padding:{padding};border:1px solid {border_color};'
             f'border-radius:{border_radius};">'
-            f'{heading_html}{text_html}'
+            f'{inner}'
             f'</td></tr></table>'
         )
         return _spacing_wrapper(html, p)
