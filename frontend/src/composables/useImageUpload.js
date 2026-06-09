@@ -32,6 +32,11 @@ export function useImageUpload(onUploaded) {
   }
 
   async function uploadFile(file) {
+    // Reject files over 5 MB before even hitting the network
+    if (file.size > 5 * 1024 * 1024) {
+      uploadError.value = "Image must be under 5 MB. Please resize or compress before uploading.";
+      return;
+    }
     uploading.value   = true;
     uploadError.value = "";
     try {

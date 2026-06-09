@@ -116,7 +116,7 @@
                     class="rounded"
                     @change="toggleAll"
                   />
-                  <span class="text-xs font-medium text-gray-600">Select all ({{ records.length }})</span>
+                  <span class="text-xs font-medium text-gray-600">Select all ({{ records.length }}{{ recordsTruncated ? '+' : '' }})</span>
                 </label>
                 <label
                   v-for="rec in records"
@@ -130,6 +130,10 @@
                   </div>
                 </label>
               </div>
+              <p v-if="recordsTruncated" class="text-xs text-amber-600 mt-2 flex items-center gap-1.5">
+                <FeatherIcon name="alert-circle" class="w-3 h-3 flex-shrink-0" />
+                Showing first 50 results. Use the search box to narrow results.
+              </p>
             </div>
           </div>
 
@@ -219,6 +223,7 @@ const emailFields     = ref([]);
 const selectedField   = ref("");
 const search          = ref("");
 const records         = ref([]);
+const recordsTruncated = ref(false);
 const pickedEmails    = ref([]);
 const loadingRecords  = ref(false);
 
@@ -267,8 +272,10 @@ async function loadRecords() {
       method: "letters.letters.api.get_emails_from_doctype",
       args: { doctype: selectedDoctype.value, email_field: selectedField.value, search: search.value },
     });
-    records.value = res.message || [];
-  } catch { records.value = []; }
+    const data = res.message || {};
+    records.value = data.emails || data || [];
+    recordsTruncated.value = !!(data.truncated);
+  } catch { records.value = []; recordsTruncated.value = false; }
   finally { loadingRecords.value = false; }
 }
 

@@ -68,6 +68,26 @@
       <div class="w-10 h-1 mb-0.5 rounded-full bg-gray-400 opacity-0 group-hover:opacity-60 transition-opacity" />
     </div>
 
+    <!-- ── Padding left handle ───────────────────────────────────────────── -->
+    <div
+      v-if="selected"
+      class="absolute inset-y-6 left-0 w-2.5 cursor-ew-resize z-10 flex items-center justify-start group"
+      @pointerdown.prevent.stop="startPaddingDragH('left', $event)"
+      @click.stop
+    >
+      <div class="h-10 w-1 ml-0.5 rounded-full bg-gray-400 opacity-0 group-hover:opacity-60 transition-opacity" />
+    </div>
+
+    <!-- ── Padding right handle ──────────────────────────────────────────── -->
+    <div
+      v-if="selected"
+      class="absolute inset-y-6 right-0 w-2.5 cursor-ew-resize z-10 flex items-center justify-end group"
+      @pointerdown.prevent.stop="startPaddingDragH('right', $event)"
+      @click.stop
+    >
+      <div class="h-10 w-1 mr-0.5 rounded-full bg-gray-400 opacity-0 group-hover:opacity-60 transition-opacity" />
+    </div>
+
     <!-- ── Padding tooltip ────────────────────────────────────────────────── -->
     <Transition
       enter-active-class="transition-opacity duration-100"
@@ -198,6 +218,34 @@ function startPaddingDrag(edge, e) {
     const clamped = Math.max(0, Math.round(raw / 4) * 4); // snap to 4px grid
     store.updateBlockProps(props.block.id, { [propKey]: clamped });
     showTip(`${edge === 'top' ? '↑' : '↓'} ${clamped}px`);
+  }
+
+  function onUp() {
+    e.target.removeEventListener("pointermove", onMove);
+    e.target.removeEventListener("pointerup",   onUp);
+  }
+
+  e.target.addEventListener("pointermove", onMove);
+  e.target.addEventListener("pointerup",   onUp);
+}
+
+// Horizontal drag for left / right padding
+function startPaddingDragH(edge, e) {
+  store.selectBlock(props.block.id);
+  e.target.setPointerCapture(e.pointerId);
+
+  const propKey  = `padding_${edge}`;
+  const startX   = e.clientX;
+  const startVal = parseInt(props.block.props[propKey] ?? DEFAULT_PADDING[edge]);
+
+  function onMove(ev) {
+    const delta   = ev.clientX - startX;
+    // Left: drag right → more left-padding; right: drag left → more right-padding
+    const sign    = edge === "left" ? 1 : -1;
+    const raw     = startVal + sign * delta;
+    const clamped = Math.max(0, Math.round(raw / 4) * 4);
+    store.updateBlockProps(props.block.id, { [propKey]: clamped });
+    showTip(`${edge === 'left' ? '←' : '→'} ${clamped}px`);
   }
 
   function onUp() {

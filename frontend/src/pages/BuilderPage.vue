@@ -4,6 +4,14 @@
     <!-- ── Top bar ─────────────────────────────────────────────────────────── -->
     <header class="flex-shrink-0 h-12 bg-white border-b border-gray-200 flex items-center px-4 gap-3">
 
+      <!-- Back to campaigns list -->
+      <a
+        href="/app/letters-campaign"
+        title="Back to campaigns"
+        aria-label="Back to campaigns"
+        class="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+      ><FeatherIcon name="arrow-left" class="w-4 h-4" /></a>
+
       <!-- Campaign name -->
       <TextInput
         v-model="editorStore.campaignName"
@@ -94,9 +102,14 @@
       >
         <div class="mx-auto bg-white shadow-sm" style="max-width:600px;min-height:200px">
 
-          <!-- Empty state -->
+          <!-- Loading skeleton (while fetching a saved campaign) -->
+          <div v-if="loadingCampaign" class="p-6 space-y-3" aria-busy="true" aria-label="Loading campaign">
+            <div v-for="n in 4" :key="n" class="h-16 bg-gray-100 animate-pulse rounded-lg" />
+          </div>
+
+          <!-- Empty state (not loading, no blocks) -->
           <div
-            v-if="!editorStore.blocks.length"
+            v-else-if="!editorStore.blocks.length"
             class="border-2 border-dashed border-gray-300 rounded-xl p-16 text-center text-gray-400 bg-white/50 select-none"
           >
             <div class="mb-3 opacity-40"><FeatherIcon name="inbox" class="w-10 h-10 mx-auto text-gray-400" /></div>
@@ -105,7 +118,7 @@
           </div>
 
           <!-- Block list with inline adders -->
-          <template v-else>
+          <template v-else-if="!loadingCampaign">
             <!-- Adder before first block -->
             <BlockAdderRow :after-index="-1" @open="(i) => openPicker({ mode: 'top', afterIndex: i })" />
 
@@ -178,6 +191,7 @@ import BlockRenderer from "../components/BlockRenderer.vue";
 const editorStore = useEditorStore();
 const saving        = ref(false);
 const previewing    = ref(false);
+const loadingCampaign = ref(false);
 const showSendModal = ref(false);
 const subject    = ref("");
 const previewText = ref("");
@@ -240,6 +254,7 @@ onMounted(async () => {
 });
 
 async function loadCampaign(name) {
+  loadingCampaign.value = true;
   _suppressDirty++;
   try {
     const res = await frappe.call({ method: "letters.letters.api.get_campaign", args: { name } });
@@ -254,6 +269,7 @@ async function loadCampaign(name) {
   } finally {
     // Always decrement, even on error, so the watcher is never permanently silenced
     _suppressDirty--;
+    loadingCampaign.value = false;
   }
 }
 
@@ -272,13 +288,13 @@ async function saveCampaign() {
       },
     });
     const saved = res.message;
-    if (!editorStore.campaignDoc) {
-      editorStore.campaignDoc = saved;
+    const isNew = !editorStore.campaignDoc;
+    // Always replace the full doc object so status/title stay consistent
+    editorStore.campaignDoc = saved;
+    if (isNew) {
       const url = new URL(window.location.href);
       url.searchParams.set("name", saved.name);
       window.history.replaceState({}, "", url.toString());
-    } else {
-      editorStore.campaignDoc.name = saved.name;
     }
     editorStore.clearDirty();
     toast.success("Saved!");

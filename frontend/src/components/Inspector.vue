@@ -117,7 +117,7 @@
               <span v-if="field.unit" class="text-xs text-gray-400 flex-shrink-0">{{ field.unit }}</span>
             </div>
 
-            <!-- Dimension (number + px/% unit toggle) -->
+            <!-- Dimension (number + px/% unit toggle + auto reset) -->
             <div v-else-if="field.type === 'dimension'" class="flex items-center gap-1.5">
               <TextInput
                 type="number"
@@ -139,6 +139,16 @@
                   @click="set(field.key, parseDimension(value(field.key)).num + u)"
                 >{{ u }}</button>
               </div>
+              <!-- Auto reset: restores the "auto" keyword so CSS can take over -->
+              <button
+                type="button"
+                class="px-2 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 flex-shrink-0 transition-colors"
+                :class="value(field.key) === 'auto'
+                  ? 'bg-gray-900 text-white border-gray-900'
+                  : 'bg-white text-gray-500 hover:bg-gray-50'"
+                title="Set to auto (let content decide)"
+                @click="set(field.key, 'auto')"
+              >auto</button>
             </div>
 
             <!-- Text -->

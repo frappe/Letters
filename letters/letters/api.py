@@ -149,11 +149,12 @@ def get_emails_from_doctype(doctype, email_field, search=None):
         )
         name_field = "name"
 
-    return [
+    emails = [
         {"label": r.get(name_field) or r.get("name"), "email": r.get(email_field)}
         for r in rows
         if r.get(email_field)
     ]
+    return {"emails": emails, "truncated": len(rows) >= 50}
 
 
 @frappe.whitelist()
