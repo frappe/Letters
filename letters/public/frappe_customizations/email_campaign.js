@@ -1,6 +1,6 @@
-frappe.ui.form.on("Email Campaign", {
+frappe.ui.form.on("Letters Campaign", {
     refresh(frm) {
-        frm.add_custom_button(__("Open in Letter Builder"), () => {
+        frm.add_custom_button(__("Open in Letters Builder"), () => {
             const path = frm.is_new()
                 ? "/app/letters-builder"
                 : `/app/letters-builder?name=${encodeURIComponent(frm.doc.name)}`;
