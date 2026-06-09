@@ -101,9 +101,9 @@ export const BLOCK_SCHEMA = {
         id: "content",
         title: "Content",
         fields: [
-          { key: "image_url", label: "Image URL", type: "text", placeholder: "https://…" },
-          { key: "caption", label: "Caption", type: "text", placeholder: "Optional caption…" },
-          { key: "alt", label: "Alt text", type: "text", placeholder: "Describe the image…" },
+          { key: "image_url", label: "Image URL", type: "text", placeholder: "https://example.com" },
+          { key: "caption", label: "Caption", type: "text", placeholder: "Optional caption" },
+          { key: "alt", label: "Alt text", type: "text", placeholder: "Describe the image" },
         ],
       },
       {
@@ -181,7 +181,7 @@ export const BLOCK_SCHEMA = {
         id: "image",
         title: "Image",
         fields: [
-          { key: "image_url", label: "Image URL", type: "text", placeholder: "https://…" },
+          { key: "image_url", label: "Image URL", type: "text", placeholder: "https://example.com" },
           {
             key: "image_position",
             label: "Image side",
@@ -232,7 +232,7 @@ export const BLOCK_SCHEMA = {
         id: "content",
         title: "Content",
         fields: [
-          { key: "url", label: "Link URL", type: "text", placeholder: "https://…" },
+          { key: "url", label: "Link URL", type: "text", placeholder: "https://example.com" },
         ],
       },
       {
@@ -514,13 +514,13 @@ export const BLOCK_SCHEMA = {
         id: "links",
         title: "Links",
         fields: [
-          { key: "x_url",         label: "X / Twitter URL",  type: "text", placeholder: "https://x.com/…" },
-          { key: "linkedin_url",  label: "LinkedIn URL",     type: "text", placeholder: "https://linkedin.com/…" },
-          { key: "instagram_url", label: "Instagram URL",    type: "text", placeholder: "https://instagram.com/…" },
-          { key: "facebook_url",  label: "Facebook URL",     type: "text", placeholder: "https://facebook.com/…" },
-          { key: "youtube_url",   label: "YouTube URL",      type: "text", placeholder: "https://youtube.com/…" },
-          { key: "github_url",    label: "GitHub URL",       type: "text", placeholder: "https://github.com/…" },
-          { key: "website_url",   label: "Website URL",      type: "text", placeholder: "https://…" },
+          { key: "x_url",         label: "X / Twitter URL",  type: "text", placeholder: "https://x.com/yourhandle" },
+          { key: "linkedin_url",  label: "LinkedIn URL",     type: "text", placeholder: "https://linkedin.com/in/yourname" },
+          { key: "instagram_url", label: "Instagram URL",    type: "text", placeholder: "https://instagram.com/yourhandle" },
+          { key: "facebook_url",  label: "Facebook URL",     type: "text", placeholder: "https://facebook.com/yourpage" },
+          { key: "youtube_url",   label: "YouTube URL",      type: "text", placeholder: "https://youtube.com/yourchannel" },
+          { key: "github_url",    label: "GitHub URL",       type: "text", placeholder: "https://github.com/yourhandle" },
+          { key: "website_url",   label: "Website URL",      type: "text", placeholder: "https://example.com" },
         ],
       },
       {
@@ -558,8 +558,8 @@ export const BLOCK_SCHEMA = {
         id: "content",
         title: "Content",
         fields: [
-          { key: "image_url",    label: "Image URL",    type: "text", placeholder: "https://…" },
-          { key: "button_url",   label: "Button URL",   type: "text", placeholder: "https://…" },
+          { key: "image_url",    label: "Image URL",    type: "text", placeholder: "https://example.com" },
+          { key: "button_url",   label: "Button URL",   type: "text", placeholder: "https://example.com" },
         ],
       },
       {
@@ -595,9 +595,9 @@ export const BLOCK_SCHEMA = {
         id: "content",
         title: "Content",
         fields: [
-          { key: "thumbnail_url", label: "Thumbnail URL", type: "text", placeholder: "https://…" },
-          { key: "video_url",     label: "Video link URL", type: "text", placeholder: "https://youtube.com/…" },
-          { key: "caption",       label: "Caption",        type: "text", placeholder: "Watch the video…" },
+          { key: "thumbnail_url", label: "Thumbnail URL", type: "text", placeholder: "https://example.com" },
+          { key: "video_url",     label: "Video link URL", type: "text", placeholder: "https://youtube.com/yourchannel" },
+          { key: "caption",       label: "Caption",        type: "text", placeholder: "Watch the video" },
         ],
       },
       {
