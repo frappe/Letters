@@ -30,3 +30,6 @@ class DesignTreeProcessor:
         block_type = block.get("type")
         if block_type not in self.VALID_BLOCK_TYPES:
             raise ValueError(f"Unknown block type: {block_type!r}")
+        # Recurse into container children so nested blocks are also validated
+        for child in block.get("children") or []:
+            self._validate_block(child)

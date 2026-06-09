@@ -2,6 +2,8 @@
   <!--
     Thin contenteditable wrapper that prevents Vue's reactive re-renders from
     resetting the cursor or dropping keystrokes while the user is editing.
+    Enforces plain-text-only input: paste is stripped of HTML, and formatting
+    shortcuts (Cmd+B/I/U) + Enter are suppressed.
 
     Usage:
       <EditableDiv
@@ -20,6 +22,8 @@
     contenteditable="true"
     @focus="onFocus"
     @blur="onBlur"
+    @paste.prevent="onPaste"
+    @keydown="onKeydown"
   />
 </template>
 
@@ -31,7 +35,7 @@ const props = defineProps({
 });
 const emit = defineEmits(["update:modelValue"]);
 
-const { elRef: divEl, onFocus, onBlur } = useContentEditable(
+const { elRef: divEl, onFocus, onBlur, onPaste, onKeydown } = useContentEditable(
   () => props.modelValue,
   (val) => emit("update:modelValue", val)
 );

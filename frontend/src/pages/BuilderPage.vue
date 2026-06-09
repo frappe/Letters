@@ -193,11 +193,12 @@ onMounted(() => window.addEventListener("beforeunload", beforeUnloadHandler));
 onUnmounted(() => window.removeEventListener("beforeunload", beforeUnloadHandler));
 
 // Track subject/previewText/campaignName changes as dirty.
-// _suppressDirty is set during programmatic loads so the initial population
-// of these fields (from loadCampaign) doesn't immediately re-dirty the store.
-let _suppressDirty = false;
+// _suppressDirty is a counter (not a boolean) so concurrent loadCampaign
+// calls each hold their own increment and don't accidentally re-enable
+// dirty tracking while another load is still in flight.
+let _suppressDirty = 0;
 watch([subject, previewText, () => editorStore.campaignName], () => {
-  if (!_suppressDirty) editorStore.markDirty();
+  if (_suppressDirty === 0) editorStore.markDirty();
 });
 
 // pickerTarget: null = closed
@@ -239,18 +240,20 @@ onMounted(async () => {
 });
 
 async function loadCampaign(name) {
+  _suppressDirty++;
   try {
     const res = await frappe.call({ method: "letters.letters.api.get_campaign", args: { name } });
     const doc = res.message;
-    _suppressDirty = true;
     editorStore.loadFromDoc(doc);
     subject.value     = doc.subject || "";
     previewText.value = doc.preview_text || "";
     // Allow one Vue flush cycle before re-enabling dirty tracking
     await Promise.resolve();
-    _suppressDirty = false;
   } catch (e) {
     toast.error("Couldn't load campaign: " + describeError(e));
+  } finally {
+    // Always decrement, even on error, so the watcher is never permanently silenced
+    _suppressDirty--;
   }
 }
 

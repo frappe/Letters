@@ -15,6 +15,8 @@
         contenteditable="true"
         @focus="onFocus"
         @blur="onBlur"
+        @paste.prevent="onPaste"
+        @keydown="onKeydown"
         @click.stop="store.selectBlock(block.id)"
       />
     </div>
@@ -35,7 +37,7 @@ function update(key, val) { store.updateBlockProps(props.block.id, { [key]: val 
 const blockProps = computed(() => props.block.props);
 const paddingStyle = usePadding(blockProps);
 
-const { elRef: contentRef, onFocus, onBlur } = useContentEditable(
+const { elRef: contentRef, onFocus, onBlur, onPaste, onKeydown } = useContentEditable(
   () => props.block.props.content,
   (val) => update("content", val)
 );

@@ -181,15 +181,18 @@ def send_campaign(name, recipients=None, email_group=None):
     Pass either:
       - email_group: name of a Frappe Email Group (respects unsubscribes, adds unsubscribe link)
       - recipients:  JSON string or list of email addresses (direct send, no unsubscribe tracking)
+
+    The actual per-recipient loop is enqueued as a background job so large lists
+    do not block the web request or risk a gunicorn timeout.
     """
     doc = frappe.get_doc("Letters Campaign", name)
     frappe.has_permission("Letters Campaign", "write", doc=doc, throw=True)
 
-    # Idempotency guard — prevent duplicate sends
-    if doc.status == "Ready":
-        frappe.throw(_("This campaign has already been sent. Duplicate sends are not allowed."))
+    # Idempotency guard — prevent duplicate sends (check both status and DB)
+    if doc.status in ("Ready", "Sending"):
+        frappe.throw(_("This campaign has already been sent or is currently sending."))
     already_sent = frappe.db.exists(
-        "Email Send", {"campaign": name, "status": "Sent"}
+        "Email Send", {"campaign": name, "status": ["in", ["Sent", "Sending"]]}
     )
     if already_sent:
         frappe.throw(_("This campaign has already been sent. Duplicate sends are not allowed."))
@@ -199,11 +202,7 @@ def send_campaign(name, recipients=None, email_group=None):
     if not doc.subject:
         frappe.throw(_("Campaign has no subject line."))
 
-    from letters.letters.utils.email_compiler import EmailCompiler
-    compiler = EmailCompiler(doc.blocks_json, preview_text=doc.preview_text)
-    html = compiler.compile()
-
-    # ── Email Group mode ─────────────────────────────────────────────────────
+    # ── Resolve recipient list synchronously so we can fail fast ─────────────
     if email_group:
         members = frappe.get_all(
             "Email Group Member",
@@ -213,69 +212,88 @@ def send_campaign(name, recipients=None, email_group=None):
         recipient_list = [m.email for m in members if m.email]
         if not recipient_list:
             frappe.throw(_("The selected Email Group has no active subscribers."))
+        mode = "email_group"
+    else:
+        if isinstance(recipients, str):
+            recipients = json.loads(recipients)
+        recipient_list = [r.strip() for r in (recipients or []) if r.strip()]
+        if not recipient_list:
+            frappe.throw(_("No recipients provided."))
+        email_group = None
+        mode = "direct"
 
-        send_doc = frappe.get_doc({
-            "doctype": "Email Send",
-            "campaign": name,
-            "status": "Sending",
-            "recipient_emails": "\n".join(recipient_list),
-        })
-        send_doc.insert(ignore_permissions=True)
-
-        try:
-            for email in recipient_list:
-                frappe.sendmail(
-                    recipients=[email],
-                    subject=doc.subject,
-                    message=html,
-                    now=False,
-                    unsubscribe_method="/api/method/frappe.email.doctype.email_group.email_group.unsubscribe",
-                    unsubscribe_params={"email_group": email_group},
-                )
-            send_doc.status = "Sent"
-        except Exception:
-            frappe.log_error(frappe.get_traceback(), "Letters send_campaign error")
-            send_doc.status = "Failed"
-            send_doc.save(ignore_permissions=True)
-            frappe.throw(_("Failed to queue emails. Check the error log."))
-
-        send_doc.save(ignore_permissions=True)
-        doc.status = "Ready"
-        doc.save(ignore_permissions=True)
-        return {"sent": True, "count": len(recipient_list), "mode": "email_group"}
-
-    # ── Direct recipients mode ────────────────────────────────────────────────
-    if isinstance(recipients, str):
-        recipients = json.loads(recipients)
-
-    recipients = [r.strip() for r in (recipients or []) if r.strip()]
-    if not recipients:
-        frappe.throw(_("No recipients provided."))
-
+    # ── Claim the send synchronously to prevent a race between two requests ──
     send_doc = frappe.get_doc({
         "doctype": "Email Send",
         "campaign": name,
         "status": "Sending",
-        "recipient_emails": "\n".join(recipients),
+        "recipient_emails": "\n".join(recipient_list),
     })
     send_doc.insert(ignore_permissions=True)
+    frappe.db.commit()  # flush so the background job can read the send_doc
 
+    # Mark campaign as Sending before returning so any re-submit attempt is blocked
+    doc.status = "Sending"
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+
+    # ── Enqueue the actual per-recipient loop as a background job ─────────────
+    frappe.enqueue(
+        "letters.letters.api._execute_send",
+        queue="long",
+        timeout=600,
+        job_name=f"letters_send_{name}",
+        send_doc_name=send_doc.name,
+        campaign_name=name,
+        recipient_list=recipient_list,
+        email_group=email_group,
+        mode=mode,
+    )
+
+    return {"queued": True, "count": len(recipient_list), "mode": mode}
+
+
+def _execute_send(send_doc_name, campaign_name, recipient_list, email_group, mode):
+    """
+    Background job: compile the campaign and send one email per recipient.
+    Runs in a worker process — must NOT be decorated with @frappe.whitelist().
+    """
     try:
-        for email in recipients:
-            frappe.sendmail(
+        doc = frappe.get_doc("Letters Campaign", campaign_name)
+        send_doc = frappe.get_doc("Email Send", send_doc_name)
+
+        from letters.letters.utils.email_compiler import EmailCompiler
+        compiler = EmailCompiler(doc.blocks_json, preview_text=doc.preview_text)
+        html = compiler.compile()
+
+        for email in recipient_list:
+            kwargs = dict(
                 recipients=[email],
                 subject=doc.subject,
                 message=html,
                 now=False,
             )
-        send_doc.status = "Sent"
-    except Exception:
-        frappe.log_error(frappe.get_traceback(), "Letters send_campaign error")
-        send_doc.status = "Failed"
-        send_doc.save(ignore_permissions=True)
-        frappe.throw(_("Failed to queue emails. Check the error log."))
+            if mode == "email_group" and email_group:
+                kwargs["unsubscribe_method"] = (
+                    "/api/method/frappe.email.doctype.email_group"
+                    ".email_group.unsubscribe"
+                )
+                kwargs["unsubscribe_params"] = {"email_group": email_group}
+            frappe.sendmail(**kwargs)
 
-    send_doc.save(ignore_permissions=True)
-    doc.status = "Ready"
-    doc.save(ignore_permissions=True)
-    return {"sent": True, "count": len(recipients), "mode": "direct"}
+        send_doc.status = "Sent"
+        send_doc.save(ignore_permissions=True)
+        doc.status = "Ready"
+        doc.save(ignore_permissions=True)
+
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "Letters _execute_send error")
+        try:
+            send_doc = frappe.get_doc("Email Send", send_doc_name)
+            send_doc.status = "Failed"
+            send_doc.save(ignore_permissions=True)
+            campaign_doc = frappe.get_doc("Letters Campaign", campaign_name)
+            campaign_doc.status = "Draft"  # allow re-send after failure
+            campaign_doc.save(ignore_permissions=True)
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), "Letters _execute_send cleanup error")

@@ -14,6 +14,8 @@
         contenteditable="true"
         @focus="onHeadingFocus"
         @blur="onHeadingBlur"
+        @paste.prevent="onHeadingPaste"
+        @keydown="onHeadingKeydown"
         @click.stop="store.selectBlock(block.id)"
       />
       <div
@@ -23,6 +25,8 @@
         contenteditable="true"
         @focus="onSubheadingFocus"
         @blur="onSubheadingBlur"
+        @paste.prevent="onSubheadingPaste"
+        @keydown="onSubheadingKeydown"
         @click.stop="store.selectBlock(block.id)"
       />
     </div>
@@ -43,14 +47,17 @@ function update(key, val) { store.updateBlockProps(props.block.id, { [key]: val 
 const blockProps = computed(() => props.block.props);
 const paddingStyle = usePadding(blockProps, { top: 40, right: 32, bottom: 40, left: 32 });
 
-const { elRef: headingRef, onFocus: onHeadingFocus, onBlur: onHeadingBlur } = useContentEditable(
-  () => props.block.props.heading,
-  (val) => update("heading", val)
-);
-const { elRef: subheadingRef, onFocus: onSubheadingFocus, onBlur: onSubheadingBlur } = useContentEditable(
-  () => props.block.props.subheading,
-  (val) => update("subheading", val)
-);
+const {
+  elRef: headingRef,
+  onFocus: onHeadingFocus, onBlur: onHeadingBlur,
+  onPaste: onHeadingPaste, onKeydown: onHeadingKeydown,
+} = useContentEditable(() => props.block.props.heading, (val) => update("heading", val));
+
+const {
+  elRef: subheadingRef,
+  onFocus: onSubheadingFocus, onBlur: onSubheadingBlur,
+  onPaste: onSubheadingPaste, onKeydown: onSubheadingKeydown,
+} = useContentEditable(() => props.block.props.subheading, (val) => update("subheading", val));
 
 const textAlignClass = computed(() => ({
   "text-left":   props.block.props.text_align === "left",

@@ -12,6 +12,8 @@
             contenteditable="true"
             @focus="onQuoteFocus"
             @blur="onQuoteBlur"
+            @paste.prevent="onQuotePaste"
+            @keydown="onQuoteKeydown"
             @click.stop="store.selectBlock(block.id)"
           />
           <div
@@ -21,6 +23,8 @@
             contenteditable="true"
             @focus="onAuthorFocus"
             @blur="onAuthorBlur"
+            @paste.prevent="onAuthorPaste"
+            @keydown="onAuthorKeydown"
             @click.stop="store.selectBlock(block.id)"
           />
           <div
@@ -30,6 +34,8 @@
             contenteditable="true"
             @focus="onRoleFocus"
             @blur="onRoleBlur"
+            @paste.prevent="onRolePaste"
+            @keydown="onRoleKeydown"
             @click.stop="store.selectBlock(block.id)"
           />
         </div>
@@ -46,6 +52,8 @@
             contenteditable="true"
             @focus="onQuoteFocus"
             @blur="onQuoteBlur"
+            @paste.prevent="onQuotePaste"
+            @keydown="onQuoteKeydown"
             @click.stop="store.selectBlock(block.id)"
           />
           <div
@@ -55,6 +63,8 @@
             contenteditable="true"
             @focus="onAuthorFocus"
             @blur="onAuthorBlur"
+            @paste.prevent="onAuthorPaste"
+            @keydown="onAuthorKeydown"
             @click.stop="store.selectBlock(block.id)"
           />
           <div
@@ -64,6 +74,8 @@
             contenteditable="true"
             @focus="onRoleFocus"
             @blur="onRoleBlur"
+            @paste.prevent="onRolePaste"
+            @keydown="onRoleKeydown"
             @click.stop="store.selectBlock(block.id)"
           />
         </div>
@@ -90,18 +102,23 @@ const paddingStyle = usePadding(blockProps);
 // Each field gets its own composable instance.
 // Both template branches use the same ref names — Vue assigns the currently
 // mounted element, so only one branch's element is active at a time.
-const { elRef: quoteRef,  onFocus: onQuoteFocus,  onBlur: onQuoteBlur  } = useContentEditable(
-  () => props.block.props.quote,
-  (val) => update("quote", val)
-);
-const { elRef: authorRef, onFocus: onAuthorFocus, onBlur: onAuthorBlur } = useContentEditable(
-  () => props.block.props.author,
-  (val) => update("author", val)
-);
-const { elRef: roleRef,   onFocus: onRoleFocus,   onBlur: onRoleBlur   } = useContentEditable(
-  () => props.block.props.role,
-  (val) => update("role", val)
-);
+const {
+  elRef: quoteRef,
+  onFocus: onQuoteFocus, onBlur: onQuoteBlur,
+  onPaste: onQuotePaste, onKeydown: onQuoteKeydown,
+} = useContentEditable(() => props.block.props.quote, (val) => update("quote", val));
+
+const {
+  elRef: authorRef,
+  onFocus: onAuthorFocus, onBlur: onAuthorBlur,
+  onPaste: onAuthorPaste, onKeydown: onAuthorKeydown,
+} = useContentEditable(() => props.block.props.author, (val) => update("author", val));
+
+const {
+  elRef: roleRef,
+  onFocus: onRoleFocus, onBlur: onRoleBlur,
+  onPaste: onRolePaste, onKeydown: onRoleKeydown,
+} = useContentEditable(() => props.block.props.role, (val) => update("role", val));
 
 const leftBorderStyle = computed(() => ({
   borderLeft: `4px solid ${props.block.props.border_color || "#e5e7eb"}`,
