@@ -5,7 +5,11 @@ from typing import Any
 class DesignTreeProcessor:
     """Validates and normalises the blocks JSON tree before compilation."""
 
-    VALID_BLOCK_TYPES = {"hero", "text", "image_text", "button", "divider", "footer"}
+    VALID_BLOCK_TYPES = {
+        "hero", "text", "image", "image_text", "button",
+        "columns", "container", "section_label", "divider", "footer",
+        "spacer", "quote", "social", "product_card", "video_thumb",
+    }
 
     def __init__(self, blocks_json: str | list):
         if isinstance(blocks_json, str):

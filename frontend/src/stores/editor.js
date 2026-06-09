@@ -123,6 +123,7 @@ function defaultProps(type) {
       border: "0.5px solid #383838",
       border_radius: "0",
       padding_top: 16, padding_right: 32, padding_bottom: 16, padding_left: 32,
+      spacing_top: 0, spacing_bottom: 0,
     },
     section_label: {
       label: "SECTION TITLE",

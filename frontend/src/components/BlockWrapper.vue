@@ -97,8 +97,8 @@ const spacingStyle = computed(() => {
   const t = props.block.props?.spacing_top;
   const b = props.block.props?.spacing_bottom;
   return {
-    marginTop:    t != null ? `${t}px` : "4px",
-    marginBottom: b != null ? `${b}px` : "4px",
+    marginTop:    t != null ? `${t}px` : "0",
+    marginBottom: b != null ? `${b}px` : "0",
   };
 });
 
