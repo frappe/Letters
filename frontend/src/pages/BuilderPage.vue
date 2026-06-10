@@ -55,8 +55,8 @@
           <template #prefix><FeatherIcon name="users" class="w-3.5 h-3.5" /></template>
           Recipients
         </Button>
-        <!-- Send button — just sends using configured recipients -->
-        <Button variant="subtle" size="sm" :disabled="!editorStore.campaignDoc" @click="openSendModal">Send</Button>
+        <!-- Send button — sends directly, no popup -->
+        <Button variant="subtle" size="sm" :loading="sending" :disabled="!editorStore.campaignDoc || sending" @click="sendCampaign">Send</Button>
       </div>
     </header>
 
@@ -197,15 +197,6 @@
     @saved="onRecipientsSaved"
   />
 
-  <SendModal
-    v-if="showSendModal"
-    :campaign-name="editorStore.campaignName"
-    :campaign-doc="editorStore.campaignDoc"
-    :recipient-config="recipientConfig"
-    @close="showSendModal = false"
-    @sent="onSent"
-    @open-recipients="showSendModal = false; showRecipientsModal = true"
-  />
 </template>
 
 <script setup>
@@ -214,7 +205,6 @@ import { Button, TextInput, FeatherIcon, toast } from "frappe-ui";
 import { useEditorStore } from "../stores/editor";
 import Inspector from "../components/Inspector.vue";
 import LayersPanel from "../components/LayersPanel.vue";
-import SendModal from "../components/SendModal.vue";
 import RecipientsModal from "../components/RecipientsModal.vue";
 import BlockAdderRow from "../components/BlockAdderRow.vue";
 import BlockRenderer from "../components/BlockRenderer.vue";
@@ -223,9 +213,9 @@ const editorStore = useEditorStore();
 const saving        = ref(false);
 const previewing    = ref(false);
 const loadingCampaign = ref(false);
-const showSendModal = ref(false);
 const showRecipientsModal = ref(false);
 const recipientConfig = ref(null); // { type, email_group | recipients | (doctype + email_field + filters) }
+const sending = ref(false);
 const subject    = ref("");
 const previewText = ref("");
 
@@ -462,7 +452,7 @@ async function openPreview() {
 }
 
 // ── Send ──────────────────────────────────────────────────────────────────────
-function openSendModal() {
+async function sendCampaign() {
   if (!subject.value?.trim()) {
     toast.warning("Add a subject line before sending.");
     return;
@@ -471,17 +461,43 @@ function openSendModal() {
     toast.warning("Your canvas is empty. Add some blocks before sending.");
     return;
   }
-  showSendModal.value = true;
+  if (!recipientConfig.value) {
+    toast.warning("Select recipients first using the Recipients button.");
+    return;
+  }
+
+  sending.value = true;
+  try {
+    const cfg  = recipientConfig.value;
+    const args = { name: editorStore.campaignDoc?.name };
+    if (cfg.type === "group") {
+      args.email_group = cfg.email_group;
+    } else if (cfg.type === "paste") {
+      args.recipients = JSON.stringify(cfg.recipients);
+    } else if (cfg.type === "doctype") {
+      args.doctype_config = JSON.stringify({
+        doctype:     cfg.doctype,
+        email_field: cfg.email_field,
+        filters:     cfg.filters || {},
+      });
+    }
+    const res = await frappe.call({ method: "letters.letters.api.send_campaign", args });
+    toast.success(`Queued for ${res.message.count} recipient${res.message.count === 1 ? "" : "s"}!`);
+  } catch (e) {
+    const raw = e?._server_messages;
+    let msg = e?.message || "Send failed. Check your outgoing mail settings.";
+    if (raw) {
+      try { msg = JSON.parse(JSON.parse(raw)[0]).message || msg; } catch { /* keep */ }
+    }
+    toast.error(msg);
+  } finally {
+    sending.value = false;
+  }
 }
 
 function onRecipientsSaved(config) {
   recipientConfig.value = config;
   showRecipientsModal.value = false;
-}
-
-function onSent() {
-  showSendModal.value = false;
-  toast.success("Campaign sent!");
 }
 
 // ── Block picker ──────────────────────────────────────────────────────────────
