@@ -314,19 +314,28 @@ def send_campaign(name, recipients=None, email_group=None, doctype_config=None):
     doc = frappe.get_doc("Letters Campaign", name)
     frappe.has_permission("Letters Campaign", "write", doc=doc, throw=True)
 
-    # Idempotency guard — prevent duplicate sends (check both status and DB)
+    # Idempotency guard — a fully-sent or in-flight campaign cannot be re-sent.
     if doc.status in ("Sent", "Sending"):
         frappe.throw(_("This campaign has already been sent or is currently sending."))
-    already_sent = frappe.db.exists(
-        "Email Send", {"campaign": name, "status": ["in", ["Sent", "Sending"]]}
-    )
-    if already_sent:
-        frappe.throw(_("This campaign has already been sent. Duplicate sends are not allowed."))
 
     if not doc.blocks_json:
         frappe.throw(_("Campaign has no content to send."))
     if not doc.subject:
         frappe.throw(_("Campaign has no subject line."))
+
+    # ── Resume a previous partial/failed send instead of starting over ───────
+    # Per-recipient state lives on the Email Send doc, so a retry re-runs the
+    # same job; _execute_send skips recipients already marked Sent. This is what
+    # prevents a failed batch from re-delivering to everyone on retry.
+    existing = frappe.get_all(
+        "Email Send",
+        filters={"campaign": name},
+        fields=["name", "status"],
+        order_by="creation desc",
+        limit=1,
+    )
+    if existing and existing[0].status in ("Failed", "Partial"):
+        return _resume_send(existing[0].name, name, doc)
 
     # ── Resolve recipient list synchronously so we can fail fast ─────────────
     if email_group:
@@ -373,11 +382,17 @@ def send_campaign(name, recipients=None, email_group=None, doctype_config=None):
         ).format(MAX_RECIPIENTS))
 
     # ── Claim the send synchronously to prevent a race between two requests ──
+    # Each recipient becomes a child row with its own status, so the background
+    # job (and any later retry) can track delivery per address.
     send_doc = frappe.get_doc({
         "doctype": "Email Send",
         "campaign": name,
         "status": "Sending",
-        "recipient_emails": "\n".join(recipient_list),
+        "send_mode": mode,
+        "email_group": email_group or "",
+        "total_recipients": len(recipient_list),
+        "sent_count": 0,
+        "recipients": [{"email": e, "status": "Pending"} for e in recipient_list],
     })
     send_doc.insert(ignore_permissions=True)
     frappe.db.commit()  # flush so the background job can read the send_doc
@@ -387,25 +402,50 @@ def send_campaign(name, recipients=None, email_group=None, doctype_config=None):
     doc.save(ignore_permissions=True)
     frappe.db.commit()
 
-    # ── Enqueue the actual per-recipient loop as a background job ─────────────
+    _enqueue_send(send_doc.name, name)
+    return {"queued": True, "count": len(recipient_list), "mode": mode}
+
+
+def _resume_send(send_doc_name, campaign_name, campaign_doc):
+    """Re-enqueue a partial/failed Email Send. Only its unsent recipients will
+    be (re)attempted, so retrying never re-delivers to addresses already Sent."""
+    unsent = frappe.db.count(
+        "Email Send Recipient",
+        {"parent": send_doc_name, "status": ["!=", "Sent"]},
+    )
+    frappe.db.set_value("Email Send", send_doc_name, "status", "Sending")
+    campaign_doc.status = "Sending"
+    campaign_doc.save(ignore_permissions=True)
+    frappe.db.commit()
+
+    _enqueue_send(send_doc_name, campaign_name)
+    return {"queued": True, "count": unsent, "resumed": True}
+
+
+def _enqueue_send(send_doc_name, campaign_name):
+    """Enqueue the per-recipient delivery loop as a background job."""
     frappe.enqueue(
         "letters.letters.api._execute_send",
         queue="long",
         timeout=600,
-        job_name=f"letters_send_{name}",
-        send_doc_name=send_doc.name,
-        campaign_name=name,
-        recipient_list=recipient_list,
-        email_group=email_group,
-        mode=mode,
+        job_name=f"letters_send_{campaign_name}",
+        send_doc_name=send_doc_name,
+        campaign_name=campaign_name,
     )
 
-    return {"queued": True, "count": len(recipient_list), "mode": mode}
+
+# Frappe's built-in Email Group unsubscribe endpoint.
+_EMAIL_GROUP_UNSUBSCRIBE = (
+    "/api/method/frappe.email.doctype.email_group.email_group.unsubscribe"
+)
 
 
-def _execute_send(send_doc_name, campaign_name, recipient_list, email_group, mode):
+def _execute_send(send_doc_name, campaign_name):
     """
-    Background job: compile the campaign and send one email per recipient.
+    Background job: compile the campaign and send one email per recipient,
+    recording delivery status on each recipient row. Recipients already marked
+    Sent are skipped, so a retry resumes from where a previous run stopped.
+
     Runs in a worker process — must NOT be decorated with @frappe.whitelist().
     """
     try:
@@ -416,34 +456,70 @@ def _execute_send(send_doc_name, campaign_name, recipient_list, email_group, mod
         compiler = EmailCompiler(doc.blocks_json, preview_text=doc.preview_text)
         html = compiler.compile()
 
-        for email in recipient_list:
+        mode        = send_doc.send_mode
+        email_group = send_doc.email_group
+
+        sent = failed = 0
+        for idx, row in enumerate(send_doc.recipients):
+            if row.status == "Sent":
+                sent += 1
+                continue
+
             kwargs = dict(
-                recipients=[email],
+                recipients=[row.email],
                 subject=doc.subject,
                 message=html,
                 now=False,
             )
             if mode == "email_group" and email_group:
-                kwargs["unsubscribe_method"] = (
-                    "/api/method/frappe.email.doctype.email_group"
-                    ".email_group.unsubscribe"
-                )
+                kwargs["unsubscribe_method"] = _EMAIL_GROUP_UNSUBSCRIBE
                 kwargs["unsubscribe_params"] = {"email_group": email_group}
-            frappe.sendmail(**kwargs)
 
-        send_doc.status = "Sent"
+            try:
+                frappe.sendmail(**kwargs)
+                row.status = "Sent"
+                frappe.db.set_value(
+                    "Email Send Recipient", row.name, "status", "Sent",
+                    update_modified=False,
+                )
+                sent += 1
+            except Exception as e:
+                row.status = "Failed"
+                frappe.db.set_value(
+                    "Email Send Recipient", row.name,
+                    {"status": "Failed", "error_message": str(e)[:500]},
+                    update_modified=False,
+                )
+                failed += 1
+                frappe.log_error(frappe.get_traceback(), "Letters recipient send error")
+
+            # Periodically flush so a worker crash doesn't lose progress.
+            if (idx + 1) % 100 == 0:
+                frappe.db.commit()
+
+        # ── Finalise: derive the batch outcome from per-recipient results ────
+        if failed == 0:
+            send_status = campaign_status = "Sent"
+        elif sent == 0:
+            send_status = campaign_status = "Failed"
+        else:
+            send_status, campaign_status = "Partial", "Failed"
+
+        send_doc.status = send_status
+        send_doc.sent_count = sent
         send_doc.save(ignore_permissions=True)
-        doc.status = "Sent"
+        doc.status = campaign_status
         doc.save(ignore_permissions=True)
+        frappe.db.commit()
 
     except Exception:
+        # A failure here is the whole batch (e.g. compile error), not one
+        # recipient. Mark Failed (not Draft) so a retry resumes rather than
+        # re-delivering to everyone.
         frappe.log_error(frappe.get_traceback(), "Letters _execute_send error")
         try:
-            send_doc = frappe.get_doc("Email Send", send_doc_name)
-            send_doc.status = "Failed"
-            send_doc.save(ignore_permissions=True)
-            campaign_doc = frappe.get_doc("Letters Campaign", campaign_name)
-            campaign_doc.status = "Draft"  # allow re-send after failure
-            campaign_doc.save(ignore_permissions=True)
+            frappe.db.set_value("Email Send", send_doc_name, "status", "Failed")
+            frappe.db.set_value("Letters Campaign", campaign_name, "status", "Failed")
+            frappe.db.commit()
         except Exception:
             frappe.log_error(frappe.get_traceback(), "Letters _execute_send cleanup error")

@@ -78,6 +78,16 @@ def _campaign_doc(name="CAMP-001", status="Draft", blocks_json=None, subject="He
     return doc
 
 
+# Routes frappe.get_all calls by doctype so a single test can stub several
+# lookups (the resume check on "Email Send", Email Group members, etc.)
+# independently. Populated/cleared per test in _reset().
+GETALL: dict[str, list] = {}
+
+
+def _route_get_all(doctype, *a, **k):
+    return GETALL.get(doctype, [])
+
+
 def _reset():
     """Reset per-test state on the mock."""
     frappe_stub.get_doc.reset_mock()
@@ -88,10 +98,17 @@ def _reset():
     frappe_stub.db.exists.reset_mock()
     frappe_stub.db.exists.return_value = None
     frappe_stub.db.commit.reset_mock()
+    frappe_stub.db.set_value.reset_mock()
+    frappe_stub.db.set_value.side_effect = None
+    frappe_stub.db.count.reset_mock()
+    frappe_stub.db.count.return_value = 0
     frappe_stub.enqueue.reset_mock()
     frappe_stub.enqueue.return_value = None
+    GETALL.clear()
+    GETALL["Email Send"] = []          # no prior send → fresh send by default
+    GETALL["Email Group Member"] = []
     frappe_stub.get_all.reset_mock()
-    frappe_stub.get_all.return_value = []
+    frappe_stub.get_all.side_effect = _route_get_all
     frappe_stub.sendmail.reset_mock()
     frappe_stub.sendmail.side_effect = None
     frappe_stub.log_error.reset_mock()
@@ -194,11 +211,30 @@ class TestSendCampaignIdempotency:
         with pytest.raises(FrappeValidationError, match="already been sent|currently sending"):
             api_module.send_campaign("CAMP-001", recipients=json.dumps(["a@b.com"]))
 
-    def test_throws_when_existing_sent_send_doc(self):
-        frappe_stub.get_doc.return_value = _campaign_doc(status="Draft")
-        frappe_stub.db.exists.return_value = "EMAIL-SEND-001"  # truthy
-        with pytest.raises(FrappeValidationError, match="already been sent"):
-            api_module.send_campaign("CAMP-001", recipients=json.dumps(["a@b.com"]))
+    def test_resumes_existing_failed_send(self):
+        """H1: a Failed prior send is resumed (not restarted), so already-Sent
+        recipients are not re-delivered."""
+        doc = _campaign_doc(status="Failed")
+        frappe_stub.get_doc.return_value = doc
+        GETALL["Email Send"] = [FrappeDict(name="SD-OLD", status="Failed")]
+        frappe_stub.db.count.return_value = 3  # 3 unsent recipients remain
+
+        result = api_module.send_campaign("CAMP-001", recipients=json.dumps(["a@b.com"]))
+
+        assert result.get("resumed") is True
+        assert result["count"] == 3
+        assert frappe_stub.enqueue.called
+        # The old send doc is flipped back to Sending, not a new one created
+        frappe_stub.db.set_value.assert_any_call("Email Send", "SD-OLD", "status", "Sending")
+
+    def test_resumes_existing_partial_send(self):
+        doc = _campaign_doc(status="Failed")
+        frappe_stub.get_doc.return_value = doc
+        GETALL["Email Send"] = [FrappeDict(name="SD-OLD", status="Partial")]
+        frappe_stub.db.count.return_value = 1
+
+        result = api_module.send_campaign("CAMP-001", recipients=json.dumps(["a@b.com"]))
+        assert result.get("resumed") is True
 
     def test_no_throw_for_clean_draft_with_no_existing_send(self):
         doc = _campaign_doc(status="Draft")
@@ -243,7 +279,7 @@ class TestSendCampaignValidation:
 
     def test_throws_when_email_group_has_no_active_members(self):
         frappe_stub.get_doc.return_value = _campaign_doc()
-        frappe_stub.get_all.return_value = []  # no members
+        GETALL["Email Group Member"] = []  # no members
         with pytest.raises(FrappeValidationError, match="no active subscribers"):
             api_module.send_campaign("CAMP-001", email_group="GROUP-EMPTY")
 
@@ -284,10 +320,9 @@ class TestSendCampaignEnqueue:
             return send_doc_mock if isinstance(arg, dict) else doc
 
         frappe_stub.get_doc.side_effect = get_doc_se
-        frappe_stub.db.exists.return_value = None
 
         if email_group:
-            frappe_stub.get_all.return_value = [FrappeDict(email="m@m.com")]
+            GETALL["Email Group Member"] = [FrappeDict(email="m@m.com")]
             return api_module.send_campaign("CAMP-001", email_group=email_group)
 
         return api_module.send_campaign(
@@ -341,82 +376,120 @@ class TestSendCampaignEnqueue:
 
 # ── _execute_send ──────────────────────────────────────────────────────────────
 
+def _recipient(email, status="Pending"):
+    """A stand-in for an Email Send Recipient child row."""
+    r = MagicMock()
+    r.email = email
+    r.status = status
+    r.name = f"R-{email}"
+    return r
+
+
 class TestExecuteSend:
     def setup_method(self):
         _reset()
 
-    def _docs(self, blocks_json=None):
+    def _docs(self, recipients=None, send_mode="direct", email_group=None, blocks_json=None):
         campaign = _campaign_doc(blocks_json=blocks_json)
         send_doc = MagicMock()
         send_doc.name = "SD-001"
+        send_doc.send_mode = send_mode
+        send_doc.email_group = email_group
+        send_doc.recipients = recipients if recipients is not None else [_recipient("a@b.com")]
 
         def get_doc_se(doctype, name=None):
-            if doctype == "Letters Campaign":
-                return campaign
-            return send_doc
+            return campaign if doctype == "Letters Campaign" else send_doc
 
         frappe_stub.get_doc.side_effect = get_doc_se
         return campaign, send_doc
 
-    def test_sends_one_email_per_recipient(self):
-        self._docs()
+    @staticmethod
+    def _run():
         with patch("letters.letters.utils.email_compiler.EmailCompiler") as C:
             C.return_value.compile.return_value = "<html></html>"
-            api_module._execute_send("SD-001", "CAMP-001", ["a@b.com", "c@d.com"], None, "direct")
+            api_module._execute_send("SD-001", "CAMP-001")
+
+    def test_sends_one_email_per_recipient(self):
+        self._docs(recipients=[_recipient("a@b.com"), _recipient("c@d.com")])
+        self._run()
         assert frappe_stub.sendmail.call_count == 2
 
-    def test_marks_send_doc_sent_on_success(self):
-        _, send_doc = self._docs()
-        with patch("letters.letters.utils.email_compiler.EmailCompiler") as C:
-            C.return_value.compile.return_value = "<html></html>"
-            api_module._execute_send("SD-001", "CAMP-001", ["a@b.com"], None, "direct")
+    def test_marks_each_recipient_sent(self):
+        rows = [_recipient("a@b.com"), _recipient("c@d.com")]
+        self._docs(recipients=rows)
+        self._run()
+        assert all(r.status == "Sent" for r in rows)
+
+    def test_skips_already_sent_recipients(self):
+        """Resume: a recipient already Sent is not re-delivered."""
+        rows = [_recipient("done@b.com", status="Sent"), _recipient("new@b.com")]
+        self._docs(recipients=rows)
+        self._run()
+        assert frappe_stub.sendmail.call_count == 1
+        assert frappe_stub.sendmail.call_args.kwargs["recipients"] == ["new@b.com"]
+
+    def test_marks_send_doc_sent_on_full_success(self):
+        _, send_doc = self._docs(recipients=[_recipient("a@b.com")])
+        self._run()
         assert send_doc.status == "Sent"
+        assert send_doc.sent_count == 1
         send_doc.save.assert_called()
 
-    def test_marks_campaign_sent_on_success(self):
-        campaign, _ = self._docs()
-        with patch("letters.letters.utils.email_compiler.EmailCompiler") as C:
-            C.return_value.compile.return_value = "<html></html>"
-            api_module._execute_send("SD-001", "CAMP-001", ["a@b.com"], None, "direct")
+    def test_marks_campaign_sent_on_full_success(self):
+        campaign, _ = self._docs(recipients=[_recipient("a@b.com")])
+        self._run()
         assert campaign.status == "Sent"
 
-    def test_marks_send_doc_failed_on_smtp_error(self):
-        _, send_doc = self._docs()
-        frappe_stub.sendmail.side_effect = Exception("SMTP failure")
-        with patch("letters.letters.utils.email_compiler.EmailCompiler") as C:
-            C.return_value.compile.return_value = "<html></html>"
-            api_module._execute_send("SD-001", "CAMP-001", ["a@b.com"], None, "direct")
+    def test_partial_failure_marks_send_partial_and_campaign_failed(self):
+        rows = [_recipient("good@b.com"), _recipient("bad@b.com")]
+        campaign, send_doc = self._docs(recipients=rows)
+
+        def sendmail_se(**kw):
+            if kw["recipients"] == ["bad@b.com"]:
+                raise Exception("bad address")
+
+        frappe_stub.sendmail.side_effect = sendmail_se
+        self._run()
+
+        assert send_doc.status == "Partial"
+        assert send_doc.sent_count == 1
+        assert campaign.status == "Failed"
+        assert rows[0].status == "Sent"
+        assert rows[1].status == "Failed"
+
+    def test_all_fail_marks_send_and_campaign_failed(self):
+        rows = [_recipient("a@b.com"), _recipient("c@d.com")]
+        campaign, send_doc = self._docs(recipients=rows)
+        frappe_stub.sendmail.side_effect = Exception("SMTP down")
+        self._run()
         assert send_doc.status == "Failed"
+        assert campaign.status == "Failed"
 
-    def test_reverts_campaign_to_draft_on_smtp_error(self):
-        campaign, _ = self._docs()
-        frappe_stub.sendmail.side_effect = Exception("SMTP failure")
-        with patch("letters.letters.utils.email_compiler.EmailCompiler") as C:
-            C.return_value.compile.return_value = "<html></html>"
-            api_module._execute_send("SD-001", "CAMP-001", ["a@b.com"], None, "direct")
-        assert campaign.status == "Draft"
-
-    def test_logs_error_on_exception(self):
-        self._docs()
+    def test_recipient_failure_is_logged(self):
+        self._docs(recipients=[_recipient("a@b.com")])
         frappe_stub.sendmail.side_effect = RuntimeError("boom")
-        with patch("letters.letters.utils.email_compiler.EmailCompiler") as C:
-            C.return_value.compile.return_value = "<html></html>"
-            api_module._execute_send("SD-001", "CAMP-001", ["a@b.com"], None, "direct")
+        self._run()
         frappe_stub.log_error.assert_called()
 
-    def test_email_group_mode_passes_unsubscribe_params(self):
-        self._docs()
+    def test_compile_error_marks_failed_not_draft(self):
+        """A batch-level failure leaves the campaign Failed (retryable via
+        resume), never Draft (which previously allowed a full re-send)."""
+        self._docs(recipients=[_recipient("a@b.com")])
         with patch("letters.letters.utils.email_compiler.EmailCompiler") as C:
-            C.return_value.compile.return_value = "<html></html>"
-            api_module._execute_send("SD-001", "CAMP-001", ["a@b.com"], "GROUP-A", "email_group")
+            C.return_value.compile.side_effect = ValueError("Unknown block type")
+            api_module._execute_send("SD-001", "CAMP-001")
+        frappe_stub.db.set_value.assert_any_call("Letters Campaign", "CAMP-001", "status", "Failed")
+        frappe_stub.db.set_value.assert_any_call("Email Send", "SD-001", "status", "Failed")
+
+    def test_email_group_mode_passes_unsubscribe_params(self):
+        self._docs(recipients=[_recipient("a@b.com")], send_mode="email_group", email_group="GROUP-A")
+        self._run()
         kw = frappe_stub.sendmail.call_args.kwargs
         assert "unsubscribe_method" in kw
         assert kw["unsubscribe_params"] == {"email_group": "GROUP-A"}
 
     def test_direct_mode_does_not_add_unsubscribe_params(self):
-        self._docs()
-        with patch("letters.letters.utils.email_compiler.EmailCompiler") as C:
-            C.return_value.compile.return_value = "<html></html>"
-            api_module._execute_send("SD-001", "CAMP-001", ["a@b.com"], None, "direct")
+        self._docs(recipients=[_recipient("a@b.com")], send_mode="direct")
+        self._run()
         kw = frappe_stub.sendmail.call_args.kwargs
         assert "unsubscribe_method" not in kw

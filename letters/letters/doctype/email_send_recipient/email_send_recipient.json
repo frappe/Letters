@@ -1,0 +1,35 @@
+{
+  "name": "Email Send Recipient",
+  "module": "Letters",
+  "doctype": "DocType",
+  "istable": 1,
+  "editable_grid": 1,
+  "fields": [
+    {
+      "fieldname": "email",
+      "fieldtype": "Data",
+      "label": "Email",
+      "options": "Email",
+      "reqd": 1,
+      "in_list_view": 1,
+      "columns": 5
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "label": "Status",
+      "options": "Pending\nSent\nFailed",
+      "default": "Pending",
+      "in_list_view": 1,
+      "columns": 2
+    },
+    {
+      "fieldname": "error_message",
+      "fieldtype": "Small Text",
+      "label": "Error",
+      "in_list_view": 1,
+      "columns": 4
+    }
+  ],
+  "permissions": []
+}

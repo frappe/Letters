@@ -19,10 +19,40 @@
       "fieldname": "status",
       "fieldtype": "Select",
       "label": "Status",
-      "options": "Draft\nSending\nSent\nFailed",
+      "options": "Draft\nSending\nSent\nPartial\nFailed",
       "default": "Draft",
       "in_list_view": 1,
       "in_standard_filter": 1
+    },
+    {
+      "fieldname": "send_mode",
+      "fieldtype": "Data",
+      "label": "Send Mode",
+      "read_only": 1
+    },
+    {
+      "fieldname": "email_group",
+      "fieldtype": "Data",
+      "label": "Email Group",
+      "read_only": 1
+    },
+    {
+      "fieldname": "counts_column",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "total_recipients",
+      "fieldtype": "Int",
+      "label": "Total Recipients",
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "sent_count",
+      "fieldtype": "Int",
+      "label": "Sent",
+      "read_only": 1,
+      "in_list_view": 1
     },
     {
       "fieldname": "recipients_section",
@@ -30,10 +60,10 @@
       "label": "Recipients"
     },
     {
-      "fieldname": "recipient_emails",
-      "fieldtype": "Text",
-      "label": "Recipient Emails",
-      "description": "One email address per line (Phase 1 — manual entry)"
+      "fieldname": "recipients",
+      "fieldtype": "Table",
+      "label": "Recipients",
+      "options": "Email Send Recipient"
     }
   ],
   "permissions": [
