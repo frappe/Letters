@@ -379,6 +379,24 @@ async function saveCampaign() {
 
 // ── Preview ───────────────────────────────────────────────────────────────────
 async function openPreview() {
+  // Open the window BEFORE the async call — browsers only allow window.open
+  // inside a synchronous user-gesture handler. Opening it after an await
+  // makes the popup blocker kill it silently.
+  const win = window.open("", "_blank", "noopener");
+  if (!win) {
+    toast.warning("Pop-up blocked — allow pop-ups for this site to use Preview.");
+    return;
+  }
+
+  // Show a loading indicator in the new tab while we fetch the HTML.
+  win.document.write(
+    "<!doctype html><html><head><title>Loading preview…</title>" +
+    "<style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;" +
+    "justify-content:center;height:100vh;margin:0;color:#6b7280;font-size:14px;}" +
+    "</style></head><body>Generating preview…</body></html>"
+  );
+  win.document.close();
+
   previewing.value = true;
   try {
     const res = await frappe.call({
@@ -431,15 +449,12 @@ async function openPreview() {
 <\/script>`;
 
     const fullHtml = html.replace("</body>", toolbar + "\n</body>");
-    const win = window.open("", "_blank", "noopener");
-    if (win) {
-      win.document.write(fullHtml);
-      win.document.close();
-      win.document.title = rawTitle + " — Preview";
-    } else {
-      toast.warning("Pop-up blocked — allow pop-ups to use Preview.");
-    }
+    win.document.open();
+    win.document.write(fullHtml);
+    win.document.close();
+    win.document.title = rawTitle + " — Preview";
   } catch (e) {
+    win.close();
     toast.error("Preview failed: " + describeError(e));
   } finally {
     previewing.value = false;
