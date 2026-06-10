@@ -184,8 +184,8 @@ class TestSendCampaignIdempotency:
     def setup_method(self):
         _reset()
 
-    def test_throws_when_status_is_ready(self):
-        frappe_stub.get_doc.return_value = _campaign_doc(status="Ready")
+    def test_throws_when_status_is_sent(self):
+        frappe_stub.get_doc.return_value = _campaign_doc(status="Sent")
         with pytest.raises(FrappeValidationError, match="already been sent"):
             api_module.send_campaign("CAMP-001", recipients=json.dumps(["a@b.com"]))
 
@@ -366,12 +366,12 @@ class TestExecuteSend:
         assert send_doc.status == "Sent"
         send_doc.save.assert_called()
 
-    def test_marks_campaign_ready_on_success(self):
+    def test_marks_campaign_sent_on_success(self):
         campaign, _ = self._docs()
         with patch("letters.letters.utils.email_compiler.EmailCompiler") as C:
             C.return_value.compile.return_value = "<html></html>"
             api_module._execute_send("SD-001", "CAMP-001", ["a@b.com"], None, "direct")
-        assert campaign.status == "Ready"
+        assert campaign.status == "Sent"
 
     def test_marks_send_doc_failed_on_smtp_error(self):
         _, send_doc = self._docs()

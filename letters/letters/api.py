@@ -310,7 +310,7 @@ def send_campaign(name, recipients=None, email_group=None, doctype_config=None):
     frappe.has_permission("Letters Campaign", "write", doc=doc, throw=True)
 
     # Idempotency guard — prevent duplicate sends (check both status and DB)
-    if doc.status in ("Ready", "Sending"):
+    if doc.status in ("Sent", "Sending"):
         frappe.throw(_("This campaign has already been sent or is currently sending."))
     already_sent = frappe.db.exists(
         "Email Send", {"campaign": name, "status": ["in", ["Sent", "Sending"]]}
@@ -419,7 +419,7 @@ def _execute_send(send_doc_name, campaign_name, recipient_list, email_group, mod
 
         send_doc.status = "Sent"
         send_doc.save(ignore_permissions=True)
-        doc.status = "Ready"
+        doc.status = "Sent"
         doc.save(ignore_permissions=True)
 
     except Exception:

@@ -11,6 +11,7 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from letters.letters.utils.design_tree_processor import DesignTreeProcessor
+from letters.letters.utils.block_renderers import RENDERER_MAP
 
 
 def make_block(block_type, **extra):
@@ -51,14 +52,19 @@ class TestValidateTopLevel:
         with pytest.raises(ValueError, match="Unknown block type"):
             dtp.validate()
 
-    def test_all_valid_types_pass(self):
-        valid_types = [
-            "hero", "text", "image", "image_text", "button",
-            "columns", "container", "section_label", "divider", "footer",
-            "spacer", "quote", "social", "product_card", "video_thumb",
-        ]
-        tree = [make_block(t) for t in valid_types]
+    def test_every_renderable_type_validates(self):
+        """C1 regression: every type with a renderer must pass validation.
+
+        Derives the list from RENDERER_MAP so the validator and the renderers
+        can never drift apart again (header/rich_text/link_list were previously
+        renderable but rejected, breaking preview/test/send for every template)."""
+        tree = [make_block(t) for t in RENDERER_MAP]
         DesignTreeProcessor(tree).validate()   # must not raise
+
+    @pytest.mark.parametrize("block_type", ["header", "rich_text", "link_list"])
+    def test_previously_broken_types_validate(self, block_type):
+        """These three were missing from the old hand-maintained allowlist."""
+        DesignTreeProcessor([make_block(block_type)]).validate()   # must not raise
 
     def test_mixed_valid_and_invalid_raises(self):
         tree = [make_block("text"), make_block("not_a_real_block")]
@@ -97,6 +103,24 @@ class TestValidateChildren:
     def test_missing_children_key_treated_as_empty(self):
         block = make_block("container")          # no "children" key
         DesignTreeProcessor([block]).validate()  # must not raise
+
+
+# ── validate — nested columns ────────────────────────────────────────────────
+
+class TestValidateColumns:
+    def test_valid_column_blocks_pass(self):
+        block = make_block("columns", columns=[
+            {"blocks": [make_block("text")]},
+            {"blocks": [make_block("image")]},
+        ])
+        DesignTreeProcessor([block]).validate()  # must not raise
+
+    def test_unknown_block_in_column_raises(self):
+        block = make_block("columns", columns=[
+            {"blocks": [{"type": "not_real"}]},
+        ])
+        with pytest.raises(ValueError, match="Unknown block type.*not_real"):
+            DesignTreeProcessor([block]).validate()
 
 
 # ── get_tree ──────────────────────────────────────────────────────────────────
