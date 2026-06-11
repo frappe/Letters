@@ -82,30 +82,22 @@
               size="sm"
               @update:modelValue="set(field.key, $event)"
             />
-            <!-- Native select fallback for fields with boolean option values (e.g. show_dividers) -->
-            <select
+            <!-- Boolean-valued fields render as a frappe-ui Switch (the Select
+                 component rejects boolean option values). The "on" state maps to
+                 the option whose value is true. -->
+            <Switch
               v-else-if="field.type === 'select'"
-              :value="value(field.key)"
-              @change="set(field.key, coerce(field, $event.target.value))"
-              class="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-gray-300 appearance-none"
-            >
-              <option v-for="opt in field.options" :key="String(opt.value)" :value="opt.value">{{ opt.label }}</option>
-            </select>
+              :modelValue="!!value(field.key)"
+              @update:modelValue="set(field.key, $event)"
+            />
 
-            <!-- Alignment segmented -->
-            <div v-else-if="field.type === 'align'" class="flex rounded-lg border border-gray-200 overflow-hidden">
-              <button
-                v-for="opt in alignOptions"
-                :key="opt.value"
-                type="button"
-                class="flex-1 py-2 text-xs font-semibold transition-colors"
-                :class="value(field.key) === opt.value
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-white text-gray-500 hover:bg-gray-50'"
-                :title="opt.label"
-                @click="set(field.key, opt.value)"
-              ><FeatherIcon :name="opt.icon" class="w-3.5 h-3.5" /></button>
-            </div>
+            <!-- Alignment segmented (frappe-ui TabButtons, icon-only) -->
+            <TabButtons
+              v-else-if="field.type === 'align'"
+              :buttons="alignOptions"
+              :modelValue="value(field.key)"
+              @update:modelValue="set(field.key, $event)"
+            />
 
             <!-- Number -->
             <div v-else-if="field.type === 'number'" class="flex items-center gap-2">
@@ -269,7 +261,7 @@
 
 <script setup>
 import { computed, reactive, watch } from "vue";
-import { TextInput, Select, Button, FeatherIcon } from "frappe-ui";
+import { TextInput, Select, Switch, TabButtons, Button, FeatherIcon } from "frappe-ui";
 import { useEditorStore } from "../stores/editor";
 import { BLOCK_SCHEMA } from "../blockSchema";
 
@@ -300,10 +292,12 @@ function toggleSection(id) {
   else openSections.add(id);
 }
 
+// TabButtons shape: icon-only buttons. `label` is kept for the accessible name
+// (aria-label / tooltip) while `hideLabel` renders just the icon.
 const alignOptions = [
-  { value: "left",   icon: "align-left",   label: "Left" },
-  { value: "center", icon: "align-center", label: "Center" },
-  { value: "right",  icon: "align-right",  label: "Right" },
+  { value: "left",   icon: "align-left",   label: "Left",   hideLabel: true },
+  { value: "center", icon: "align-center", label: "Center", hideLabel: true },
+  { value: "right",  icon: "align-right",  label: "Right",  hideLabel: true },
 ];
 
 function value(key) {
@@ -314,13 +308,8 @@ function set(key, val) {
   if (block.value) store.updateBlockProps(block.value.id, { [key]: val });
 }
 
-function coerce(field, raw) {
-  const opt = field.options?.find((o) => String(o.value) === String(raw));
-  return opt ? opt.value : raw;
-}
-
 // frappe-ui Select doesn't support boolean option values (SelectOptionValue = string | number | bigint | object).
-// Fields with boolean options fall back to a native <select> + coerce().
+// Fields with boolean options render as a Switch instead.
 function hasBooleanOptions(field) {
   return field.options?.some((o) => typeof o.value === "boolean") ?? false;
 }
