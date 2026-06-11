@@ -39,7 +39,6 @@
           <span class="truncate text-sm font-medium text-gray-800">
             {{ editorStore.campaignName || "Untitled Campaign" }}
           </span>
-          <span v-if="editorStore.isDirty" class="w-1.5 h-1.5 bg-orange-400 rounded-full flex-shrink-0" />
         </button>
       </div>
 
@@ -68,13 +67,6 @@
         </Tooltip>
 
         <div class="w-px h-4 bg-gray-200 mx-0.5" />
-
-        <!-- Auto-save status indicator -->
-        <span class="text-xs text-ink-gray-4 flex items-center gap-1 min-w-[60px]">
-          <span v-if="saving">Saving…</span>
-          <span v-else-if="editorStore.isDirty">Unsaved</span>
-          <span v-else>Saved</span>
-        </span>
 
         <!-- Settings (gear) — opens the Campaign Settings dialog -->
         <Tooltip text="Campaign settings">
@@ -472,14 +464,9 @@ watch([subject, previewText, () => editorStore.campaignName], () => {
   if (_suppressDirty === 0) editorStore.markDirty();
 });
 
-// ── Auto-save (debounced 2 s after last change) ───────────────────────────────
-let _autoSaveTimer = null;
+// ── Auto-save (real-time, fires immediately on every change) ──────────────────
 watch(() => editorStore.isDirty, (dirty) => {
-  if (!dirty) return;
-  clearTimeout(_autoSaveTimer);
-  _autoSaveTimer = setTimeout(() => {
-    if (editorStore.isDirty && editorStore.campaignDoc) saveCampaign();
-  }, 2000);
+  if (dirty && editorStore.campaignDoc) saveCampaign();
 });
 
 // pickerTarget: null = closed
@@ -572,7 +559,6 @@ async function saveCampaign() {
     editorStore.clearDirty();
     // Keep browser tab title in sync with the campaign name
     document.title = (editorStore.campaignName || "Untitled Campaign") + " · Letters";
-    toast.success("Saved!");
   } catch (e) {
     toast.error("Couldn't save: " + describeError(e));
   } finally {
