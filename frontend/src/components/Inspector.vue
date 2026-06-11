@@ -1,255 +1,145 @@
 <template>
   <aside
-    class="flex-shrink-0 bg-white border-l border-gray-200 flex flex-col overflow-hidden"
+    class="flex-shrink-0 bg-surface-white border-l border-outline-gray-1 flex flex-col overflow-hidden"
     :style="{ width: (width || 288) + 'px' }"
   >
-
     <!-- Header -->
-    <div class="px-4 py-3 border-b border-gray-200 flex items-center gap-2 min-h-[45px]">
+    <div class="px-3 py-2 border-b border-outline-gray-1 flex items-center gap-2 min-h-[40px]">
       <template v-if="block">
-        <FeatherIcon :name="schema.icon" class="w-4 h-4 text-gray-500 flex-shrink-0" />
-        <span class="text-sm font-semibold text-gray-800">{{ schema.label }}</span>
+        <FeatherIcon :name="schema.icon" class="w-3.5 h-3.5 text-ink-gray-5 flex-shrink-0" />
+        <span class="text-sm font-medium text-ink-gray-8">{{ schema.label }}</span>
       </template>
       <template v-else>
-        <span class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Properties</span>
+        <span class="text-xs text-ink-gray-4 font-medium uppercase tracking-widest">Properties</span>
       </template>
     </div>
 
     <!-- No selection empty state -->
     <div v-if="!block" class="flex-1 flex flex-col items-center justify-center px-6 text-center gap-3">
-      <div class="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center"><FeatherIcon name="layout" class="w-5 h-5 text-gray-400" /></div>
-      <p class="text-sm text-gray-400 leading-relaxed">
-        Click a block on the canvas to edit its properties here.
+      <div class="w-10 h-10 rounded-xl bg-surface-gray-2 flex items-center justify-center">
+        <FeatherIcon name="layout" class="w-4 h-4 text-ink-gray-4" />
+      </div>
+      <p class="text-sm text-ink-gray-4 leading-relaxed">
+        Click a block to edit its properties.
       </p>
     </div>
 
     <!-- Sections -->
     <div v-else class="flex-1 overflow-y-auto">
 
-      <!-- Collapsible sections -->
+      <!-- Schema-defined sections -->
       <div
         v-for="section in schema.sections"
         :key="section.id"
-        class="border-b border-gray-100"
+        class="border-b border-outline-gray-1"
       >
-        <!-- Section header -->
         <button
           type="button"
-          class="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-gray-50 transition-colors"
+          class="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-surface-gray-2 transition-colors"
           @click="toggleSection(section.id)"
         >
-          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ section.title }}</span>
+          <span class="text-xs font-semibold text-ink-gray-7">{{ section.title }}</span>
           <FeatherIcon
             name="chevron-down"
-            class="w-3.5 h-3.5 text-gray-400 transition-transform duration-200"
-            :class="openSections.has(section.id) ? 'rotate-0' : '-rotate-90'"
+            class="w-3.5 h-3.5 text-ink-gray-4 transition-transform duration-150"
+            :class="openSections.has(section.id) ? '' : '-rotate-90'"
           />
         </button>
 
-        <!-- Section fields -->
-        <div v-show="openSections.has(section.id)" class="px-4 pb-4 pt-1 space-y-3">
-          <div v-for="field in section.fields" :key="field.key">
-            <label class="block text-xs font-medium text-gray-500 mb-1.5">{{ field.label }}</label>
-
-            <!-- Color picker -->
-            <div v-if="field.type === 'color'" class="flex items-center gap-2">
-              <div class="relative w-9 h-9 flex-shrink-0">
-                <input
-                  type="color"
-                  :value="value(field.key)"
-                  @input="set(field.key, $event.target.value)"
-                  class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                />
-                <div
-                  class="w-9 h-9 rounded-lg border-2 border-white shadow ring-1 ring-gray-200"
-                  :style="{ backgroundColor: value(field.key) || '#ffffff' }"
-                ></div>
-              </div>
-              <TextInput
-                class="flex-1"
-                size="sm"
-                type="text"
-                :modelValue="value(field.key)"
-                @update:modelValue="set(field.key, $event)"
-              />
-            </div>
-
-            <!-- Select — frappe-ui for string/number values -->
-            <Select
-              v-else-if="field.type === 'select' && !hasBooleanOptions(field)"
-              :modelValue="value(field.key)"
-              :options="field.options"
-              size="sm"
-              @update:modelValue="set(field.key, $event)"
-            />
-            <!-- Boolean-valued fields render as a frappe-ui Switch (the Select
-                 component rejects boolean option values). The "on" state maps to
-                 the option whose value is true. -->
-            <Switch
-              v-else-if="field.type === 'select'"
-              :modelValue="!!value(field.key)"
-              @update:modelValue="set(field.key, $event)"
-            />
-
-            <!-- Alignment segmented (frappe-ui TabButtons, icon-only) -->
-            <TabButtons
-              v-else-if="field.type === 'align'"
-              :buttons="alignOptions"
-              :modelValue="value(field.key)"
-              @update:modelValue="set(field.key, $event)"
-            />
-
-            <!-- Number -->
-            <div v-else-if="field.type === 'number'" class="flex items-center gap-2">
-              <TextInput
-                type="number"
-                :min="field.min"
-                :max="field.max"
-                size="sm"
-                :modelValue="value(field.key)"
-                @update:modelValue="set(field.key, Number($event))"
-              />
-              <span v-if="field.unit" class="text-xs text-gray-400 flex-shrink-0">{{ field.unit }}</span>
-            </div>
-
-            <!-- Dimension (number + px/% unit toggle + auto reset) -->
-            <div v-else-if="field.type === 'dimension'" class="flex items-center gap-1.5">
-              <TextInput
-                type="number"
-                min="0"
-                size="sm"
-                class="flex-1 min-w-0"
-                :modelValue="parseDimension(value(field.key)).num"
-                @update:modelValue="set(field.key, $event + parseDimension(value(field.key)).unit)"
-              />
-              <div class="flex rounded-lg border border-gray-200 overflow-hidden flex-shrink-0">
-                <button
-                  v-for="u in ['px', '%']"
-                  :key="u"
-                  type="button"
-                  class="px-2 py-1.5 text-xs font-semibold transition-colors"
-                  :class="parseDimension(value(field.key)).unit === u
-                    ? 'bg-gray-900 text-white'
-                    : 'bg-white text-gray-500 hover:bg-gray-50'"
-                  @click="set(field.key, parseDimension(value(field.key)).num + u)"
-                >{{ u }}</button>
-              </div>
-              <!-- Auto reset: restores the "auto" keyword so CSS can take over -->
-              <button
-                type="button"
-                class="px-2 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 flex-shrink-0 transition-colors"
-                :class="value(field.key) === 'auto'
-                  ? 'bg-gray-900 text-white border-gray-900'
-                  : 'bg-white text-gray-500 hover:bg-gray-50'"
-                title="Set to auto (let content decide)"
-                @click="set(field.key, 'auto')"
-              >auto</button>
-            </div>
-
-            <!-- Text -->
-            <TextInput
-              v-else
-              type="text"
-              :placeholder="field.placeholder || ''"
-              size="sm"
-              :modelValue="value(field.key)"
-              @update:modelValue="set(field.key, $event)"
-            />
-          </div>
+        <div v-show="openSections.has(section.id)" class="px-3 pb-3 flex flex-col gap-1">
+          <PropRow
+            v-for="field in section.fields"
+            :key="field.key"
+            :label="field.label"
+          >
+            <FieldControl :field="field" :value="value(field.key)" @change="set(field.key, $event)" />
+          </PropRow>
         </div>
       </div>
 
-      <!-- Universal Padding -->
-      <div class="border-b border-gray-100">
+      <!-- Padding -->
+      <div class="border-b border-outline-gray-1">
         <button
           type="button"
-          class="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-gray-50 transition-colors"
+          class="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-surface-gray-2 transition-colors"
           @click="toggleSection('__padding')"
         >
-          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Padding</span>
+          <span class="text-xs font-semibold text-ink-gray-7">Padding</span>
           <FeatherIcon
             name="chevron-down"
-            class="w-3.5 h-3.5 text-gray-400 transition-transform duration-200"
-            :class="openSections.has('__padding') ? 'rotate-0' : '-rotate-90'"
+            class="w-3.5 h-3.5 text-ink-gray-4 transition-transform duration-150"
+            :class="openSections.has('__padding') ? '' : '-rotate-90'"
           />
         </button>
-        <div v-show="openSections.has('__padding')" class="px-4 pb-4 pt-1 space-y-2">
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-xs font-medium text-gray-500 mb-1.5">Top (px)</label>
+        <div v-show="openSections.has('__padding')" class="px-3 pb-3">
+          <div class="grid grid-cols-2 gap-x-2 gap-y-1">
+            <PropRow label="Top" compact>
               <TextInput type="number" size="sm" :min="0" :max="200"
                 :modelValue="block.props.padding_top ?? 20"
                 @update:modelValue="set('padding_top', Number($event))"
               />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-gray-500 mb-1.5">Bottom (px)</label>
+            </PropRow>
+            <PropRow label="Bottom" compact>
               <TextInput type="number" size="sm" :min="0" :max="200"
                 :modelValue="block.props.padding_bottom ?? 20"
                 @update:modelValue="set('padding_bottom', Number($event))"
               />
-            </div>
-          </div>
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-xs font-medium text-gray-500 mb-1.5">Left (px)</label>
+            </PropRow>
+            <PropRow label="Left" compact>
               <TextInput type="number" size="sm" :min="0" :max="200"
                 :modelValue="block.props.padding_left ?? 32"
                 @update:modelValue="set('padding_left', Number($event))"
               />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-gray-500 mb-1.5">Right (px)</label>
+            </PropRow>
+            <PropRow label="Right" compact>
               <TextInput type="number" size="sm" :min="0" :max="200"
                 :modelValue="block.props.padding_right ?? 32"
                 @update:modelValue="set('padding_right', Number($event))"
               />
-            </div>
+            </PropRow>
           </div>
         </div>
       </div>
 
-      <!-- Universal Spacing -->
-      <div class="border-b border-gray-100">
+      <!-- Spacing -->
+      <div class="border-b border-outline-gray-1">
         <button
           type="button"
-          class="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-gray-50 transition-colors"
+          class="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-surface-gray-2 transition-colors"
           @click="toggleSection('__spacing')"
         >
-          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Spacing</span>
+          <span class="text-xs font-semibold text-ink-gray-7">Spacing</span>
           <FeatherIcon
             name="chevron-down"
-            class="w-3.5 h-3.5 text-gray-400 transition-transform duration-200"
-            :class="openSections.has('__spacing') ? 'rotate-0' : '-rotate-90'"
+            class="w-3.5 h-3.5 text-ink-gray-4 transition-transform duration-150"
+            :class="openSections.has('__spacing') ? '' : '-rotate-90'"
           />
         </button>
-        <div v-show="openSections.has('__spacing')" class="px-4 pb-4 pt-1 space-y-3">
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-xs font-medium text-gray-500 mb-1.5">Top (px)</label>
+        <div v-show="openSections.has('__spacing')" class="px-3 pb-3">
+          <div class="grid grid-cols-2 gap-x-2 gap-y-1">
+            <PropRow label="Top" compact>
               <TextInput type="number" size="sm" :min="0" :max="200"
                 :modelValue="block.props.spacing_top ?? 4"
                 @update:modelValue="set('spacing_top', Number($event))"
               />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-gray-500 mb-1.5">Bottom (px)</label>
+            </PropRow>
+            <PropRow label="Bottom" compact>
               <TextInput type="number" size="sm" :min="0" :max="200"
                 :modelValue="block.props.spacing_bottom ?? 4"
                 @update:modelValue="set('spacing_bottom', Number($event))"
               />
-            </div>
+            </PropRow>
           </div>
         </div>
       </div>
 
-      <!-- Block actions: Duplicate + Remove -->
-      <div class="px-4 py-4 flex gap-2">
-        <Button class="flex-1" @click="store.duplicateBlock(block.id)">
+      <!-- Actions -->
+      <div class="px-3 py-3 flex gap-2">
+        <Button class="flex-1" size="sm" @click="store.duplicateBlock(block.id)">
           <template #prefix><FeatherIcon name="copy" class="w-3.5 h-3.5" /></template>
           Duplicate
         </Button>
-        <Button class="flex-1" theme="red" variant="subtle" @click="store.removeBlock(block.id)">
+        <Button class="flex-1" size="sm" theme="red" variant="subtle" @click="store.removeBlock(block.id)">
           <template #prefix><FeatherIcon name="trash-2" class="w-3.5 h-3.5" /></template>
           Remove
         </Button>
@@ -260,8 +150,8 @@
 </template>
 
 <script setup>
-import { computed, reactive, watch } from "vue";
-import { TextInput, Select, Switch, TabButtons, Button, FeatherIcon } from "frappe-ui";
+import { computed, reactive, watch, defineComponent, h } from "vue";
+import { TextInput, Select, Switch, TabButtons, Button, FeatherIcon, Tooltip } from "frappe-ui";
 import { useEditorStore } from "../stores/editor";
 import { BLOCK_SCHEMA } from "../blockSchema";
 
@@ -271,9 +161,7 @@ const store = useEditorStore();
 const block = computed(() => store.selectedBlock);
 const schema = computed(() => (block.value ? BLOCK_SCHEMA[block.value.type] : null));
 
-// Track which sections are open. Default all open.
 const openSections = reactive(new Set());
-
 watch(
   () => block.value?.type,
   (type) => {
@@ -286,36 +174,20 @@ watch(
   },
   { immediate: true }
 );
-
 function toggleSection(id) {
   if (openSections.has(id)) openSections.delete(id);
   else openSections.add(id);
 }
 
-// TabButtons shape: icon-only buttons. `label` is kept for the accessible name
-// (aria-label / tooltip) while `hideLabel` renders just the icon.
-const alignOptions = [
-  { value: "left",   icon: "align-left",   label: "Left",   hideLabel: true },
-  { value: "center", icon: "align-center", label: "Center", hideLabel: true },
-  { value: "right",  icon: "align-right",  label: "Right",  hideLabel: true },
-];
-
-function value(key) {
-  return block.value?.props?.[key];
-}
-
+function value(key) { return block.value?.props?.[key]; }
 function set(key, val) {
   if (block.value) store.updateBlockProps(block.value.id, { [key]: val });
 }
 
-// frappe-ui Select doesn't support boolean option values (SelectOptionValue = string | number | bigint | object).
-// Fields with boolean options render as a Switch instead.
 function hasBooleanOptions(field) {
   return field.options?.some((o) => typeof o.value === "boolean") ?? false;
 }
 
-// Parse a CSS dimension string like "60%", "200px", "100%" into { num, unit }
-// "auto" or missing → 0px (meaning "no constraint" for min-height, or 100% for width)
 function parseDimension(val) {
   if (!val || val === "auto") return { num: 0, unit: "px" };
   const m = String(val).match(/^(\d*\.?\d+)(px|%)$/);
@@ -323,4 +195,148 @@ function parseDimension(val) {
   const n = parseFloat(val);
   return { num: isNaN(n) ? 0 : n, unit: val.includes("px") ? "px" : "%" };
 }
+
+const alignOptions = [
+  { value: "left",    icon: "align-left",    label: "Left",    hideLabel: true },
+  { value: "center",  icon: "align-center",  label: "Center",  hideLabel: true },
+  { value: "right",   icon: "align-right",   label: "Right",   hideLabel: true },
+  { value: "justify", icon: "align-justify", label: "Justify", hideLabel: true },
+];
+
+// ── Sub-components defined inline ───────────────────────────────────────────
+
+// PropRow: label left, slot content right. compact = label only (no fixed width)
+const PropRow = defineComponent({
+  props: { label: String, compact: Boolean },
+  setup(props, { slots }) {
+    return () => h("div", { class: "flex items-center gap-2 py-1" }, [
+      h("span", {
+        class: props.compact
+          ? "text-xs text-ink-gray-5 shrink-0"
+          : "w-24 shrink-0 text-xs text-ink-gray-5 truncate",
+      }, props.label),
+      h("div", { class: "flex-1 min-w-0" }, slots.default?.()),
+    ]);
+  },
+});
+
+// FieldControl: renders the right control for a field descriptor
+const FieldControl = defineComponent({
+  props: { field: Object, value: { default: undefined } },
+  emits: ["change"],
+  setup(props, { emit }) {
+    return () => {
+      const f = props.field;
+      const v = props.value;
+
+      // Color
+      if (f.type === "color") {
+        return h("div", { class: "flex items-center gap-1.5" }, [
+          h("div", { class: "relative w-6 h-6 rounded flex-shrink-0 cursor-pointer border border-outline-gray-2 overflow-hidden" }, [
+            h("input", {
+              type: "color",
+              value: v || "#ffffff",
+              onInput: (e) => emit("change", e.target.value),
+              class: "absolute inset-0 w-full h-full opacity-0 cursor-pointer",
+            }),
+            h("div", {
+              class: "w-6 h-6",
+              style: { backgroundColor: v || "#ffffff" },
+            }),
+          ]),
+          h(TextInput, {
+            class: "flex-1 min-w-0",
+            size: "sm",
+            type: "text",
+            modelValue: v,
+            "onUpdate:modelValue": (val) => emit("change", val),
+          }),
+        ]);
+      }
+
+      // Select (boolean → Switch)
+      if (f.type === "select") {
+        if (hasBooleanOptions(f)) {
+          return h(Switch, {
+            modelValue: !!v,
+            "onUpdate:modelValue": (val) => emit("change", val),
+          });
+        }
+        return h(Select, {
+          modelValue: v,
+          options: f.options,
+          size: "sm",
+          "onUpdate:modelValue": (val) => emit("change", val),
+        });
+      }
+
+      // Alignment
+      if (f.type === "align") {
+        return h(TabButtons, {
+          buttons: alignOptions,
+          modelValue: v,
+          "onUpdate:modelValue": (val) => emit("change", val),
+        });
+      }
+
+      // Number
+      if (f.type === "number") {
+        return h("div", { class: "flex items-center gap-1.5" }, [
+          h(TextInput, {
+            type: "number",
+            min: f.min,
+            max: f.max,
+            size: "sm",
+            modelValue: v,
+            "onUpdate:modelValue": (val) => emit("change", Number(val)),
+          }),
+          f.unit ? h("span", { class: "text-xs text-ink-gray-4 flex-shrink-0" }, f.unit) : null,
+        ]);
+      }
+
+      // Dimension
+      if (f.type === "dimension") {
+        const { num, unit } = parseDimension(v);
+        return h("div", { class: "flex items-center gap-1" }, [
+          h(TextInput, {
+            type: "number",
+            min: 0,
+            size: "sm",
+            class: "flex-1 min-w-0",
+            modelValue: num,
+            "onUpdate:modelValue": (val) => emit("change", val + parseDimension(v).unit),
+          }),
+          h(TabButtons, {
+            buttons: [
+              { value: "px", label: "px" },
+              { value: "%",  label: "%" },
+            ],
+            modelValue: unit,
+            "onUpdate:modelValue": (u) => emit("change", parseDimension(v).num + u),
+          }),
+          h("button", {
+            type: "button",
+            title: "Set to auto",
+            class: [
+              "text-xs font-medium px-1.5 py-1 rounded border transition-colors flex-shrink-0",
+              v === "auto"
+                ? "bg-ink-gray-8 text-white border-ink-gray-8"
+                : "text-ink-gray-5 border-outline-gray-2 hover:bg-surface-gray-2",
+            ],
+            onClick: () => emit("change", "auto"),
+          }, "auto"),
+        ]);
+      }
+
+      // Default: text
+      return h(TextInput, {
+        type: "text",
+        placeholder: f.placeholder || "",
+        size: "sm",
+        modelValue: v,
+        "onUpdate:modelValue": (val) => emit("change", val),
+      });
+    };
+  },
+});
 </script>
