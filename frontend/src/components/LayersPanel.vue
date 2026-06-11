@@ -10,110 +10,20 @@
       </p>
     </div>
 
-    <!-- Layer tree (frappe-ui Tree drives recursion, indent guides + chevrons) -->
+    <!-- Layer tree -->
     <div
       v-else
-      class="flex-1 overflow-y-auto py-1 px-2 flex flex-col gap-0.5"
+      class="flex-1 overflow-y-auto py-1 flex flex-col"
       @dragover.prevent
       @drop.prevent="onDropAtEnd"
     >
-      <Tree
-        v-for="block in normalizedBlocks"
+      <LayerNode
+        v-for="block in store.blocks"
         :key="block.id"
-        :node="block"
-        node-key="id"
-        :options="treeOptions"
-      >
-        <template #node="{ node, hasChildren, isCollapsed, toggleCollapsed }">
-          <div
-            class="group relative flex items-center gap-1.5 rounded-md px-2 py-1 cursor-pointer select-none transition-colors"
-            :class="rowClass(node)"
-            draggable="true"
-            @click.stop="store.selectBlock(node.id)"
-            @dblclick.stop="startRename(node.id)"
-            @dragstart.stop="onDragStart(node.id, $event)"
-            @dragover.stop.prevent="onDragOver(node.id, $event)"
-            @drop.stop.prevent="onDrop(node.id)"
-            @dragend="clearDrag"
-          >
-            <!-- Drop indicators: line above (before), ring (inside), line below (after) -->
-            <div
-              v-if="dropState?.targetId === node.id && dropState.zone === 'before'"
-              class="absolute inset-x-1 -top-px h-0.5 bg-blue-500 rounded-full pointer-events-none z-10"
-            />
-            <div
-              v-if="dropState?.targetId === node.id && dropState.zone === 'inside'"
-              class="absolute inset-0 rounded-md ring-2 ring-blue-400 bg-blue-50/40 pointer-events-none z-10"
-            />
-            <div
-              v-if="dropState?.targetId === node.id && dropState.zone === 'after'"
-              class="absolute inset-x-1 -bottom-px h-0.5 bg-blue-500 rounded-full pointer-events-none z-10"
-            />
-
-            <!-- Chevron (containers) or alignment spacer (leaves) -->
-            <button
-              v-if="hasChildren"
-              type="button"
-              class="flex-shrink-0 w-4 h-4 flex items-center justify-center text-ink-gray-6 hover:text-ink-gray-8"
-              :aria-label="isCollapsed ? 'Expand' : 'Collapse'"
-              @click.stop="toggleCollapsed"
-            >
-              <FeatherIcon :name="isCollapsed ? 'chevron-right' : 'chevron-down'" class="w-3.5 h-3.5" />
-            </button>
-            <span v-else class="flex-shrink-0 w-4" />
-
-            <!-- Block-type icon (structural blocks get a colour accent) -->
-            <FeatherIcon
-              :name="blockIcon(node.type)"
-              class="w-3.5 h-3.5 flex-shrink-0"
-              :class="iconClass(node)"
-            />
-
-            <!-- Label — inline editable on double-click -->
-            <input
-              v-if="editingId === node.id"
-              v-focus
-              class="flex-1 text-sm bg-transparent border-b border-blue-400 outline-none min-w-0 py-0.5"
-              :value="node.label || blockLabel(node.type)"
-              @blur="finishRename(node.id, $event.target.value)"
-              @keydown.enter.prevent="finishRename(node.id, $event.target.value)"
-              @keydown.esc.prevent="editingId = null"
-              @click.stop
-              @dblclick.stop
-              @dragstart.stop.prevent
-            />
-            <span
-              v-else
-              class="flex-1 text-sm text-ink-gray-6 truncate"
-            >{{ node.label || blockLabel(node.type) }}</span>
-
-            <!-- Index badge (top-level only) -->
-            <span
-              v-if="topLevelIndex(node.id) !== null"
-              class="text-xs text-ink-gray-4 flex-shrink-0 tabular-nums px-0.5"
-            >{{ topLevelIndex(node.id) + 1 }}</span>
-
-            <!-- Add inside (containers only) -->
-            <button
-              v-if="node.type === 'container'"
-              type="button"
-              class="opacity-0 group-hover:opacity-100 text-ink-gray-5 hover:text-blue-600 transition flex-shrink-0 w-4 h-4 flex items-center justify-center rounded hover:bg-blue-50"
-              title="Add block inside"
-              aria-label="Add block inside container"
-              @click.stop="openPicker({ mode: 'child', parentId: node.id, afterIndex: (node.children?.length ?? 1) - 1 })"
-            ><FeatherIcon name="plus" class="w-3 h-3" /></button>
-
-            <!-- Remove -->
-            <button
-              type="button"
-              class="opacity-0 group-hover:opacity-100 text-ink-gray-4 hover:text-red-500 transition flex-shrink-0 w-4 h-4 flex items-center justify-center rounded"
-              title="Remove"
-              aria-label="Remove block"
-              @click.stop="store.removeBlock(node.id)"
-            ><FeatherIcon name="x" class="w-3 h-3" /></button>
-          </div>
-        </template>
-      </Tree>
+        :block="block"
+        :depth="0"
+        :is-last="block === store.blocks[store.blocks.length - 1]"
+      />
     </div>
 
     <!-- Reorder hint -->
@@ -124,42 +34,18 @@
 </template>
 
 <script setup>
-import { ref, computed, inject, onMounted, onUnmounted } from "vue";
-import { Tree, FeatherIcon } from "frappe-ui";
+import { ref, computed, inject, onMounted, onUnmounted, defineComponent, h } from "vue";
+import { FeatherIcon } from "frappe-ui";
 import { useEditorStore } from "../stores/editor";
 import { BLOCK_SCHEMA } from "../blockSchema";
 
 const store = useEditorStore();
 const openPicker = inject("openPicker", () => {});
 
-// Focus the rename input the moment it mounts (native autofocus doesn't fire on
-// v-if insertion).
 const vFocus = { mounted: (el) => el.focus() };
 
-// Normalize blocks for Tree: columns.blocks → children so frappe-ui Tree recurses into them
-function normalizeForTree(b) {
-  if (b.type === "columns" && b.columns?.length) {
-    const colChildren = b.columns.flatMap((col) => (col.blocks || []).map(normalizeForTree));
-    return { ...b, children: colChildren };
-  }
-  if (b.children?.length) return { ...b, children: b.children.map(normalizeForTree) };
-  return b;
-}
-const normalizedBlocks = computed(() => store.blocks.map(normalizeForTree));
-
-const treeOptions = {
-  rowHeight: "32px",
-  indentWidth: "16px",
-  showIndentationGuides: true,
-  defaultCollapsed: false,
-};
-
-// Structural blocks (grouping containers) are visually emphasised so the
-// hierarchy reads at a glance — the equivalent of Builder's bold/accent rows.
 const STRUCTURAL = new Set(["container", "columns"]);
-const isStructural = (type) => STRUCTURAL.has(type);
-
-const blockIcon = (type) => BLOCK_SCHEMA[type]?.icon || "box";
+const blockIcon  = (type) => BLOCK_SCHEMA[type]?.icon || "box";
 const blockLabel = (type) => BLOCK_SCHEMA[type]?.label || type;
 
 function rowClass(node) {
@@ -167,13 +53,7 @@ function rowClass(node) {
   return "hover:bg-surface-gray-2";
 }
 
-function iconClass() {
-  return "text-ink-gray-6";
-}
-
-// ── Block metadata: id -> { parentId, index, childrenCount, isContainer } ─────
-// Drives both the index badge and position-aware drops without needing a flat
-// index into a rendered list.
+// ── Block metadata ────────────────────────────────────────────────────────────
 const blockMeta = computed(() => {
   const map = new Map();
   function walk(list, parentId) {
@@ -198,8 +78,15 @@ function topLevelIndex(id) {
   return m && m.parentId === null ? m.index : null;
 }
 
-// ── Drag-to-reorder (cross-level, position-aware) ────────────────────────────
-// dropState: { targetId, zone: 'before' | 'inside' | 'after' } | null
+// ── Inline rename ─────────────────────────────────────────────────────────────
+const editingId = ref(null);
+const startRename  = (id) => { editingId.value = id; };
+function finishRename(id, value) {
+  store.setBlockLabel(id, value);
+  editingId.value = null;
+}
+
+// ── Drag-to-reorder ───────────────────────────────────────────────────────────
 const dragId    = ref(null);
 const dropState = ref(null);
 
@@ -212,14 +99,11 @@ function getZone(e, isContainer) {
   const rect = e.currentTarget.getBoundingClientRect();
   const ratio = (e.clientY - rect.top) / rect.height;
   if (!isContainer) return ratio < 0.5 ? "before" : "after";
-  // Container: top 30% = before, middle 40% = inside, bottom 30% = after
   if (ratio < 0.3) return "before";
   if (ratio < 0.7) return "inside";
   return "after";
 }
 
-// True when `nodeId` sits inside `ancestorId`'s subtree — used to forbid
-// dropping a block into its own descendant (which would detach the subtree).
 function isDescendant(ancestorId, nodeId) {
   let cur = blockMeta.value.get(nodeId);
   while (cur && cur.parentId != null) {
@@ -249,7 +133,7 @@ function onDrop(id) {
   const { zone } = state;
 
   if (zone === "inside" && meta.isContainer) {
-    store.moveBlockTo(from, id, meta.childrenCount); // append as last child
+    store.moveBlockTo(from, id, meta.childrenCount);
   } else if (zone === "before") {
     store.moveBlockTo(from, meta.parentId, meta.index);
   } else {
@@ -271,13 +155,11 @@ function clearDrag() {
 
 // ── Keyboard shortcuts ────────────────────────────────────────────────────────
 function onKeyDown(e) {
-  // Ignore when typing in an input/textarea
   const tag = document.activeElement?.tagName;
   if (tag === "INPUT" || tag === "TEXTAREA" || document.activeElement?.isContentEditable) return;
 
   const isMac = navigator.platform.startsWith("Mac");
   const mod = isMac ? e.metaKey : e.ctrlKey;
-
   if (!store.selectedBlockId) return;
 
   if (e.key === "Delete" || e.key === "Backspace") {
@@ -285,26 +167,147 @@ function onKeyDown(e) {
     store.removeBlock(store.selectedBlockId);
     return;
   }
-  if (mod && e.key === "c") {
-    e.preventDefault();
-    store.copyBlock(store.selectedBlockId);
-    return;
-  }
-  if (mod && e.key === "v") {
-    e.preventDefault();
-    store.pasteBlock();
-    return;
-  }
+  if (mod && e.key === "c") { e.preventDefault(); store.copyBlock(store.selectedBlockId); return; }
+  if (mod && e.key === "v") { e.preventDefault(); store.pasteBlock(); return; }
 }
 
 onMounted(() => window.addEventListener("keydown", onKeyDown));
 onUnmounted(() => window.removeEventListener("keydown", onKeyDown));
 
-// ── Inline rename ─────────────────────────────────────────────────────────────
-const editingId = ref(null);
-const startRename  = (id) => { editingId.value = id; };
-function finishRename(id, value) {
-  store.setBlockLabel(id, value);
-  editingId.value = null;
+// ── LayerNode: recursive component ───────────────────────────────────────────
+// Gets children from block.children (containers) OR block.columns[].blocks (columns).
+function getChildren(block) {
+  if (block.children?.length) return block.children;
+  if (block.columns?.length) return block.columns.flatMap((col) => col.blocks || []);
+  return [];
 }
+
+const collapsed = ref(new Set());
+function toggleCollapse(id) {
+  if (collapsed.value.has(id)) collapsed.value.delete(id);
+  else collapsed.value.add(id);
+  collapsed.value = new Set(collapsed.value); // trigger reactivity
+}
+
+const LayerNode = defineComponent({
+  name: "LayerNode",
+  props: {
+    block:  { type: Object, required: true },
+    depth:  { type: Number, default: 0 },
+    isLast: { type: Boolean, default: false },
+  },
+  setup(props) {
+    return () => {
+      const b        = props.block;
+      const children = getChildren(b);
+      const hasKids  = children.length > 0;
+      const isOpen   = !collapsed.value.has(b.id);
+      const idx      = topLevelIndex(b.id);
+      const dState   = dropState.value;
+
+      // ── Row ──
+      const row = h("div", {
+        class: [
+          "group relative flex items-center gap-1.5 px-2 py-1 mx-1 rounded-md cursor-pointer select-none transition-colors",
+          rowClass(b),
+        ].join(" "),
+        draggable: true,
+        onClick: (e) => { e.stopPropagation(); store.selectBlock(b.id); },
+        onDblclick: (e) => { e.stopPropagation(); startRename(b.id); },
+        onDragstart: (e) => { e.stopPropagation(); onDragStart(b.id, e); },
+        onDragover:  (e) => { e.stopPropagation(); e.preventDefault(); onDragOver(b.id, e); },
+        onDrop:      (e) => { e.stopPropagation(); e.preventDefault(); onDrop(b.id); },
+        onDragend:   () => clearDrag(),
+      }, [
+        // Drop: line above
+        dState?.targetId === b.id && dState.zone === "before"
+          ? h("div", { class: "absolute inset-x-1 -top-px h-0.5 bg-blue-500 rounded-full pointer-events-none z-10" })
+          : null,
+        // Drop: ring inside
+        dState?.targetId === b.id && dState.zone === "inside"
+          ? h("div", { class: "absolute inset-0 rounded-md ring-2 ring-blue-400 bg-blue-50/40 pointer-events-none z-10" })
+          : null,
+        // Drop: line below
+        dState?.targetId === b.id && dState.zone === "after"
+          ? h("div", { class: "absolute inset-x-1 -bottom-px h-0.5 bg-blue-500 rounded-full pointer-events-none z-10" })
+          : null,
+
+        // Chevron or spacer
+        hasKids
+          ? h("button", {
+              type: "button",
+              class: "flex-shrink-0 w-4 h-4 flex items-center justify-center text-ink-gray-6 hover:text-ink-gray-8",
+              onClick: (e) => { e.stopPropagation(); toggleCollapse(b.id); },
+            }, [h(FeatherIcon, { name: isOpen ? "chevron-down" : "chevron-right", class: "w-3.5 h-3.5" })])
+          : h("span", { class: "flex-shrink-0 w-4" }),
+
+        // Icon
+        h(FeatherIcon, { name: blockIcon(b.type), class: "w-3.5 h-3.5 flex-shrink-0 text-ink-gray-6" }),
+
+        // Label (editable on dblclick)
+        editingId.value === b.id
+          ? h("input", {
+              class: "flex-1 text-sm bg-transparent border-b border-blue-400 outline-none min-w-0 py-0.5",
+              value: b.label || blockLabel(b.type),
+              onBlur:    (e) => finishRename(b.id, e.target.value),
+              onKeydown: (e) => {
+                if (e.key === "Enter") { e.preventDefault(); finishRename(b.id, e.target.value); }
+                if (e.key === "Escape") { e.preventDefault(); editingId.value = null; }
+              },
+              onClick:    (e) => e.stopPropagation(),
+              onDblclick: (e) => e.stopPropagation(),
+              onDragstart:(e) => { e.stopPropagation(); e.preventDefault(); },
+              ref: (el) => el?.focus(),
+            })
+          : h("span", { class: "flex-1 text-sm text-ink-gray-6 truncate" }, b.label || blockLabel(b.type)),
+
+        // Top-level index badge
+        idx !== null
+          ? h("span", { class: "text-xs text-ink-gray-4 flex-shrink-0 tabular-nums px-0.5" }, idx + 1)
+          : null,
+
+        // Add inside (containers only)
+        b.type === "container"
+          ? h("button", {
+              type: "button",
+              class: "opacity-0 group-hover:opacity-100 text-ink-gray-5 hover:text-blue-600 transition flex-shrink-0 w-4 h-4 flex items-center justify-center rounded hover:bg-blue-50",
+              title: "Add block inside",
+              onClick: (e) => { e.stopPropagation(); openPicker({ mode: "child", parentId: b.id, afterIndex: (b.children?.length ?? 1) - 1 }); },
+            }, [h(FeatherIcon, { name: "plus", class: "w-3 h-3" })])
+          : null,
+
+        // Remove
+        h("button", {
+          type: "button",
+          class: "opacity-0 group-hover:opacity-100 text-ink-gray-4 hover:text-red-500 transition flex-shrink-0 w-4 h-4 flex items-center justify-center rounded",
+          title: "Remove",
+          onClick: (e) => { e.stopPropagation(); store.removeBlock(b.id); },
+        }, [h(FeatherIcon, { name: "x", class: "w-3 h-3" })]),
+      ]);
+
+      if (!hasKids || !isOpen) return row;
+
+      // ── Children with guide line ──
+      const childNodes = children.map((child, i) =>
+        h(LayerNode, {
+          key: child.id,
+          block: child,
+          depth: props.depth + 1,
+          isLast: i === children.length - 1,
+        })
+      );
+
+      const guide = h("div", {
+        class: "flex",
+        style: { paddingLeft: (props.depth * 16 + 20) + "px" },
+      }, [
+        // Vertical guide line
+        h("div", { class: "w-px bg-gray-200 flex-shrink-0 mx-1 my-0.5" }),
+        h("div", { class: "flex flex-col flex-1 min-w-0" }, childNodes),
+      ]);
+
+      return h("div", {}, [row, guide]);
+    };
+  },
+});
 </script>
