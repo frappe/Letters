@@ -4,28 +4,34 @@
     <!-- ── Top bar ─────────────────────────────────────────────────────────── -->
     <header class="flex-shrink-0 h-12 bg-white border-b border-gray-200 flex items-center px-4 gap-3">
 
-      <!-- Back to campaigns list -->
-      <a
-        href="/app/letters-campaign"
-        title="Back to campaigns"
-        aria-label="Back to campaigns"
-        class="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-      ><FeatherIcon name="arrow-left" class="w-4 h-4" /></a>
+      <!-- Brand + page menu (Frappe Builder-style left dropdown) -->
+      <Dropdown :options="menuOptions" placement="bottom-start">
+        <template #default="{ open }">
+          <button
+            type="button"
+            class="flex-shrink-0 flex items-center gap-1 h-8 pl-1.5 pr-1 rounded-md hover:bg-gray-100 transition-colors"
+            aria-label="Campaign menu"
+          >
+            <span class="w-6 h-6 rounded-md bg-gray-900 text-white flex items-center justify-center text-xs font-bold">L</span>
+            <FeatherIcon :name="open ? 'chevron-up' : 'chevron-down'" class="w-3.5 h-3.5 text-gray-400" />
+          </button>
+        </template>
+      </Dropdown>
 
-      <!-- Campaign title — opens settings (name, subject, preview, recipients, analytics) -->
-      <button
-        type="button"
-        class="flex items-center gap-2 min-w-0 max-w-xs px-2 py-1 rounded-md hover:bg-gray-100 transition-colors group"
-        title="Campaign settings"
-        @click="showSettings = true"
-      >
-        <span class="truncate text-sm font-medium text-gray-800">
-          {{ editorStore.campaignName || "Untitled Campaign" }}
-        </span>
-        <FeatherIcon name="settings" class="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-600 flex-shrink-0" />
-      </button>
-
-      <div class="flex-1" />
+      <!-- Centered campaign title — click opens settings too -->
+      <div class="flex-1 flex items-center justify-center min-w-0">
+        <button
+          type="button"
+          class="flex items-center gap-1.5 min-w-0 max-w-sm px-2 py-1 rounded-md hover:bg-gray-100 transition-colors group"
+          title="Campaign settings"
+          @click="showSettings = true"
+        >
+          <span class="truncate text-sm font-medium text-gray-800">
+            {{ editorStore.campaignName || "Untitled Campaign" }}
+          </span>
+          <span v-if="editorStore.isDirty" class="w-1.5 h-1.5 bg-orange-400 rounded-full flex-shrink-0" />
+        </button>
+      </div>
 
       <!-- Actions -->
       <div class="flex items-center gap-1.5 flex-shrink-0">
@@ -53,14 +59,6 @@
 
         <div class="w-px h-4 bg-gray-200 mx-0.5" />
 
-        <Button variant="ghost" size="sm" title="Template Library" @click="showTemplateLibrary = true">
-          <template #prefix><FeatherIcon name="grid" class="w-3.5 h-3.5" /></template>
-          Templates
-        </Button>
-        <Button variant="ghost" size="sm" :loading="previewing" title="Preview in new window" aria-label="Preview in new tab" @click="openPreview">
-          <template #prefix><FeatherIcon name="external-link" class="w-3.5 h-3.5" /></template>
-          Preview
-        </Button>
         <Button variant="ghost" size="sm" :loading="saving" :title="editorStore.isDirty ? 'Unsaved changes' : 'Up to date'" @click="saveCampaign">
           <template #prefix>
             <span class="relative">
@@ -70,10 +68,21 @@
           </template>
           Save
         </Button>
-        <Button variant="ghost" size="sm" :loading="duplicating" :disabled="!editorStore.campaignDoc || duplicating" title="Duplicate this campaign" @click="duplicateCampaign">
-          <template #prefix><FeatherIcon name="copy" class="w-3.5 h-3.5" /></template>
-          Duplicate
+        <Button variant="ghost" size="sm" :loading="previewing" title="Preview in new window" aria-label="Preview in new tab" @click="openPreview">
+          <template #prefix><FeatherIcon name="external-link" class="w-3.5 h-3.5" /></template>
+          Preview
         </Button>
+
+        <!-- Settings (gear) — opens the Campaign Settings dialog -->
+        <Tooltip text="Campaign settings">
+          <Button
+            variant="ghost"
+            size="sm"
+            icon="settings"
+            aria-label="Campaign settings"
+            @click="showSettings = true"
+          />
+        </Tooltip>
 
         <div class="w-px h-4 bg-gray-200 mx-0.5" />
 
@@ -247,8 +256,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, provide } from "vue";
-import { Button, TextInput, FeatherIcon, Dialog, Tooltip, toast } from "frappe-ui";
+import { ref, computed, onMounted, onUnmounted, watch, provide } from "vue";
+import { Button, TextInput, FeatherIcon, Dialog, Dropdown, Tooltip, toast } from "frappe-ui";
 import { useEditorStore } from "../stores/editor";
 import Inspector from "../components/Inspector.vue";
 import LayersPanel from "../components/LayersPanel.vue";
@@ -263,6 +272,44 @@ const previewing    = ref(false);
 const loadingCampaign = ref(false);
 const showSettings = ref(false);
 const showTemplateLibrary = ref(false);
+
+// Left brand dropdown (Frappe Builder-style): navigation + page-level actions
+// that don't belong in the always-visible toolbar.
+const menuOptions = computed(() => [
+  {
+    group: "navigate",
+    hideLabel: true,
+    items: [
+      {
+        label: "Back to Campaigns",
+        icon: "arrow-left",
+        onClick: () => (window.location.href = "/app/letters-campaign"),
+      },
+    ],
+  },
+  {
+    group: "campaign",
+    hideLabel: true,
+    items: [
+      {
+        label: "Browse Templates",
+        icon: "grid",
+        onClick: () => (showTemplateLibrary.value = true),
+      },
+      {
+        label: "Duplicate Campaign",
+        icon: "copy",
+        onClick: duplicateCampaign,
+        disabled: !editorStore.campaignDoc || duplicating.value,
+      },
+      {
+        label: "Campaign Settings",
+        icon: "settings",
+        onClick: () => (showSettings.value = true),
+      },
+    ],
+  },
+]);
 const recipientConfig = ref(null); // { type, email_group | recipients | (doctype + email_field + filters) }
 const sending = ref(false);
 const testSending = ref(false);
