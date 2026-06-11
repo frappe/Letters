@@ -106,9 +106,10 @@ const paddingStyle = usePadding(blockProps, { top: 16, right: 16, bottom: 16, le
 // Only minHeight lives here since it doesn't affect the parent's sizing.
 const wrapperStyle = computed(() => {
   const h = props.block.props.height;
-  return {
-    ...(h && h !== "auto" && h !== "0px" ? { minHeight: h } : {}),
-  };
+  if (!h || h === "auto" || h === "0px") return {};
+  // Use exact height so parent can't be pushed larger by children;
+  // overflow:hidden clips children that exceed it.
+  return { height: h, overflow: "hidden" };
 });
 
 // ── Child sizing (row flex + column width) ───────────────────────────────────
