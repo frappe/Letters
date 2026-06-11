@@ -10,7 +10,7 @@
       <div
         ref="headingRef"
         class="font-bold outline-none mb-2 leading-tight"
-        :style="{ color: block.props.heading_color, fontSize: block.props.heading_size || '30px', fontFamily: 'Georgia, \'Times New Roman\', serif' }"
+        :style="{ color: block.props.heading_color, fontSize: block.props.heading_size || '30px', fontFamily: fontStack(block.props.font_family, 'Georgia, \'Times New Roman\', serif') }"
         contenteditable="true"
         @focus="onHeadingFocus"
         @blur="onHeadingBlur"
@@ -21,7 +21,7 @@
       <div
         ref="subheadingRef"
         class="text-base outline-none leading-relaxed"
-        :style="{ color: block.props.subheading_color, fontFamily: 'Arial, sans-serif' }"
+        :style="{ color: block.props.subheading_color, fontFamily: fontStack(block.props.font_family, 'Arial, Helvetica, sans-serif') }"
         contenteditable="true"
         @focus="onSubheadingFocus"
         @blur="onSubheadingBlur"
@@ -39,6 +39,7 @@ import BlockWrapper from "../BlockWrapper.vue";
 import { useEditorStore } from "../../stores/editor";
 import { usePadding } from "../../composables/usePadding";
 import { useContentEditable } from "../../composables/useContentEditable";
+import { fontStack } from "../../fonts";
 
 const props = defineProps({ block: Object, index: Number });
 const store = useEditorStore();

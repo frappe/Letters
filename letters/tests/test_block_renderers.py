@@ -791,3 +791,63 @@ class TestRendererMap:
     def test_all_renderers_have_render_method(self):
         for name, renderer in RENDERER_MAP.items():
             assert hasattr(renderer, "render"), f"{name} renderer missing .render()"
+
+
+# ── Font selection ────────────────────────────────────────────────────────────
+
+from letters.letters.utils.fonts import FONT_STACKS, font_stack
+
+
+class TestFontStack:
+    def test_known_name_resolves_to_full_stack(self):
+        assert font_stack({"font_family": "Verdana"}, "FB") == "Verdana, Geneva, sans-serif"
+
+    def test_name_is_trimmed(self):
+        assert font_stack({"font_family": "  Georgia  "}, "FB") == FONT_STACKS["Georgia"]
+
+    def test_empty_returns_fallback(self):
+        assert font_stack({"font_family": ""}, "FB") == "FB"
+        assert font_stack({}, "FB") == "FB"
+
+    def test_unknown_name_returns_fallback(self):
+        # Anything outside the safe-font whitelist falls through to the caller's
+        # default; the raw value is never echoed into the output.
+        assert font_stack({"font_family": "Comic Sans MS"}, "FB") == "FB"
+        assert font_stack({"font_family": "<script>"}, "FB") == "FB"
+
+    def test_every_option_has_a_generic_fallback(self):
+        for stack in FONT_STACKS.values():
+            assert stack.rstrip().endswith(("sans-serif", "serif", "monospace"))
+
+
+class TestFontInRenderers:
+    def test_text_uses_chosen_font(self):
+        html = TextRenderer().render(
+            {"type": "text", "props": {"content": "hi", "font_family": "Verdana"}}
+        )
+        assert "font-family:Verdana, Geneva, sans-serif;" in html
+
+    def test_text_without_font_keeps_default(self):
+        # Existing campaigns (no font_family) must render exactly as before.
+        html = TextRenderer().render({"type": "text", "props": {"content": "hi"}})
+        assert "font-family:Arial,sans-serif;" in html
+
+    def test_hero_applies_one_font_to_both_lines(self):
+        html = HeroRenderer().render(
+            {"type": "hero", "props": {"heading": "H", "subheading": "S", "font_family": "Tahoma"}}
+        )
+        # Both the heading and subheading pick up the chosen face.
+        assert html.count("Tahoma, Geneva, sans-serif") == 2
+
+    def test_hero_without_font_keeps_serif_heading_sans_subheading(self):
+        html = HeroRenderer().render(
+            {"type": "hero", "props": {"heading": "H", "subheading": "S"}}
+        )
+        assert "font-family:Georgia,'Times New Roman',serif;" in html
+        assert "font-family:Arial,sans-serif;" in html
+
+    def test_button_uses_chosen_font(self):
+        html = ButtonRenderer().render(
+            {"type": "button", "props": {"label": "Go", "font_family": "Courier New"}}
+        )
+        assert "'Courier New', Courier, monospace" in html

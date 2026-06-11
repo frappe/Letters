@@ -13,6 +13,7 @@
         class="inline-block tracking-widest uppercase outline-none"
         :style="{
           color: block.props.text_color || '#383838',
+          fontFamily: fontStack(block.props.font_family, 'Arial, Helvetica, sans-serif'),
           fontSize: block.props.font_size || '11px',
           fontWeight: block.props.font_weight || '600',
           letterSpacing: '0.99px',
@@ -38,6 +39,7 @@ import BlockWrapper from "../BlockWrapper.vue";
 import EditableDiv from "../EditableDiv.vue";
 import { useEditorStore } from "../../stores/editor";
 import { usePadding } from "../../composables/usePadding";
+import { fontStack } from "../../fonts";
 
 const props = defineProps({ block: Object, index: Number });
 const store = useEditorStore();

@@ -6,6 +6,7 @@
         class="outline-none min-h-10 leading-relaxed"
         :class="alignClass"
         :style="{
+          fontFamily: fontStack(block.props.font_family, 'Arial, Helvetica, sans-serif'),
           fontSize: block.props.font_size,
           fontWeight: block.props.font_weight,
           color: block.props.text_color,
@@ -29,6 +30,7 @@ import BlockWrapper from "../BlockWrapper.vue";
 import { useEditorStore } from "../../stores/editor";
 import { usePadding } from "../../composables/usePadding";
 import { useContentEditable } from "../../composables/useContentEditable";
+import { fontStack } from "../../fonts";
 
 const props = defineProps({ block: Object, index: Number });
 const store = useEditorStore();

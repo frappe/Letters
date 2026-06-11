@@ -9,6 +9,7 @@
         class="rich-text-shell"
         :class="alignClass"
         :style="{
+          fontFamily: fontStack(block.props.font_family, 'Arial, Helvetica, sans-serif'),
           fontSize:   block.props.font_size   || '15px',
           fontWeight: block.props.font_weight || '400',
           color:      block.props.text_color  || '#374151',
@@ -35,6 +36,7 @@ import { TextEditor } from "frappe-ui";
 import BlockWrapper from "../BlockWrapper.vue";
 import { useEditorStore } from "../../stores/editor";
 import { usePadding } from "../../composables/usePadding";
+import { fontStack } from "../../fonts";
 
 const props = defineProps({ block: Object, index: Number });
 const store = useEditorStore();

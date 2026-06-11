@@ -24,6 +24,7 @@ import { computed } from "vue";
 import { useEditorStore } from "../../stores/editor";
 import { usePadding } from "../../composables/usePadding";
 import { useContentEditable } from "../../composables/useContentEditable";
+import { fontStack } from "../../fonts";
 
 const props = defineProps({ block: Object, index: Number });
 const store = useEditorStore();
@@ -47,6 +48,7 @@ const buttonStyle = computed(() => ({
   backgroundColor: props.block.props.color,
   color:           props.block.props.text_color,
   borderRadius:    props.block.props.border_radius || "8px",
+  fontFamily:      fontStack(props.block.props.font_family, "Arial, Helvetica, sans-serif"),
   fontSize:        props.block.props.font_size || "14px",
   padding:         PADDING_MAP[props.block.props.button_padding] || PADDING_MAP.normal,
 }));

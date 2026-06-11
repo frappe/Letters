@@ -8,7 +8,7 @@
           <div
             ref="quoteRef"
             class="outline-none text-base italic leading-relaxed mb-3"
-            :style="{ color: block.props.quote_color }"
+            :style="{ color: block.props.quote_color, fontFamily: quoteFont }"
             contenteditable="true"
             @focus="onQuoteFocus"
             @blur="onQuoteBlur"
@@ -19,7 +19,7 @@
           <div
             ref="authorRef"
             class="text-sm font-semibold outline-none"
-            :style="{ color: block.props.author_color }"
+            :style="{ color: block.props.author_color, fontFamily: metaFont }"
             contenteditable="true"
             @focus="onAuthorFocus"
             @blur="onAuthorBlur"
@@ -30,7 +30,7 @@
           <div
             ref="roleRef"
             class="text-xs outline-none mt-0.5"
-            :style="{ color: block.props.author_color }"
+            :style="{ color: block.props.author_color, fontFamily: metaFont }"
             contenteditable="true"
             @focus="onRoleFocus"
             @blur="onRoleBlur"
@@ -48,7 +48,7 @@
           <div
             ref="quoteRef"
             class="outline-none text-base italic leading-relaxed mb-4 max-w-lg mx-auto"
-            :style="{ color: block.props.quote_color }"
+            :style="{ color: block.props.quote_color, fontFamily: quoteFont }"
             contenteditable="true"
             @focus="onQuoteFocus"
             @blur="onQuoteBlur"
@@ -59,7 +59,7 @@
           <div
             ref="authorRef"
             class="text-sm font-semibold outline-none"
-            :style="{ color: block.props.author_color }"
+            :style="{ color: block.props.author_color, fontFamily: metaFont }"
             contenteditable="true"
             @focus="onAuthorFocus"
             @blur="onAuthorBlur"
@@ -70,7 +70,7 @@
           <div
             ref="roleRef"
             class="text-xs outline-none mt-0.5"
-            :style="{ color: block.props.author_color }"
+            :style="{ color: block.props.author_color, fontFamily: metaFont }"
             contenteditable="true"
             @focus="onRoleFocus"
             @blur="onRoleBlur"
@@ -91,6 +91,7 @@ import BlockWrapper from "../BlockWrapper.vue";
 import { useEditorStore } from "../../stores/editor";
 import { usePadding } from "../../composables/usePadding";
 import { useContentEditable } from "../../composables/useContentEditable";
+import { fontStack } from "../../fonts";
 
 const props = defineProps({ block: Object, index: Number });
 const store = useEditorStore();
@@ -98,6 +99,11 @@ function update(key, val) { store.updateBlockProps(props.block.id, { [key]: val 
 
 const blockProps = computed(() => props.block.props);
 const paddingStyle = usePadding(blockProps);
+
+// The quote uses the chosen font (serif by default); author/role stay sans by
+// default. A single picked font applies to all three, matching the renderer.
+const quoteFont = computed(() => fontStack(props.block.props.font_family, "Georgia, 'Times New Roman', serif"));
+const metaFont  = computed(() => fontStack(props.block.props.font_family, "Arial, Helvetica, sans-serif"));
 
 // Each field gets its own composable instance.
 // Both template branches use the same ref names — Vue assigns the currently

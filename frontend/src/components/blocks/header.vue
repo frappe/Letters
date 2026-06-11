@@ -39,7 +39,7 @@
       <EditableDiv
         v-if="block.props.tagline !== undefined"
         class="mt-2 text-sm outline-none"
-        :style="{ color: block.props.tagline_color || '#6b7280' }"
+        :style="{ color: block.props.tagline_color || '#6b7280', fontFamily: fontStack(block.props.font_family, 'Arial, Helvetica, sans-serif') }"
         :model-value="block.props.tagline || ''"
         placeholder="Issue tagline..."
         @update:model-value="update('tagline', $event)"
@@ -56,6 +56,7 @@ import ImageUploader from "../ImageUploader.vue";
 import EditableDiv from "../EditableDiv.vue";
 import { useEditorStore } from "../../stores/editor";
 import { usePadding } from "../../composables/usePadding";
+import { fontStack } from "../../fonts";
 
 const props = defineProps({ block: Object, index: Number });
 const store = useEditorStore();

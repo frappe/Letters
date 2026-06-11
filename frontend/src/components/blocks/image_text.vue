@@ -35,6 +35,7 @@
         </div>
         <EditableDiv
           class="outline-none leading-relaxed text-gray-700"
+          :style="{ fontFamily: fontStack(block.props.font_family, 'Arial, Helvetica, sans-serif') }"
           :model-value="block.props.text"
           @update:model-value="update('text', $event)"
           @click.stop="store.selectBlock(block.id)"
@@ -85,6 +86,7 @@
           <div class="flex-1">
             <EditableDiv
               class="outline-none min-h-10 leading-relaxed text-gray-700"
+              :style="{ fontFamily: fontStack(block.props.font_family, 'Arial, Helvetica, sans-serif') }"
               :model-value="block.props.text"
               @update:model-value="update('text', $event)"
               @click.stop="store.selectBlock(block.id)"
@@ -98,6 +100,7 @@
 
 <script setup>
 import { ref, computed } from "vue";
+import { fontStack } from "../../fonts";
 import BlockWrapper from "../BlockWrapper.vue";
 import ImageUploader from "../ImageUploader.vue";
 import EditableDiv from "../EditableDiv.vue";

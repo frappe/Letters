@@ -7,7 +7,7 @@
       <div
         ref="textRef"
         class="text-xs leading-relaxed outline-none"
-        :style="{ color: block.props.text_color }"
+        :style="{ color: block.props.text_color, fontFamily: fontStack(block.props.font_family, 'Arial, Helvetica, sans-serif') }"
         contenteditable="true"
         @focus="onFocus"
         @blur="onBlur"
@@ -25,6 +25,7 @@ import BlockWrapper from "../BlockWrapper.vue";
 import { useEditorStore } from "../../stores/editor";
 import { usePadding } from "../../composables/usePadding";
 import { useContentEditable } from "../../composables/useContentEditable";
+import { fontStack } from "../../fonts";
 
 const props = defineProps({ block: Object, index: Number });
 const store = useEditorStore();

@@ -25,7 +25,7 @@
         </ImageUploader>
 
         <!-- Content -->
-        <div class="p-4">
+        <div class="p-4" :style="{ fontFamily: fontStack(block.props.font_family, 'Arial, Helvetica, sans-serif') }">
           <!-- Title -->
           <EditableDiv
             class="font-semibold text-base leading-snug outline-none mb-1"
@@ -74,6 +74,7 @@ import ImageUploader from "../ImageUploader.vue";
 import EditableDiv from "../EditableDiv.vue";
 import { useEditorStore } from "../../stores/editor";
 import { usePadding } from "../../composables/usePadding";
+import { fontStack } from "../../fonts";
 
 const props = defineProps({ block: Object, index: Number });
 const store = useEditorStore();

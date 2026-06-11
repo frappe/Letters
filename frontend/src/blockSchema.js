@@ -11,6 +11,13 @@
 //
 // Supported control types: "color", "select", "text", "number", "align", "dimension".
 
+import { FONT_OPTIONS } from "./fonts";
+
+// Reusable "Font" control. Spread into a block's typography/style section.
+// `value` is the human font name (e.g. "Arial"); the email-safe CSS stack is
+// resolved from it at render time. See fonts.js / fonts.py.
+const fontField = { key: "font_family", label: "Font", type: "select", options: FONT_OPTIONS };
+
 export const BLOCK_SCHEMA = {
   hero: {
     label: "Hero",
@@ -23,6 +30,7 @@ export const BLOCK_SCHEMA = {
       heading_color: "#111827",
       heading_size: "30px",
       subheading_color: "#6b7280",
+      font_family: "Georgia",
       padding_top: 40, padding_right: 32, padding_bottom: 40, padding_left: 32,
     },
     sections: [
@@ -37,6 +45,7 @@ export const BLOCK_SCHEMA = {
         id: "typography",
         title: "Typography",
         fields: [
+          fontField,
           { key: "text_align", label: "Alignment", type: "align" },
           { key: "heading_size", label: "Heading size", type: "text", placeholder: "30px" },
           { key: "heading_color", label: "Heading color", type: "color" },
@@ -52,6 +61,7 @@ export const BLOCK_SCHEMA = {
     defaults: {
       content: "Start typing your message...",
       align: "left",
+      font_family: "Arial",
       font_size: "15px",
       font_weight: "400",
       text_color: "#374151",
@@ -62,6 +72,7 @@ export const BLOCK_SCHEMA = {
         id: "typography",
         title: "Typography",
         fields: [
+          fontField,
           { key: "align", label: "Alignment", type: "align" },
           { key: "font_size", label: "Font size", type: "text", placeholder: "15px" },
           {
@@ -129,6 +140,7 @@ export const BLOCK_SCHEMA = {
       line_color: "#ededed",
       line_position: "below",
       align: "left",
+      font_family: "Arial",
       padding_top: 12, padding_right: 32, padding_bottom: 12, padding_left: 32,
     },
     sections: [
@@ -136,6 +148,7 @@ export const BLOCK_SCHEMA = {
         id: "style",
         title: "Style",
         fields: [
+          fontField,
           { key: "text_color", label: "Text color", type: "color" },
           { key: "font_size", label: "Font size", type: "text", placeholder: "11px" },
           {
@@ -175,6 +188,7 @@ export const BLOCK_SCHEMA = {
       image_width: "160px",
       layout_mode: "side",
       background_color: "#ffffff",
+      font_family: "Arial",
       padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
     },
     sections: [
@@ -208,6 +222,7 @@ export const BLOCK_SCHEMA = {
         id: "style",
         title: "Style",
         fields: [
+          fontField,
           { key: "background_color", label: "Background", type: "color" },
         ],
       },
@@ -224,6 +239,7 @@ export const BLOCK_SCHEMA = {
       text_color: "#ffffff",
       align: "center",
       border_radius: "8px",
+      font_family: "Arial",
       font_size: "14px",
       button_padding: "normal",
       padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
@@ -240,6 +256,7 @@ export const BLOCK_SCHEMA = {
         id: "style",
         title: "Style",
         fields: [
+          fontField,
           { key: "color", label: "Button color", type: "color" },
           { key: "text_color", label: "Text color", type: "color" },
           { key: "font_size", label: "Font size", type: "text", placeholder: "14px" },
@@ -369,6 +386,7 @@ export const BLOCK_SCHEMA = {
       text_color: "#6b7280",
       accent_color: "#9ca3af",
       background_color: "#ffffff",
+      font_family: "Arial",
       padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
     },
     sections: [
@@ -376,6 +394,7 @@ export const BLOCK_SCHEMA = {
         id: "style",
         title: "Style",
         fields: [
+          fontField,
           {
             key: "style",
             label: "List style",
@@ -447,6 +466,7 @@ export const BLOCK_SCHEMA = {
       text: "You received this email because you signed up.",
       background_color: "#f9fafb",
       text_color: "#6b7280",
+      font_family: "Arial",
       padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
     },
     sections: [
@@ -461,6 +481,7 @@ export const BLOCK_SCHEMA = {
         id: "style",
         title: "Style",
         fields: [
+          fontField,
           { key: "background_color", label: "Background", type: "color" },
           { key: "text_color", label: "Text color", type: "color" },
         ],
@@ -499,6 +520,7 @@ export const BLOCK_SCHEMA = {
       author_color: "#6b7280",
       border_color: "#e5e7eb",
       background_color: "#f9fafb",
+      font_family: "Georgia",
       padding_top: 24, padding_right: 32, padding_bottom: 24, padding_left: 32,
     },
     sections: [
@@ -506,6 +528,7 @@ export const BLOCK_SCHEMA = {
         id: "style",
         title: "Style",
         fields: [
+          fontField,
           {
             key: "style",
             label: "Style",
@@ -582,6 +605,7 @@ export const BLOCK_SCHEMA = {
       button_color: "#111827",
       title_color: "#111827",
       text_color: "#6b7280",
+      font_family: "Arial",
       padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
     },
     sections: [
@@ -597,6 +621,7 @@ export const BLOCK_SCHEMA = {
         id: "style",
         title: "Style",
         fields: [
+          fontField,
           { key: "background_color", label: "Card background", type: "color" },
           { key: "border_color",     label: "Border color",    type: "color" },
           { key: "border_radius", label: "Corners", type: "text", placeholder: "12px" },
@@ -619,6 +644,7 @@ export const BLOCK_SCHEMA = {
       background_color: "#ffffff",
       border_bottom: true,
       tagline_color: "#6b7280",
+      font_family: "Arial",
       padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
     },
     sections: [
@@ -635,6 +661,7 @@ export const BLOCK_SCHEMA = {
         id: "style",
         title: "Style",
         fields: [
+          fontField,
           { key: "align",            label: "Alignment",    type: "align" },
           { key: "background_color", label: "Background",   type: "color" },
           { key: "tagline_color",    label: "Tagline color", type: "color" },
@@ -658,6 +685,7 @@ export const BLOCK_SCHEMA = {
     defaults: {
       html_content: "<p>Start typing your message. Use the toolbar to add <strong>bold</strong>, <em>italic</em>, lists, and <a href=\"https://example.com\">links</a>.</p>",
       align: "left",
+      font_family: "Arial",
       font_size: "15px",
       font_weight: "400",
       text_color: "#374151",
@@ -669,6 +697,7 @@ export const BLOCK_SCHEMA = {
         id: "typography",
         title: "Typography",
         fields: [
+          fontField,
           { key: "align",       label: "Alignment",   type: "align" },
           { key: "font_size",   label: "Font size",   type: "text", placeholder: "15px" },
           {

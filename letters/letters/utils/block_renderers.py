@@ -4,6 +4,8 @@ from html.parser import HTMLParser
 from typing import Any, List, Optional, Tuple
 import re
 
+from letters.letters.utils.fonts import font_stack
+
 
 def _safe_url(url: str) -> str:
     """Return an HTML-escaped URL, rejecting dangerous protocol schemes."""
@@ -168,16 +170,18 @@ class HeroRenderer(BlockRenderer):
         heading_size    = escape(p.get("heading_size", "30px"))
         subheading_color = escape(p.get("subheading_color", "#6b7280"))
         text_align      = escape(p.get("text_align", "center"))
+        heading_font    = font_stack(p, "Georgia,'Times New Roman',serif")
+        subheading_font = font_stack(p, "Arial,sans-serif")
         padding         = _padding(p, 40, 32, 40, 32)
 
         html = (
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0"'
             f' style="background-color:{bg};">'
             f'<tr><td align="{text_align}" style="padding:{padding};">'
-            f'<h1 style="margin:0 0 12px;font-family:Georgia,\'Times New Roman\',serif;'
+            f'<h1 style="margin:0 0 12px;font-family:{heading_font};'
             f'font-size:{heading_size};font-weight:bold;color:{heading_color};'
             f'line-height:1.2;text-align:{text_align};">{heading}</h1>'
-            f'<p style="margin:0;font-family:Arial,sans-serif;font-size:16px;'
+            f'<p style="margin:0;font-family:{subheading_font};font-size:16px;'
             f'color:{subheading_color};line-height:1.5;text-align:{text_align};">{subheading}</p>'
             f'</td></tr></table>'
         )
@@ -194,6 +198,7 @@ class TextRenderer(BlockRenderer):
         color          = escape(p.get("text_color", "#333333"))
         line_height    = escape(str(p.get("line_height", "1.6")))
         letter_spacing = escape(p.get("letter_spacing", "normal"))
+        font           = font_stack(p, "Arial,sans-serif")
 
         # Content may be plain text or HTML (multiline text blocks save innerHTML).
         # Detect by presence of any < character and sanitize accordingly.
@@ -203,7 +208,7 @@ class TextRenderer(BlockRenderer):
             content = escape(raw_content)
 
         base_style = (
-            f"margin:0;font-family:Arial,sans-serif;font-size:{size};"
+            f"margin:0;font-family:{font};font-size:{size};"
             f"color:{color};line-height:{line_height};text-align:{align};"
             f"font-weight:{weight};letter-spacing:{letter_spacing};"
         )
@@ -278,6 +283,7 @@ class SectionLabelRenderer(BlockRenderer):
         align         = escape(p.get("align", "left"))
         font_size     = escape(p.get("font_size", "11px"))
         font_weight   = escape(str(p.get("font_weight", "600")))
+        font          = font_stack(p, "Arial,sans-serif")
 
         line_html = f'<hr style="border:0;border-top:1px solid {line_color};margin:8px 0 0;" />'
         above_line = line_html if line_position == "above" else ""
@@ -288,7 +294,7 @@ class SectionLabelRenderer(BlockRenderer):
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
             f'<tr><td style="padding:{padding};" align="{align}">'
             f'{above_line}'
-            f'<span style="font-family:Arial,sans-serif;font-size:{font_size};font-weight:{font_weight};'
+            f'<span style="font-family:{font};font-size:{font_size};font-weight:{font_weight};'
             f'color:{text_color};text-transform:uppercase;letter-spacing:1px;'
             f'line-height:1.2;">{label}</span>'
             f'{below_line}'
@@ -305,6 +311,7 @@ class ImageTextRenderer(BlockRenderer):
         position    = p.get("image_position", "left")
         img_width   = p.get("image_width", "160px")
         layout_mode = p.get("layout_mode", "side")
+        font        = font_stack(p, "Arial,sans-serif")
 
         img_px = img_width.replace("px", "") if img_width.endswith("px") else "160"
 
@@ -328,7 +335,7 @@ class ImageTextRenderer(BlockRenderer):
                 f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
                 f'<tr><td style="padding:{pt}px {pr}px {pb}px {pl}px;">'
                 f'{img_html}'
-                f'<p style="margin:0;font-family:Arial,sans-serif;font-size:15px;'
+                f'<p style="margin:0;font-family:{font};font-size:15px;'
                 f'color:#333333;line-height:1.6;">{text}</p>'
                 f'</td></tr></table>'
             )
@@ -348,7 +355,7 @@ class ImageTextRenderer(BlockRenderer):
             )
             text_cell = (
                 f'<td valign="top" style="padding:{pt}px {pr}px {pb}px {gap}px;">'
-                f'<p style="margin:0;font-family:Arial,sans-serif;font-size:15px;'
+                f'<p style="margin:0;font-family:{font};font-size:15px;'
                 f'color:#333333;line-height:1.6;">{text}</p>'
                 f'</td>'
             )
@@ -377,6 +384,7 @@ class ButtonRenderer(BlockRenderer):
         align          = escape(p.get("align", "center"))
         radius         = escape(p.get("border_radius", "8px"))
         font_size      = escape(p.get("font_size", "14px"))
+        font           = font_stack(p, "Arial,sans-serif")
         btn_padding_key = p.get("button_padding", "normal")
         btn_padding    = self._BTN_PADDING.get(btn_padding_key, self._BTN_PADDING["normal"])
 
@@ -385,7 +393,7 @@ class ButtonRenderer(BlockRenderer):
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
             f'<tr><td align="{align}" style="padding:{padding};">'
             f'<a href="{url}" style="display:inline-block;padding:{btn_padding};'
-            f'background-color:{bg};color:{color};font-family:Arial,sans-serif;'
+            f'background-color:{bg};color:{color};font-family:{font};'
             f'font-size:{font_size};font-weight:bold;text-decoration:none;border-radius:{radius};">'
             f'{label}</a>'
             f'</td></tr></table>'
@@ -560,13 +568,14 @@ class FooterRenderer(BlockRenderer):
         text  = escape(p.get("text", ""))
         bg    = escape(p.get("background_color", "#f9fafb"))
         color = escape(p.get("text_color", "#6b7280"))
+        font  = font_stack(p, "Arial,sans-serif")
 
         padding = _padding(p, 20, 32, 20, 32)
         html = (
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0"'
             f' style="background-color:{bg};">'
             f'<tr><td align="center" style="padding:{padding};">'
-            f'<p style="margin:0;font-family:Arial,sans-serif;font-size:12px;'
+            f'<p style="margin:0;font-family:{font};font-size:12px;'
             f'color:{color};line-height:1.5;">{text}</p>'
             f'</td></tr></table>'
         )
@@ -598,18 +607,20 @@ class QuoteRenderer(BlockRenderer):
         author_color = escape(p.get("author_color", "#6b7280"))
         border_color = escape(p.get("border_color", "#e5e7eb"))
         bg           = escape(p.get("background_color", "#f9fafb"))
+        quote_font   = font_stack(p, "Georgia,'Times New Roman',serif")
+        meta_font    = font_stack(p, "Arial,sans-serif")
         padding      = _padding(p, 24, 32, 24, 32)
 
         if style == "centered":
             inner = (
                 f'<p style="margin:0 0 4px;font-family:Georgia,serif;font-size:40px;'
                 f'line-height:1;color:{border_color};">&ldquo;</p>'
-                f'<p style="margin:0 0 16px;font-family:Georgia,\'Times New Roman\',serif;'
+                f'<p style="margin:0 0 16px;font-family:{quote_font};'
                 f'font-size:16px;font-style:italic;color:{quote_color};line-height:1.6;">'
                 f'{quote}</p>'
-                f'<p style="margin:0;font-family:Arial,sans-serif;font-size:14px;'
+                f'<p style="margin:0;font-family:{meta_font};font-size:14px;'
                 f'font-weight:600;color:{author_color};">{author}</p>'
-                f'<p style="margin:2px 0 0;font-family:Arial,sans-serif;font-size:12px;'
+                f'<p style="margin:2px 0 0;font-family:{meta_font};font-size:12px;'
                 f'color:{author_color};">{role}</p>'
             )
             html = (
@@ -622,12 +633,12 @@ class QuoteRenderer(BlockRenderer):
         else:
             # Left-border style
             inner = (
-                f'<p style="margin:0 0 12px;font-family:Georgia,\'Times New Roman\',serif;'
+                f'<p style="margin:0 0 12px;font-family:{quote_font};'
                 f'font-size:16px;font-style:italic;color:{quote_color};line-height:1.6;">'
                 f'{quote}</p>'
-                f'<p style="margin:0;font-family:Arial,sans-serif;font-size:14px;'
+                f'<p style="margin:0;font-family:{meta_font};font-size:14px;'
                 f'font-weight:600;color:{author_color};">{author}</p>'
-                f'<p style="margin:2px 0 0;font-family:Arial,sans-serif;font-size:12px;'
+                f'<p style="margin:2px 0 0;font-family:{meta_font};font-size:12px;'
                 f'color:{author_color};">{role}</p>'
             )
             pt = int(p.get("padding_top", 24))
@@ -709,6 +720,7 @@ class ProductCardRenderer(BlockRenderer):
         button_color  = escape(p.get("button_color", "#111827"))
         title_color   = escape(p.get("title_color", "#111827"))
         text_color    = escape(p.get("text_color", "#6b7280"))
+        font          = font_stack(p, "Arial,sans-serif")
 
         pt = int(p.get("padding_top", 20))
         pr = int(p.get("padding_right", 32))
@@ -726,7 +738,7 @@ class ProductCardRenderer(BlockRenderer):
         if button_label:
             btn_html = (
                 f'<a href="{button_url}" style="display:inline-block;padding:8px 18px;'
-                f'background-color:{button_color};color:#ffffff;font-family:Arial,sans-serif;'
+                f'background-color:{button_color};color:#ffffff;font-family:{font};'
                 f'font-size:13px;font-weight:bold;text-decoration:none;border-radius:6px;">'
                 f'{button_label}</a>'
             )
@@ -739,13 +751,13 @@ class ProductCardRenderer(BlockRenderer):
             f'border-radius:{border_radius};">'
             f'<tr><td>{img_html}</td></tr>'
             f'<tr><td style="padding:16px;">'
-            f'<p style="margin:0 0 6px;font-family:Arial,sans-serif;font-size:16px;'
+            f'<p style="margin:0 0 6px;font-family:{font};font-size:16px;'
             f'font-weight:600;color:{title_color};line-height:1.3;">{title}</p>'
-            f'<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:14px;'
+            f'<p style="margin:0 0 12px;font-family:{font};font-size:14px;'
             f'color:{text_color};line-height:1.5;">{description}</p>'
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
             f'<tr>'
-            f'<td style="font-family:Arial,sans-serif;font-size:18px;font-weight:700;'
+            f'<td style="font-family:{font};font-size:18px;font-weight:700;'
             f'color:{title_color};">{price}</td>'
             f'<td align="right">{btn_html}</td>'
             f'</tr></table>'
@@ -799,6 +811,7 @@ class LinkListRenderer(BlockRenderer):
         text_color  = escape(p.get("text_color", "#6b7280"))
         accent_color = escape(p.get("accent_color", "#9ca3af"))
         bg          = escape(p.get("background_color", "#ffffff"))
+        font        = font_stack(p, "Arial,sans-serif")
         padding     = _padding(p, 20, 32, 20, 32)
 
         if not items:
@@ -807,7 +820,7 @@ class LinkListRenderer(BlockRenderer):
         heading_html = ""
         if heading:
             heading_html = (
-                f'<p style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:13px;'
+                f'<p style="margin:0 0 12px;font-family:{font};font-size:13px;'
                 f'font-weight:600;color:#374151;text-transform:uppercase;letter-spacing:1px;">'
                 f'{heading}</p>'
             )
@@ -827,12 +840,12 @@ class LinkListRenderer(BlockRenderer):
 
             marker_cell = (
                 f'<td width="16" valign="top" style="padding:0 8px 0 0;'
-                f'font-family:Arial,sans-serif;font-size:14px;color:{accent_color};'
+                f'font-family:{font};font-size:14px;color:{accent_color};'
                 f'line-height:1.5;white-space:nowrap;">{marker}</td>'
             ) if marker else ""
 
             desc_html = (
-                f'<p style="margin:2px 0 0;font-family:Arial,sans-serif;font-size:13px;'
+                f'<p style="margin:2px 0 0;font-family:{font};font-size:13px;'
                 f'color:{text_color};line-height:1.5;">{description}</p>'
             ) if description else ""
 
@@ -842,7 +855,7 @@ class LinkListRenderer(BlockRenderer):
                 f'<tr>'
                 f'{marker_cell}'
                 f'<td valign="top">'
-                f'<a href="{url}" style="font-family:Arial,sans-serif;font-size:14px;'
+                f'<a href="{url}" style="font-family:{font};font-size:14px;'
                 f'font-weight:500;color:{link_color};text-decoration:underline;line-height:1.5;">'
                 f'{title}</a>'
                 f'{desc_html}'
@@ -874,6 +887,7 @@ class HeaderRenderer(BlockRenderer):
         align         = escape(p.get("align", "center"))
         tagline_color = escape(p.get("tagline_color", "#6b7280"))
         border_bottom = p.get("border_bottom", True)
+        font          = font_stack(p, "Arial,sans-serif")
         padding       = _padding(p, 20, 32, 20, 32)
 
         h_px = logo_height.replace("px", "")
@@ -890,7 +904,7 @@ class HeaderRenderer(BlockRenderer):
             )
 
         tagline_html = (
-            f'<p style="margin:8px 0 0;font-family:Arial,sans-serif;font-size:13px;'
+            f'<p style="margin:8px 0 0;font-family:{font};font-size:13px;'
             f'color:{tagline_color};line-height:1.4;">{tagline}</p>'
         ) if tagline else ""
 
@@ -919,12 +933,13 @@ class RichTextRenderer(BlockRenderer):
         weight         = escape(str(p.get("font_weight", "400")))
         color          = escape(p.get("text_color", "#374151"))
         line_height    = escape(str(p.get("line_height", "1.6")))
+        font           = font_stack(p, "Arial,sans-serif")
         padding        = _padding(p, 20, 32, 20, 32)
 
         html = (
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
             f'<tr><td align="{align}" style="padding:{padding};'
-            f'font-family:Arial,sans-serif;font-size:{size};color:{color};'
+            f'font-family:{font};font-size:{size};color:{color};'
             f'line-height:{line_height};font-weight:{weight};">'
             f'{html_content}'
             f'</td></tr></table>'

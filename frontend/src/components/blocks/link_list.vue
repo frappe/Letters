@@ -1,6 +1,6 @@
 <template>
   <BlockWrapper :block="block" :index="index">
-    <div :style="{ backgroundColor: block.props.background_color || '#ffffff', ...paddingStyle }">
+    <div :style="{ backgroundColor: block.props.background_color || '#ffffff', fontFamily: fontStack(block.props.font_family, 'Arial, Helvetica, sans-serif'), ...paddingStyle }">
 
       <!-- Optional section heading -->
       <EditableDiv
@@ -103,6 +103,7 @@ import BlockWrapper from "../BlockWrapper.vue";
 import EditableDiv from "../EditableDiv.vue";
 import { useEditorStore } from "../../stores/editor";
 import { usePadding } from "../../composables/usePadding";
+import { fontStack } from "../../fonts";
 
 const props = defineProps({ block: Object, index: Number });
 const store = useEditorStore();
