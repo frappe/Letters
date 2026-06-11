@@ -18,6 +18,16 @@
         </template>
       </Dropdown>
 
+      <div class="w-px h-4 bg-gray-200 mx-0.5" />
+
+      <!-- Add block / Add container — icon tools (Frappe Builder-style) -->
+      <Tooltip text="Add block">
+        <Button variant="ghost" size="sm" icon="plus" aria-label="Add block" @click.stop="onAddBlock" />
+      </Tooltip>
+      <Tooltip text="Add container">
+        <Button variant="ghost" size="sm" icon="square" aria-label="Add container" @click.stop="addContainer" />
+      </Tooltip>
+
       <!-- Centered campaign title — click opens settings too -->
       <div class="flex-1 flex items-center justify-center min-w-0">
         <button
@@ -115,21 +125,9 @@
           <span class="text-xs text-gray-300 tabular-nums">{{ editorStore.blocks.length }}</span>
         </div>
 
-        <!-- Layer list fills remaining space -->
+        <!-- Layer list fills remaining space (Add block / container moved to the top bar) -->
         <div class="flex-1 overflow-y-auto min-h-0">
           <LayersPanel />
-        </div>
-
-        <!-- Add block / Add container buttons pinned to bottom -->
-        <div class="flex-shrink-0 p-3 border-t border-gray-100 flex flex-col gap-2">
-          <Button variant="solid" class="w-full" @click.stop="onAddBlock">
-            <template #prefix><FeatherIcon name="plus" class="w-3.5 h-3.5" /></template>
-            Add block
-          </Button>
-          <Button variant="outline" class="w-full" @click.stop="addContainer">
-            <template #prefix><FeatherIcon name="box" class="w-3.5 h-3.5" /></template>
-            Add container
-          </Button>
         </div>
       </aside>
 
@@ -154,7 +152,7 @@
           >
             <div class="mb-3 opacity-40"><FeatherIcon name="inbox" class="w-10 h-10 mx-auto text-gray-400" /></div>
             <p class="text-sm font-medium mb-1">Your canvas is empty</p>
-            <p class="text-xs opacity-60">Use <strong>+ Add block</strong> in the left panel to get started</p>
+            <p class="text-xs opacity-60">Use <strong>+ Add block</strong> in the top bar to get started</p>
           </div>
 
           <!-- Block list with inline adders -->
