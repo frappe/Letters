@@ -153,6 +153,7 @@
 <script setup>
 import { computed, reactive, watch, defineComponent, h } from "vue";
 import { TextInput, Select, Switch, TabButtons, Button, FeatherIcon, Tooltip, Slider } from "frappe-ui";
+import ColorPicker from "./ColorPicker.vue";
 import { useEditorStore } from "../stores/editor";
 import { BLOCK_SCHEMA } from "../blockSchema";
 
@@ -240,27 +241,10 @@ const FieldControl = defineComponent({
 
       // Color
       if (f.type === "color") {
-        return h("div", { class: "flex items-center gap-1.5" }, [
-          h("div", { class: "relative w-6 h-6 rounded flex-shrink-0 cursor-pointer border border-outline-gray-2 overflow-hidden" }, [
-            h("input", {
-              type: "color",
-              value: v || "#ffffff",
-              onInput: (e) => emit("change", e.target.value),
-              class: "absolute inset-0 w-full h-full opacity-0 cursor-pointer",
-            }),
-            h("div", {
-              class: "w-6 h-6",
-              style: { backgroundColor: v || "#ffffff" },
-            }),
-          ]),
-          h(TextInput, {
-            class: "flex-1 min-w-0",
-            size: "sm",
-            type: "text",
-            modelValue: v,
-            "onUpdate:modelValue": (val) => emit("change", val),
-          }),
-        ]);
+        return h(ColorPicker, {
+          modelValue: v,
+          "onUpdate:modelValue": (val) => emit("change", val),
+        });
       }
 
       // Select (boolean → Switch)
