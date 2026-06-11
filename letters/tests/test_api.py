@@ -34,10 +34,13 @@ class FrappeDict(dict):
             raise AttributeError(k)
 
 
-def _whitelist():
-    """Return a pass-through decorator (ignore @frappe.whitelist())."""
+def _whitelist(*args, **kwargs):
+    """Pass-through decorator supporting both @frappe.whitelist and
+    @frappe.whitelist(allow_guest=True)."""
     def decorator(fn):
         return fn
+    if len(args) == 1 and callable(args[0]) and not kwargs:
+        return args[0]
     return decorator
 
 
@@ -102,6 +105,9 @@ def _reset():
     frappe_stub.db.set_value.side_effect = None
     frappe_stub.db.count.reset_mock()
     frappe_stub.db.count.return_value = 0
+    frappe_stub.db.get_value.reset_mock()
+    frappe_stub.db.get_value.side_effect = None
+    frappe_stub.db.get_value.return_value = None
     frappe_stub.enqueue.reset_mock()
     frappe_stub.enqueue.return_value = None
     # Email validator: by default every address is valid (returns truthy).
@@ -544,3 +550,86 @@ class TestExecuteSend:
         kw = frappe_stub.sendmail.call_args.kwargs
         assert kw["reference_doctype"] == "Letters Campaign"
         assert kw["reference_name"] == "CAMP-001"
+
+
+# ── Open tracking & analytics ─────────────────────────────────────────────────
+
+class TestTrackOpen:
+    def setup_method(self):
+        _reset()
+
+    def test_records_open_on_recipient_rows(self):
+        GETALL["Email Send"] = ["ES-1"]
+        GETALL["Email Send Recipient"] = [FrappeDict(name="R1", opened=0, open_count=0)]
+        api_module._record_open("CAMP-001", "a@b.com")
+        # First open flips opened=1 and stamps opened_on
+        called = frappe_stub.db.set_value.call_args
+        assert called.args[0] == "Email Send Recipient"
+        assert called.args[1] == "R1"
+        update = called.args[2]
+        assert update["opened"] == 1
+        assert update["open_count"] == 1
+        assert "opened_on" in update
+
+    def test_second_open_only_bumps_count(self):
+        GETALL["Email Send"] = ["ES-1"]
+        GETALL["Email Send Recipient"] = [FrappeDict(name="R1", opened=1, open_count=3)]
+        api_module._record_open("CAMP-001", "a@b.com")
+        update = frappe_stub.db.set_value.call_args.args[2]
+        assert update["open_count"] == 4
+        assert "opened" not in update     # already opened — don't re-stamp
+        assert "opened_on" not in update
+
+    def test_no_sends_is_noop(self):
+        GETALL["Email Send"] = []
+        api_module._record_open("CAMP-001", "a@b.com")
+        frappe_stub.db.set_value.assert_not_called()
+
+
+class TestEmailReadTracker:
+    def setup_method(self):
+        _reset()
+
+    def test_send_passes_tracker_url(self):
+        campaign = _campaign_doc()
+        send_doc = MagicMock()
+        send_doc.name = "SD-001"
+        send_doc.send_mode = "direct"
+        send_doc.email_group = None
+        send_doc.recipients = [_recipient("a@b.com")]
+        frappe_stub.get_doc.side_effect = lambda dt, n=None: campaign if dt == "Letters Campaign" else send_doc
+        with patch("letters.letters.utils.email_compiler.EmailCompiler") as C:
+            C.return_value.compile.return_value = "<html></html>"
+            api_module._execute_send("SD-001", "CAMP-001")
+        kw = frappe_stub.sendmail.call_args.kwargs
+        assert kw["email_read_tracker_url"] == "/api/method/letters.letters.api.track_open"
+
+
+class TestCampaignAnalytics:
+    def setup_method(self):
+        _reset()
+
+    def test_no_sends_returns_zeroes(self):
+        frappe_stub.get_doc.return_value = _campaign_doc()
+        GETALL["Email Send"] = []
+        res = api_module.get_campaign_analytics("CAMP-001")
+        assert res["sent"] == 0 and res["opened"] == 0 and res["open_rate"] == 0
+
+    def test_aggregates_open_rate(self):
+        frappe_stub.get_doc.return_value = _campaign_doc()
+        GETALL["Email Send"] = [FrappeDict(
+            name="ES-1", status="Sent", total_recipients=4, sent_count=4, creation="2026-01-01",
+        )]
+        frappe_stub.db.count.return_value = 1   # 1 opened of 4 sent
+        res = api_module.get_campaign_analytics("CAMP-001")
+        assert res["sent"] == 4
+        assert res["opened"] == 1
+        assert res["open_rate"] == 25.0
+        assert res["sent_status"] == "Sent"
+
+    def test_permission_checked(self):
+        doc = _campaign_doc()
+        frappe_stub.get_doc.return_value = doc
+        GETALL["Email Send"] = []
+        api_module.get_campaign_analytics("CAMP-001")
+        frappe_stub.has_permission.assert_called_with("Letters Campaign", "read", doc=doc, throw=True)

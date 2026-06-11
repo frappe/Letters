@@ -28,7 +28,26 @@
       "fieldtype": "Small Text",
       "label": "Error",
       "in_list_view": 1,
-      "columns": 4
+      "columns": 2
+    },
+    {
+      "fieldname": "opened",
+      "fieldtype": "Check",
+      "label": "Opened",
+      "default": "0",
+      "in_list_view": 1,
+      "columns": 1
+    },
+    {
+      "fieldname": "opened_on",
+      "fieldtype": "Datetime",
+      "label": "First Opened"
+    },
+    {
+      "fieldname": "open_count",
+      "fieldtype": "Int",
+      "label": "Open Count",
+      "default": "0"
     }
   ],
   "permissions": []

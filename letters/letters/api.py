@@ -145,6 +145,89 @@ def send_test(blocks=None, subject=None, preview_text=None, name=None, recipient
     return {"sent_to": email}
 
 
+# ── Open tracking & analytics ─────────────────────────────────────────────────
+
+@frappe.whitelist(allow_guest=True)
+def track_open(recipient_email=None, reference_name=None, reference_doctype=None, **kwargs):
+    """Tracking-pixel endpoint: record an email open, then return a 1x1 gif.
+
+    Frappe's email queue generates and *signs* this URL (via email_read_tracker_url),
+    so we verify the signature before trusting the params. A pixel is always
+    returned, even on failure, so the email never shows a broken image. Opens
+    only register when the site is publicly reachable.
+    """
+    from frappe.utils.verified_command import verify_request
+
+    try:
+        if frappe.in_test or verify_request():
+            if reference_doctype == "Letters Campaign" and reference_name and recipient_email:
+                _record_open(reference_name, recipient_email)
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), "Letters track_open error")
+
+    frappe.response.update(frappe.utils.get_imaginary_pixel_response())
+
+
+def _record_open(campaign_name, email):
+    """Mark this campaign's recipient row(s) for `email` as opened. First open
+    stamps opened_on; every hit increments open_count."""
+    sends = frappe.get_all("Email Send", filters={"campaign": campaign_name}, pluck="name")
+    if not sends:
+        return
+    rows = frappe.get_all(
+        "Email Send Recipient",
+        filters={"parent": ["in", sends], "email": email},
+        fields=["name", "opened", "open_count"],
+    )
+    for r in rows:
+        update = {"open_count": (r.open_count or 0) + 1}
+        if not r.opened:
+            update["opened"] = 1
+            update["opened_on"] = frappe.utils.now_datetime()
+        frappe.db.set_value("Email Send Recipient", r.name, update, update_modified=False)
+    frappe.db.commit()
+
+
+@frappe.whitelist()
+def get_campaign_analytics(name):
+    """Open-rate analytics for a campaign, aggregated over its recipient rows."""
+    doc = frappe.get_doc("Letters Campaign", name)
+    frappe.has_permission("Letters Campaign", "read", doc=doc, throw=True)
+
+    sends = frappe.get_all(
+        "Email Send",
+        filters={"campaign": name},
+        fields=["name", "status", "total_recipients", "sent_count", "creation"],
+        order_by="creation desc",
+    )
+    if not sends:
+        return {
+            "sent_status": None, "total": 0, "sent": 0, "opened": 0,
+            "open_rate": 0, "last_opened": None, "last_sent": None,
+        }
+
+    send_names = [s.name for s in sends]
+    total = sum((s.total_recipients or 0) for s in sends)
+    sent  = sum((s.sent_count or 0) for s in sends)
+    opened = frappe.db.count(
+        "Email Send Recipient", {"parent": ["in", send_names], "opened": 1}
+    )
+    last_opened = frappe.db.get_value(
+        "Email Send Recipient",
+        {"parent": ["in", send_names], "opened": 1},
+        "opened_on", order_by="opened_on desc",
+    )
+    return {
+        "sent_status": sends[0].status,
+        "total":       total,
+        "sent":        sent,
+        "opened":      opened,
+        "open_rate":   round((opened / sent) * 100, 1) if sent else 0,
+        "last_opened": str(last_opened) if last_opened else None,
+        "last_sent":   str(sends[0].creation),
+    }
+
+
 @frappe.whitelist()
 def get_doctypes_with_email_fields():
     """Return doctypes that have at least one email field, that the user can read."""
@@ -491,6 +574,11 @@ def _execute_send(send_doc_name, campaign_name):
                     now=False,
                     reference_doctype="Letters Campaign",
                     reference_name=campaign_name,
+                    # Frappe injects a per-recipient tracking pixel pointing here
+                    # (with signed recipient_email/reference params) so opens can
+                    # be recorded. Only registers when the site is publicly
+                    # reachable — a localhost pixel never loads.
+                    email_read_tracker_url="/api/method/letters.letters.api.track_open",
                 )
                 row.status = "Sent"
                 frappe.db.set_value(

@@ -12,28 +12,20 @@
         class="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
       ><FeatherIcon name="arrow-left" class="w-4 h-4" /></a>
 
-      <!-- Campaign name -->
-      <TextInput
-        v-model="editorStore.campaignName"
-        placeholder="Campaign name…"
-        class="w-44"
-        size="sm"
-      />
+      <!-- Campaign title — opens settings (name, subject, preview, recipients, analytics) -->
+      <button
+        type="button"
+        class="flex items-center gap-2 min-w-0 max-w-xs px-2 py-1 rounded-md hover:bg-gray-100 transition-colors group"
+        title="Campaign settings"
+        @click="showSettings = true"
+      >
+        <span class="truncate text-sm font-medium text-gray-800">
+          {{ editorStore.campaignName || "Untitled Campaign" }}
+        </span>
+        <FeatherIcon name="settings" class="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-600 flex-shrink-0" />
+      </button>
 
-      <div class="flex-1 flex items-center gap-2">
-        <TextInput
-          v-model="subject"
-          placeholder="Subject line…"
-          class="flex-1 max-w-xs"
-          size="sm"
-        />
-        <TextInput
-          v-model="previewText"
-          placeholder="Preview text…"
-          class="flex-1 max-w-xs"
-          size="sm"
-        />
-      </div>
+      <div class="flex-1" />
 
       <!-- Actions -->
       <div class="flex items-center gap-1.5 flex-shrink-0">
@@ -85,11 +77,6 @@
 
         <div class="w-px h-4 bg-gray-200 mx-0.5" />
 
-        <!-- Recipients button — configure who to send to -->
-        <Button variant="ghost" size="sm" :disabled="!editorStore.campaignDoc" @click="showRecipientsModal = true">
-          <template #prefix><FeatherIcon name="users" class="w-3.5 h-3.5" /></template>
-          Recipients
-        </Button>
         <!-- Test send — prompts for a recipient address -->
         <Button variant="ghost" size="sm" :disabled="!editorStore.campaignDoc" title="Send a test email" @click="openTestModal">
           <template #prefix><FeatherIcon name="send" class="w-3.5 h-3.5" /></template>
@@ -210,12 +197,14 @@
     </template>
   </Dialog>
 
-  <RecipientsModal
-    v-if="showRecipientsModal"
+  <CampaignSettings
+    v-model="showSettings"
     :campaign-name="editorStore.campaignName"
+    @update:campaign-name="(v) => (editorStore.campaignName = v)"
+    v-model:subject="subject"
+    v-model:preview-text="previewText"
+    v-model:recipient-config="recipientConfig"
     :campaign-doc="editorStore.campaignDoc"
-    @close="showRecipientsModal = false"
-    @saved="onRecipientsSaved"
   />
 
   <TemplateLibrary
@@ -263,7 +252,7 @@ import { Button, TextInput, FeatherIcon, Dialog, Tooltip, toast } from "frappe-u
 import { useEditorStore } from "../stores/editor";
 import Inspector from "../components/Inspector.vue";
 import LayersPanel from "../components/LayersPanel.vue";
-import RecipientsModal from "../components/RecipientsModal.vue";
+import CampaignSettings from "../components/CampaignSettings.vue";
 import TemplateLibrary from "../components/TemplateLibrary.vue";
 import BlockAdderRow from "../components/BlockAdderRow.vue";
 import BlockRenderer from "../components/BlockRenderer.vue";
@@ -272,7 +261,7 @@ const editorStore = useEditorStore();
 const saving        = ref(false);
 const previewing    = ref(false);
 const loadingCampaign = ref(false);
-const showRecipientsModal = ref(false);
+const showSettings = ref(false);
 const showTemplateLibrary = ref(false);
 const recipientConfig = ref(null); // { type, email_group | recipients | (doctype + email_field + filters) }
 const sending = ref(false);
@@ -573,7 +562,8 @@ async function sendCampaign() {
     return;
   }
   if (!recipientConfig.value) {
-    toast.warning("Select recipients first using the Recipients button.");
+    toast.warning("Choose recipients first in Campaign Settings (the title at the top left).");
+    showSettings.value = true;
     return;
   }
 
@@ -609,11 +599,6 @@ async function sendCampaign() {
   } finally {
     sending.value = false;
   }
-}
-
-function onRecipientsSaved(config) {
-  recipientConfig.value = config;
-  showRecipientsModal.value = false;
 }
 
 // ── Duplicate ─────────────────────────────────────────────────────────────────
