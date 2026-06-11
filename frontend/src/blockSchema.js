@@ -9,14 +9,15 @@
 // there is a single source of truth per block: adding a new prop only requires
 // touching one file.
 //
-// Supported control types: "color", "select", "text", "number", "align", "dimension".
+// Supported control types: "color", "select", "text", "number", "slider", "align", "dimension".
+// Fields may include a `hint` string shown as a tooltip on the label.
 
 import { FONT_OPTIONS } from "./fonts";
 
 // Reusable "Font" control. Spread into a block's typography/style section.
 // `value` is the human font name (e.g. "Arial"); the email-safe CSS stack is
 // resolved from it at render time. See fonts.js / fonts.py.
-const fontField = { key: "font_family", label: "Font", type: "select", options: FONT_OPTIONS };
+const fontField = { key: "font_family", label: "Font", type: "select", options: FONT_OPTIONS, hint: "Web-safe font for this block" };
 
 export const BLOCK_SCHEMA = {
   hero: {
@@ -87,8 +88,8 @@ export const BLOCK_SCHEMA = {
             ],
           },
           { key: "text_color", label: "Text color", type: "color" },
-          { key: "line_height", label: "Line height", type: "text", placeholder: "1.6" },
-          { key: "letter_spacing", label: "Letter spacing", type: "text", placeholder: "normal" },
+          { key: "line_height", label: "Line height", type: "text", placeholder: "1.6", hint: "Vertical space between lines, e.g. 1.5 or 160%" },
+          { key: "letter_spacing", label: "Letter spacing", type: "text", placeholder: "normal", hint: "Space between characters, e.g. 0.05em or 2px" },
         ],
       },
     ],
@@ -310,7 +311,7 @@ export const BLOCK_SCHEMA = {
               { label: "Dotted", value: "dotted" },
             ],
           },
-          { key: "thickness", label: "Thickness (px)", type: "number", min: 1, max: 10 },
+          { key: "thickness", label: "Thickness", type: "slider", min: 1, max: 10, step: 1, unit: "px" },
           { key: "width", label: "Length", type: "text", placeholder: "100%" },
           { key: "align", label: "Alignment", type: "align" },
         ],
@@ -343,7 +344,7 @@ export const BLOCK_SCHEMA = {
               { label: "3 Columns", value: "3" },
             ],
           },
-          { key: "col_gap", label: "Column gap (px)", type: "number", min: 0, max: 80 },
+          { key: "col_gap", label: "Column gap", type: "slider", min: 0, max: 80, step: 2, unit: "px" },
         ],
       },
       {
@@ -441,9 +442,9 @@ export const BLOCK_SCHEMA = {
               { label: "Row (side by side)", value: "row" },
             ],
           },
-          { key: "gap", label: "Gap between blocks", type: "number", min: 0, max: 64, unit: "px" },
-          { key: "width", label: "Width", type: "dimension" },
-          { key: "height", label: "Min height", type: "dimension" },
+          { key: "gap", label: "Gap", type: "slider", min: 0, max: 64, step: 2, unit: "px", hint: "Space between child blocks" },
+          { key: "width", label: "Width", type: "dimension", hint: "Use % for fluid, px for fixed, auto to fit content" },
+          { key: "height", label: "Min height", type: "dimension", hint: "Minimum height — block grows taller if content overflows" },
           { key: "align", label: "Alignment", type: "align" },
         ],
       },

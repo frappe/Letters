@@ -51,6 +51,7 @@
             v-for="field in section.fields"
             :key="field.key"
             :label="field.label"
+            :hint="field.hint"
           >
             <FieldControl :field="field" :value="value(field.key)" @change="set(field.key, $event)" />
           </PropRow>
@@ -151,7 +152,7 @@
 
 <script setup>
 import { computed, reactive, watch, defineComponent, h } from "vue";
-import { TextInput, Select, Switch, TabButtons, Button, FeatherIcon, Tooltip } from "frappe-ui";
+import { TextInput, Select, Switch, TabButtons, Button, FeatherIcon, Tooltip, Slider } from "frappe-ui";
 import { useEditorStore } from "../stores/editor";
 import { BLOCK_SCHEMA } from "../blockSchema";
 
@@ -207,16 +208,24 @@ const alignOptions = [
 
 // PropRow: label left, slot content right. compact = label only (no fixed width)
 const PropRow = defineComponent({
-  props: { label: String, compact: Boolean },
+  props: { label: String, hint: String, compact: Boolean },
   setup(props, { slots }) {
-    return () => h("div", { class: "flex items-center gap-2 py-1" }, [
-      h("span", {
+    return () => {
+      const labelSpan = h("span", {
         class: props.compact
           ? "text-xs text-ink-gray-5 shrink-0"
           : "w-24 shrink-0 text-xs text-ink-gray-5 truncate",
-      }, props.label),
-      h("div", { class: "flex-1 min-w-0" }, slots.default?.()),
-    ]);
+      }, props.label);
+
+      const labelEl = props.hint
+        ? h(Tooltip, { text: props.hint, placement: "left" }, { default: () => labelSpan })
+        : labelSpan;
+
+      return h("div", { class: "flex items-center gap-2 py-1" }, [
+        labelEl,
+        h("div", { class: "flex-1 min-w-0" }, slots.default?.()),
+      ]);
+    };
   },
 });
 
@@ -277,6 +286,22 @@ const FieldControl = defineComponent({
           modelValue: v,
           "onUpdate:modelValue": (val) => emit("change", val),
         });
+      }
+
+      // Slider
+      if (f.type === "slider") {
+        return h("div", { class: "flex items-center gap-2" }, [
+          h(Slider, {
+            modelValue: [v ?? f.min ?? 0],
+            min: f.min ?? 0,
+            max: f.max ?? 100,
+            step: f.step ?? 1,
+            size: "sm",
+            "onUpdate:modelValue": (arr) => emit("change", arr[0]),
+          }),
+          h("span", { class: "text-xs text-ink-gray-5 w-8 text-right flex-shrink-0 tabular-nums" },
+            `${v ?? f.min ?? 0}${f.unit ?? ""}`),
+        ]);
       }
 
       // Number
