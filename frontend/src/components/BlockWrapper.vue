@@ -1,6 +1,5 @@
 <template>
   <div
-    data-block-wrapper
     class="relative rounded border-2 transition-colors group/block"
     :class="[
       selected ? 'border-gray-900 shadow-sm' : 'border-transparent hover:border-gray-200',
@@ -207,34 +206,19 @@ function startPaddingDrag(edge, e) {
   store.selectBlock(props.block.id);
   e.target.setPointerCapture(e.pointerId);
 
-  const propKey   = `padding_${edge}`;
-  const startY    = e.clientY;
-  const startPad  = parseInt(props.block.props[propKey] ?? DEFAULT_PADDING[edge]);
-  const isContainer = props.block.type === "container";
+  const propKey  = `padding_${edge}`;
+  const startY   = e.clientY;
+  const startVal = parseInt(props.block.props[propKey] ?? DEFAULT_PADDING[edge]);
 
-  // For container bottom: also track starting element height so we can clip
-  // content when padding reaches 0 and the user continues dragging up.
-  const el = e.target.closest
-    ? e.target.closest("[data-block-wrapper]") ?? e.target.parentElement
-    : e.target.parentElement;
-  const startHeight = el ? Math.round(el.getBoundingClientRect().height) : null;
+  // Snapshot history once at drag start so undo restores the full drag in one step
+  store.updateBlockProps(props.block.id, { [propKey]: startVal });
 
   function onMove(ev) {
-    const delta = ev.clientY - startY;
-    const raw   = startPad + delta;
-
-    if (edge === "bottom" && isContainer && raw < 0 && startHeight !== null) {
-      // Padding already at 0 — continue drag clips the container height instead
-      store.updateBlockProps(props.block.id, {
-        [propKey]: 0,
-        height: Math.max(20, Math.round((startHeight + raw) / 4) * 4) + "px",
-      });
-      showTip(`↕ ${Math.max(20, Math.round((startHeight + raw) / 4) * 4)}px`);
-    } else {
-      const clamped = Math.max(0, Math.round(raw / 4) * 4);
-      store.updateBlockProps(props.block.id, { [propKey]: clamped });
-      showTip(`${edge === "top" ? "↑" : "↓"} ${clamped}px`);
-    }
+    const delta   = ev.clientY - startY;
+    const raw     = startVal + delta;
+    const clamped = Math.max(0, Math.round(raw / 4) * 4);
+    store.updateBlockPropsLive(props.block.id, { [propKey]: clamped });
+    showTip(`${edge === 'top' ? '↑' : '↓'} ${clamped}px`);
   }
 
   function onUp() {
@@ -255,13 +239,15 @@ function startPaddingDragH(edge, e) {
   const startX   = e.clientX;
   const startVal = parseInt(props.block.props[propKey] ?? DEFAULT_PADDING[edge]);
 
+  // Snapshot history once at drag start
+  store.updateBlockProps(props.block.id, { [propKey]: startVal });
+
   function onMove(ev) {
     const delta   = ev.clientX - startX;
-    // Left: drag right → more left-padding; right: drag left → more right-padding
     const sign    = edge === "left" ? 1 : -1;
     const raw     = startVal + sign * delta;
     const clamped = Math.max(0, Math.round(raw / 4) * 4);
-    store.updateBlockProps(props.block.id, { [propKey]: clamped });
+    store.updateBlockPropsLive(props.block.id, { [propKey]: clamped });
     showTip(`${edge === 'left' ? '←' : '→'} ${clamped}px`);
   }
 

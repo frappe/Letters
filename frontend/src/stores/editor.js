@@ -128,6 +128,14 @@ export const useEditorStore = defineStore("editor", () => {
     if (block) { Object.assign(block.props, props); markDirty(); }
   }
 
+  // Like updateBlockProps but does NOT push a history snapshot.
+  // Use during continuous drags — call updateBlockProps once at drag START
+  // to snapshot the pre-drag state, then call this on every move event.
+  function updateBlockPropsLive(id, props) {
+    const block = findBlock(id);
+    if (block) { Object.assign(block.props, props); markDirty(); }
+  }
+
   // ── Container child operations ───────────────────────────────────────────────
   function addChildBlock(parentId, type, afterIndex = null) {
     _pushHistory();
@@ -424,6 +432,7 @@ export const useEditorStore = defineStore("editor", () => {
     moveBlock,
     selectBlock,
     updateBlockProps,
+    updateBlockPropsLive,
     addChildBlock,
     moveChildBlock,
     addBlockToColumn,

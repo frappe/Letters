@@ -464,9 +464,14 @@ watch([subject, previewText, () => editorStore.campaignName], () => {
   if (_suppressDirty === 0) editorStore.markDirty();
 });
 
-// ── Auto-save (real-time, fires immediately on every change) ──────────────────
+// ── Auto-save (debounced 800ms — avoids saving on every drag pixel) ───────────
+let _autoSaveTimer = null;
 watch(() => editorStore.isDirty, (dirty) => {
-  if (dirty && !saving.value) saveCampaign();
+  if (!dirty) return;
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(() => {
+    if (editorStore.isDirty && !saving.value) saveCampaign();
+  }, 800);
 });
 
 // pickerTarget: null = closed
