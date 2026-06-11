@@ -397,12 +397,26 @@ export const useEditorStore = defineStore("editor", () => {
     });
   }
 
+  function _migrateBlock(b) {
+    // Merge legacy "rich_text" type into "text"
+    if (b.type === "rich_text") b = { ...b, type: "text" };
+    // Migrate old plain-text "text" blocks: convert content → html_content
+    if (b.type === "text" && b.props?.content !== undefined && !b.props?.html_content) {
+      const escaped = b.props.content.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      b = { ...b, props: { ...b.props, html_content: `<p>${escaped}</p>` } };
+      delete b.props.content;
+    }
+    if (b.children) b = { ...b, children: b.children.map(_migrateBlock) };
+    if (b.columns) b = { ...b, columns: b.columns.map(col => ({ ...col, blocks: (col.blocks || []).map(_migrateBlock) })) };
+    return b;
+  }
+
   function loadFromDoc(doc) {
     campaignDoc.value  = doc;
     campaignName.value = doc.title;
     _idCounter.value   = 0;
     selectedBlockId.value = null;
-    blocks.value = _assignIds(doc.blocks || []);
+    blocks.value = _assignIds((doc.blocks || []).map(_migrateBlock));
     clearDirty();
     _seedHistory();
   }

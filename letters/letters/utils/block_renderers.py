@@ -933,14 +933,16 @@ class RichTextRenderer(BlockRenderer):
         weight         = escape(str(p.get("font_weight", "400")))
         color          = escape(p.get("text_color", "#374151"))
         line_height    = escape(str(p.get("line_height", "1.6")))
+        letter_spacing = escape(str(p.get("letter_spacing", "")))
         font           = font_stack(p, "Arial,sans-serif")
         padding        = _padding(p, 20, 32, 20, 32)
 
+        ls_style = f"letter-spacing:{letter_spacing};" if letter_spacing and letter_spacing != "normal" else ""
         html = (
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
             f'<tr><td align="{align}" style="padding:{padding};'
             f'font-family:{font};font-size:{size};color:{color};'
-            f'line-height:{line_height};font-weight:{weight};">'
+            f'line-height:{line_height};font-weight:{weight};{ls_style}">'
             f'{html_content}'
             f'</td></tr></table>'
         )
@@ -950,7 +952,7 @@ class RichTextRenderer(BlockRenderer):
 RENDERER_MAP: dict[str, BlockRenderer] = {
     "hero":          HeroRenderer(),
     "section_label": SectionLabelRenderer(),
-    "text":          TextRenderer(),
+    "text":          RichTextRenderer(),
     "image":         ImageRenderer(),
     "image_text":    ImageTextRenderer(),
     "button":        ButtonRenderer(),

@@ -16,6 +16,7 @@ declare module 'vue' {
     BlockWrapper: typeof import('./src/components/BlockWrapper.vue')['default']
     Button: typeof import('./src/components/blocks/button.vue')['default']
     CampaignSettings: typeof import('./src/components/CampaignSettings.vue')['default']
+    ColorPicker: typeof import('./src/components/ColorPicker.vue')['default']
     Columns: typeof import('./src/components/blocks/columns.vue')['default']
     Container: typeof import('./src/components/blocks/container.vue')['default']
     Divider: typeof import('./src/components/blocks/divider.vue')['default']

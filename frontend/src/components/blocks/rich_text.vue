@@ -7,13 +7,13 @@
            applied via the wrapper + editorClass. -->
       <div
         class="rich-text-shell"
-        :class="alignClass"
         :style="{
           fontFamily: fontStack(block.props.font_family, 'Arial, Helvetica, sans-serif'),
           fontSize:   block.props.font_size   || '15px',
           fontWeight: block.props.font_weight || '400',
           color:      block.props.text_color  || '#374151',
           lineHeight: block.props.line_height || '1.6',
+          textAlign:  block.props.align       || 'left',
         }"
         @click.stop="store.selectBlock(block.id)"
       >
@@ -64,14 +64,29 @@ function onChange(html) {
   }
 }
 
-const alignClass = computed(() => ({
-  "text-left":   props.block.props.align === "left" || !props.block.props.align,
-  "text-center": props.block.props.align === "center",
-  "text-right":  props.block.props.align === "right",
-}));
 </script>
 
 <style>
+/* Force TipTap's ProseMirror to inherit block-level styles from the shell wrapper.
+   frappe-ui's TextEditor CSS may reset font-size/color/line-height on .ProseMirror. */
+.rich-text-shell .ProseMirror {
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  color: inherit !important;
+  line-height: inherit !important;
+  font-family: inherit !important;
+}
+.rich-text-shell .ProseMirror p,
+.rich-text-shell .ProseMirror li,
+.rich-text-shell .ProseMirror span {
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  line-height: inherit;
+  font-family: inherit;
+  text-align: inherit !important;
+}
+
 .rich-text-content ul {
   list-style-type: disc;
   padding-left: 1.5em;

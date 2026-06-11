@@ -50,9 +50,11 @@ const _cache = {};
 
 function getComp(type) {
   if (type === "container") return ContainerBlock;
+  // "text" and legacy "rich_text" blocks both use the TipTap rich_text component
+  const file = (type === "text" || type === "rich_text") ? "rich_text" : type;
   if (!_cache[type]) {
     _cache[type] = defineAsyncComponent({
-      loader: () => import(`./blocks/${type}.vue`),
+      loader: () => import(`./blocks/${file}.vue`),
       loadingComponent: BlockLoadingPlaceholder,
       errorComponent: BlockErrorFallback,
       // Give each block component 8 s to load before showing the error state

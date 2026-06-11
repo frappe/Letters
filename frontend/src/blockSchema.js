@@ -60,12 +60,13 @@ export const BLOCK_SCHEMA = {
     label: "Text",
     icon: "type",
     defaults: {
-      content: "Start typing your message...",
+      html_content: "<p>Start typing your message…</p>",
       align: "left",
       font_family: "Arial",
       font_size: "15px",
       font_weight: "400",
       text_color: "#374151",
+      line_height: "1.6",
       padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
     },
     sections: [
@@ -675,45 +676,6 @@ export const BLOCK_SCHEMA = {
               { label: "Hide", value: false },
             ],
           },
-        ],
-      },
-    ],
-  },
-
-  rich_text: {
-    label: "Rich Text",
-    icon: "edit-3",
-    defaults: {
-      html_content: "<p>Start typing your message. Use the toolbar to add <strong>bold</strong>, <em>italic</em>, lists, and <a href=\"https://example.com\">links</a>.</p>",
-      align: "left",
-      font_family: "Arial",
-      font_size: "15px",
-      font_weight: "400",
-      text_color: "#374151",
-      line_height: "1.6",
-      padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
-    },
-    sections: [
-      {
-        id: "typography",
-        title: "Typography",
-        fields: [
-          fontField,
-          { key: "align",       label: "Alignment",   type: "align" },
-          { key: "font_size",   label: "Font size",   type: "text", placeholder: "15px" },
-          {
-            key: "font_weight",
-            label: "Weight",
-            type: "select",
-            options: [
-              { label: "Normal",   value: "400" },
-              { label: "Medium",   value: "500" },
-              { label: "Semibold", value: "600" },
-              { label: "Bold",     value: "700" },
-            ],
-          },
-          { key: "text_color",  label: "Text color",  type: "color" },
-          { key: "line_height", label: "Line height",  type: "text", placeholder: "1.6" },
         ],
       },
     ],

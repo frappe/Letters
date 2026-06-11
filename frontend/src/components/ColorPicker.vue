@@ -1,7 +1,7 @@
 <template>
   <Popover placement="bottom-start" transition="default">
     <template #target="{ togglePopover }">
-      <div class="flex items-center gap-1.5">
+      <div class="flex items-center gap-1.5 w-full">
         <button
           type="button"
           class="w-5 h-5 rounded flex-shrink-0 border cursor-pointer hover:scale-110 transition-transform focus:outline-none focus-visible:ring focus-visible:ring-outline-gray-3"

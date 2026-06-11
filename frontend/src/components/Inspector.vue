@@ -259,6 +259,7 @@ const FieldControl = defineComponent({
           modelValue: v,
           options: f.options,
           size: "sm",
+          class: "w-full",
           "onUpdate:modelValue": (val) => emit("change", val),
         });
       }
