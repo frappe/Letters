@@ -18,7 +18,7 @@
       @drop.prevent="onDropAtEnd"
     >
       <Tree
-        v-for="block in store.blocks"
+        v-for="block in normalizedBlocks"
         :key="block.id"
         :node="block"
         node-key="id"
@@ -136,6 +136,17 @@ const openPicker = inject("openPicker", () => {});
 // v-if insertion).
 const vFocus = { mounted: (el) => el.focus() };
 
+// Normalize blocks for Tree: columns.blocks → children so frappe-ui Tree recurses into them
+function normalizeForTree(b) {
+  if (b.type === "columns" && b.columns?.length) {
+    const colChildren = b.columns.flatMap((col) => (col.blocks || []).map(normalizeForTree));
+    return { ...b, children: colChildren };
+  }
+  if (b.children?.length) return { ...b, children: b.children.map(normalizeForTree) };
+  return b;
+}
+const normalizedBlocks = computed(() => store.blocks.map(normalizeForTree));
+
 const treeOptions = {
   rowHeight: "32px",
   indentWidth: "16px",
@@ -167,13 +178,15 @@ const blockMeta = computed(() => {
   const map = new Map();
   function walk(list, parentId) {
     list.forEach((block, index) => {
+      const colChildren = block.columns?.flatMap((col) => col.blocks || []) ?? [];
       map.set(block.id, {
         parentId,
         index,
-        childrenCount: block.children?.length ?? 0,
+        childrenCount: (block.children?.length ?? 0) + colChildren.length,
         isContainer: block.type === "container",
       });
       if (block.children?.length) walk(block.children, block.id);
+      if (colChildren.length) walk(colChildren, block.id);
     });
   }
   walk(store.blocks, null);
