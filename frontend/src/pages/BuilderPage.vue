@@ -27,8 +27,11 @@
       <Tooltip text="Add container">
         <Button variant="ghost" size="sm" icon="square" aria-label="Add container" @click.stop="addContainer" />
       </Tooltip>
-      <Tooltip text="Add image + text">
-        <Button variant="ghost" size="sm" icon="sidebar" aria-label="Add image + text" @click.stop="insertBlock('image_text')" />
+      <Tooltip text="Add text">
+        <Button variant="ghost" size="sm" icon="type" aria-label="Add text" @click.stop="insertBlock('text')" />
+      </Tooltip>
+      <Tooltip text="Add image">
+        <Button variant="ghost" size="sm" icon="image" aria-label="Add image" @click.stop="insertBlock('image')" />
       </Tooltip>
 
       <!-- Centered campaign title — click opens settings too -->
@@ -798,8 +801,7 @@ function onTemplateApply(templateBlocks) {
 const availableBlocks = [
   { type: "header",        label: "Header",      icon: "award" },
   { type: "hero",          label: "Hero",        icon: "layout" },
-  { type: "text",          label: "Text",        icon: "type" },
-  { type: "image",         label: "Image",       icon: "image" },
+  { type: "image_text",    label: "Image + Text", icon: "sidebar" },
   { type: "button",        label: "Button",      icon: "square" },
   { type: "columns",       label: "Columns",     icon: "columns" },
   { type: "link_list",     label: "Link List",   icon: "list" },
