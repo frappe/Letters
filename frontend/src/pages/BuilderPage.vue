@@ -466,7 +466,7 @@ watch([subject, previewText, () => editorStore.campaignName], () => {
 
 // ── Auto-save (real-time, fires immediately on every change) ──────────────────
 watch(() => editorStore.isDirty, (dirty) => {
-  if (dirty && editorStore.campaignDoc) saveCampaign();
+  if (dirty && !saving.value) saveCampaign();
 });
 
 // pickerTarget: null = closed
