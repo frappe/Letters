@@ -27,6 +27,9 @@
       <Tooltip text="Add container">
         <Button variant="ghost" size="sm" icon="square" aria-label="Add container" @click.stop="addContainer" />
       </Tooltip>
+      <Tooltip text="Add image + text">
+        <Button variant="ghost" size="sm" icon="sidebar" aria-label="Add image + text" @click.stop="insertBlock('image_text')" />
+      </Tooltip>
 
       <!-- Centered campaign title — click opens settings too -->
       <div class="flex-1 flex items-center justify-center min-w-0">
@@ -186,16 +189,16 @@
     @update:model-value="(v) => { if (!v) closePicker() }"
   >
     <template #default>
-      <div class="grid grid-cols-3 gap-1.5">
+      <div class="flex flex-col gap-0.5 min-w-[180px]">
         <button
           v-for="b in availableBlocks"
           :key="b.type"
           type="button"
-          class="flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl text-gray-600 hover:bg-gray-900 hover:text-white transition-colors group"
+          class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-ink-gray-7 hover:bg-surface-gray-3 transition-colors text-left w-full"
           @click="insertBlock(b.type)"
         >
-          <FeatherIcon :name="b.icon" class="w-4 h-4" />
-          <span class="text-xs font-medium leading-none">{{ b.label }}</span>
+          <FeatherIcon :name="b.icon" class="w-3.5 h-3.5 text-ink-gray-5 flex-shrink-0" />
+          <span class="text-sm">{{ b.label }}</span>
         </button>
       </div>
     </template>
@@ -798,7 +801,6 @@ const availableBlocks = [
   { type: "hero",          label: "Hero",        icon: "layout" },
   { type: "text",          label: "Text",        icon: "type" },
   { type: "image",         label: "Image",       icon: "image" },
-  { type: "image_text",    label: "Image + Text", icon: "sidebar" },
   { type: "button",        label: "Button",      icon: "square" },
   { type: "columns",       label: "Columns",     icon: "columns" },
   { type: "link_list",     label: "Link List",   icon: "list" },
