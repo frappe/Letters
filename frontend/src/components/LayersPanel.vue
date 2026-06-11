@@ -13,7 +13,7 @@
     <!-- Layer tree (frappe-ui Tree drives recursion, indent guides + chevrons) -->
     <div
       v-else
-      class="flex-1 overflow-y-auto py-1.5 px-1.5"
+      class="flex-1 overflow-y-auto py-1 px-2 flex flex-col gap-0.5"
       @dragover.prevent
       @drop.prevent="onDropAtEnd"
     >
@@ -26,7 +26,7 @@
       >
         <template #node="{ node, hasChildren, isCollapsed, toggleCollapsed }">
           <div
-            class="group relative flex items-center gap-1.5 h-[25px] rounded-md px-1.5 cursor-pointer select-none transition-colors"
+            class="group relative flex items-center gap-1.5 rounded-md px-2 py-1 cursor-pointer select-none transition-colors"
             :class="rowClass(node)"
             draggable="true"
             @click.stop="store.selectBlock(node.id)"
@@ -54,7 +54,7 @@
             <button
               v-if="hasChildren"
               type="button"
-              class="flex-shrink-0 w-4 h-4 flex items-center justify-center text-ink-gray-5 hover:text-ink-gray-8"
+              class="flex-shrink-0 w-4 h-4 flex items-center justify-center text-ink-gray-6 hover:text-ink-gray-8"
               :aria-label="isCollapsed ? 'Expand' : 'Collapse'"
               @click.stop="toggleCollapsed"
             >
@@ -84,14 +84,13 @@
             />
             <span
               v-else
-              class="flex-1 text-sm truncate"
-              :class="isStructural(node.type) ? 'font-medium text-ink-gray-8' : ''"
+              class="flex-1 text-sm text-ink-gray-6 truncate"
             >{{ node.label || blockLabel(node.type) }}</span>
 
             <!-- Index badge (top-level only) -->
             <span
               v-if="topLevelIndex(node.id) !== null"
-              class="text-xs text-ink-gray-3 flex-shrink-0 tabular-nums px-0.5"
+              class="text-xs text-ink-gray-4 flex-shrink-0 tabular-nums px-0.5"
             >{{ topLevelIndex(node.id) + 1 }}</span>
 
             <!-- Add inside (containers only) -->
@@ -153,12 +152,12 @@ const blockIcon = (type) => BLOCK_SCHEMA[type]?.icon || "box";
 const blockLabel = (type) => BLOCK_SCHEMA[type]?.label || type;
 
 function rowClass(node) {
-  if (store.selectedBlockId === node.id) return "bg-surface-gray-2 text-ink-gray-9";
-  return "text-ink-gray-7 hover:bg-surface-gray-2";
+  if (store.selectedBlockId === node.id) return "bg-surface-elevation-3 shadow-sm";
+  return "hover:bg-surface-gray-2";
 }
 
-function iconClass(node) {
-  return store.selectedBlockId === node.id ? "text-ink-gray-7" : "text-ink-gray-4";
+function iconClass() {
+  return "text-ink-gray-6";
 }
 
 // ── Block metadata: id -> { parentId, index, childrenCount, isContainer } ─────
