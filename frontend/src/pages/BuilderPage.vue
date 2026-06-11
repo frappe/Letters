@@ -113,7 +113,7 @@
       >
         <!-- Drag handle (right edge) -->
         <div
-          class="absolute top-0 right-0 h-full w-1 cursor-col-resize hover:bg-blue-400 opacity-0 hover:opacity-100 z-20 transition-opacity"
+          class="absolute top-0 right-0 h-full w-1 cursor-col-resize hover:bg-blue-400 opacity-0 hover:opacity-100 z-[1] transition-opacity"
           @mousedown="startLeftResize"
         />
         <!-- Header -->
@@ -168,7 +168,7 @@
 
       <!-- Drag handle (left edge of Inspector) -->
       <div
-        class="flex-shrink-0 w-1 bg-transparent hover:bg-blue-400 cursor-col-resize z-20 transition-colors"
+        class="flex-shrink-0 w-1 bg-transparent hover:bg-blue-400 cursor-col-resize z-[1] transition-colors"
         @mousedown="startRightResize"
       />
 
