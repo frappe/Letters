@@ -419,15 +419,15 @@
     <template #default>
       <label class="block text-xs font-medium text-ink-gray-7 mb-1.5">Send at</label>
       <div class="flex gap-2">
-        <DatePicker
+        <TextInput
+          type="date"
           v-model="scheduleDate"
-          placeholder="Pick a date"
           :min="minScheduleDate"
           class="flex-1"
         />
-        <TimePicker
+        <TextInput
+          type="time"
           v-model="scheduleTime"
-          placeholder="Pick a time"
           class="flex-1"
         />
       </div>
@@ -452,7 +452,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, provide, nextTick } from "vue";
-import { Button, TextInput, FeatherIcon, Dialog, Dropdown, Tooltip, toast, Progress, Badge, DatePicker, TimePicker } from "frappe-ui";
+import { Button, TextInput, FeatherIcon, Dialog, Dropdown, Tooltip, toast, Progress, Badge } from "frappe-ui";
 import { useDark, useToggle } from "@vueuse/core";
 import { useEditorStore } from "../stores/editor";
 import { BLOCK_SCHEMA } from "../blockSchema";
