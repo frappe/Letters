@@ -6,6 +6,8 @@
         backgroundColor: block.props.background_color || '#f8fafc',
         display: 'flex',
         flexDirection: block.props.layout === 'row' ? 'row' : 'column',
+        alignItems:     block.props.layout === 'row' ? (block.props.vertical_align || 'stretch') : undefined,
+        justifyContent: block.props.layout !== 'row' ? (block.props.vertical_align || 'flex-start') : undefined,
         gap: `${block.props.gap ?? 12}px`,
         height: '100%',
         ...paddingStyle,

@@ -18,8 +18,7 @@
     {
       "fieldname": "subject",
       "fieldtype": "Data",
-      "label": "Subject Line",
-      "reqd": 1
+      "label": "Subject Line"
     },
     {
       "fieldname": "preview_text",
@@ -39,6 +38,13 @@
       "fieldname": "scheduled_at",
       "fieldtype": "Datetime",
       "label": "Scheduled At",
+      "hidden": 1
+    },
+    {
+      "fieldname": "email_width",
+      "fieldtype": "Int",
+      "label": "Email Width (px)",
+      "default": "600",
       "hidden": 1
     },
     {

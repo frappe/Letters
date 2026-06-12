@@ -57,15 +57,15 @@
                   <label class="block text-xs font-semibold text-ink-gray-6 uppercase tracking-wide mb-1.5">Campaign Name</label>
                   <TextInput
                     :model-value="campaignName"
-                    placeholder="Untitled Campaign"
+                    placeholder="e.g. June Newsletter"
                     @update:model-value="(v) => emit('update:campaignName', v)"
                   />
                 </div>
                 <div>
-                  <label class="block text-xs font-semibold text-ink-gray-6 uppercase tracking-wide mb-1.5">Subject Line</label>
+                  <label class="block text-xs font-semibold text-ink-gray-6 uppercase tracking-wide mb-1.5">Subject Line <span class="text-red-400 ml-0.5">*</span></label>
                   <TextInput
                     :model-value="subject"
-                    placeholder="What recipients see in their inbox"
+                    placeholder="e.g. Your June update is here"
                     @update:model-value="(v) => emit('update:subject', v)"
                   />
                 </div>
@@ -73,16 +73,44 @@
                   <label class="block text-xs font-semibold text-ink-gray-6 uppercase tracking-wide mb-1.5">Preview Text</label>
                   <TextInput
                     :model-value="previewText"
-                    placeholder="The short line shown after the subject in the inbox"
+                    placeholder="Brief teaser shown after subject line"
                     @update:model-value="(v) => emit('update:previewText', v)"
                   />
-                  <p class="text-xs text-ink-gray-5 mt-1.5">Appears next to the subject in most inboxes. Keep it under ~90 characters.</p>
                 </div>
               </div>
 
               <!-- ── Recipients ── -->
               <div v-else-if="activeTab === 'recipients'">
+                <!-- After sending: show who it was sent to -->
+                <div v-if="isSent">
+                  <div v-if="loadingRecipients" class="text-xs text-ink-gray-5 py-6 text-center">Loading…</div>
+                  <div v-else>
+                    <div class="max-h-80 overflow-y-auto rounded border border-gray-100 divide-y divide-gray-50">
+                      <div
+                        v-for="r in recipients"
+                        :key="r.email"
+                        class="flex items-center justify-between px-3 py-2 text-xs"
+                      >
+                        <span class="text-ink-gray-7 truncate mr-3">{{ r.email }}</span>
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                          <span v-if="r.opened" class="flex items-center gap-0.5 text-green-600">
+                            <FeatherIcon name="eye" class="w-3 h-3" /> Opened
+                          </span>
+                          <span :class="r.status === 'Sent' ? 'text-ink-gray-4' : r.status === 'Failed' ? 'text-red-500' : 'text-yellow-600'">
+                            {{ r.status }}
+                          </span>
+                        </div>
+                      </div>
+                      <div v-if="!recipients.length" class="px-3 py-6 text-xs text-ink-gray-4 text-center">No recipients found.</div>
+                    </div>
+                    <p v-if="analytics && analytics.total > recipients.length" class="text-xs text-ink-gray-4 mt-1.5">
+                      Showing first {{ recipients.length }} of {{ analytics.total }}
+                    </p>
+                  </div>
+                </div>
+                <!-- Before sending: picker -->
                 <RecipientsPicker
+                  v-else
                   :model-value="recipientConfig"
                   @update:model-value="(v) => emit('update:recipientConfig', v)"
                 />
@@ -92,35 +120,55 @@
               <div v-else-if="activeTab === 'analytics'" class="space-y-4">
                 <div v-if="loadingAnalytics" class="text-xs text-ink-gray-5 py-6 text-center">Loading analytics…</div>
 
-                <div v-else-if="!analytics || !analytics.sent_status" class="rounded-lg border border-dashed border-gray-200 px-4 py-10 text-center">
+                <div v-else-if="!analytics || !analytics.sent_status" class="rounded border border-dashed border-gray-200 px-4 py-10 text-center">
                   <FeatherIcon name="bar-chart-2" class="w-6 h-6 text-ink-gray-4 mx-auto mb-2" />
                   <p class="text-sm text-ink-gray-6 font-medium">No sends yet</p>
-                  <p class="text-xs text-ink-gray-5 mt-1">Open analytics appear here once this campaign has been sent.</p>
+                  <p class="text-xs text-ink-gray-5 mt-1">Analytics appear here once this campaign has been sent.</p>
                 </div>
 
                 <div v-else class="space-y-4">
+                  <!-- Open rate stats -->
                   <div class="grid grid-cols-3 gap-3">
-                    <div class="rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
+                    <div class="rounded border border-gray-100 bg-gray-50 px-4 py-3">
                       <p class="text-2xl font-semibold text-ink-gray-9 tabular-nums">{{ analytics.sent }}</p>
-                      <p class="text-xs text-ink-gray-5 mt-0.5">Sent</p>
+                      <p class="text-xs text-ink-gray-5 mt-0.5">Delivered</p>
                     </div>
-                    <div class="rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
+                    <div class="rounded border border-gray-100 bg-gray-50 px-4 py-3">
                       <p class="text-2xl font-semibold text-ink-gray-9 tabular-nums">{{ analytics.opened }}</p>
                       <p class="text-xs text-ink-gray-5 mt-0.5">Opened</p>
                     </div>
-                    <div class="rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
+                    <div class="rounded border border-gray-100 bg-gray-50 px-4 py-3">
                       <p class="text-2xl font-semibold text-ink-gray-9 tabular-nums">{{ analytics.open_rate }}%</p>
                       <p class="text-xs text-ink-gray-5 mt-0.5">Open rate</p>
                     </div>
                   </div>
 
-                  <div class="text-xs text-ink-gray-5 space-y-1">
-                    <p v-if="analytics.last_opened">Last opened: {{ formatDate(analytics.last_opened) }}</p>
-                    <p v-if="analytics.last_sent">Sent: {{ formatDate(analytics.last_sent) }}</p>
+                  <!-- Delivery breakdown -->
+                  <div v-if="analytics.status_counts && Object.keys(analytics.status_counts).length" class="space-y-1.5">
+                    <p class="text-xs font-medium text-ink-gray-7">Delivery breakdown</p>
+                    <div
+                      v-for="(count, status) in analytics.status_counts"
+                      :key="status"
+                      class="flex items-center justify-between text-xs py-1 border-b border-gray-50 last:border-0"
+                    >
+                      <span class="flex items-center gap-1.5">
+                        <span
+                          class="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                          :class="status === 'Sent' ? 'bg-green-500' : status === 'Failed' ? 'bg-red-500' : status === 'Pending' ? 'bg-gray-300' : 'bg-yellow-400'"
+                        />
+                        <span class="text-ink-gray-6">{{ status }}</span>
+                      </span>
+                      <span class="tabular-nums font-medium text-ink-gray-7">{{ count }}</span>
+                    </div>
                   </div>
 
-                  <p class="text-xs text-ink-gray-5 border-t border-gray-100 pt-3">
-                    Open tracking uses a pixel, so it only counts opens where images load. It can undercount (image blocking) or overcount (inbox image proxies), and registers nothing while the site is on localhost.
+                  <div class="text-xs text-ink-gray-5 space-y-0.5">
+                    <p v-if="analytics.last_sent">Sent on {{ formatDate(analytics.last_sent) }}</p>
+                    <p v-if="analytics.last_opened">Last opened {{ formatDate(analytics.last_opened) }}</p>
+                  </div>
+
+                  <p class="text-xs text-ink-gray-4 border-t border-gray-100 pt-3">
+                    Open tracking uses a pixel — undercounts with image blocking, overcounts with inbox proxies, and won't register on localhost.
                   </p>
                 </div>
               </div>
@@ -158,6 +206,7 @@ const sections = [
 ];
 const activeTab = ref("details");
 const activeSection = computed(() => sections.find(s => s.id === activeTab.value) || sections[0]);
+const isSent = computed(() => ["Sent", "Partial", "Failed", "Sending"].includes(props.campaignDoc?.status));
 
 function close() {
   emit("update:modelValue", false);
@@ -166,6 +215,8 @@ function close() {
 // ── Analytics (lazy: load when the tab is opened) ─────────────────────────────
 const analytics        = ref(null);
 const loadingAnalytics = ref(false);
+const recipients       = ref([]);
+const loadingRecipients = ref(false);
 
 async function loadAnalytics() {
   if (!props.campaignDoc?.name) {
@@ -186,10 +237,28 @@ async function loadAnalytics() {
   }
 }
 
+async function loadRecipients() {
+  if (!props.campaignDoc?.name) return;
+  loadingRecipients.value = true;
+  try {
+    const res = await frappe.call({
+      method: "letters.letters.api.get_campaign_recipients",
+      args: { name: props.campaignDoc.name },
+    });
+    recipients.value = res.message || [];
+  } catch {
+    recipients.value = [];
+  } finally {
+    loadingRecipients.value = false;
+  }
+}
+
 watch(
   () => [props.modelValue, activeTab.value],
   ([open, tab]) => {
-    if (open && tab === "analytics") loadAnalytics();
+    if (!open) return;
+    if (tab === "analytics") loadAnalytics();
+    if (tab === "recipients" && isSent.value) loadRecipients();
   }
 );
 

@@ -64,25 +64,59 @@
 
         <div class="w-px h-4 bg-gray-200 mx-0.5" />
 
-        <!-- Preview dropdown -->
-        <Dropdown :options="previewOptions" placement="bottom-end">
-          <template #default="{ open }">
-            <Button variant="ghost" size="sm">
-              Preview
-              <template #suffix><FeatherIcon :name="open ? 'chevron-up' : 'chevron-down'" class="w-3 h-3" /></template>
-            </Button>
-          </template>
-        </Dropdown>
+        <!-- Sending: inline progress bar -->
+        <template v-if="campaignStatus === 'Sending'">
+          <div class="flex items-center gap-2 min-w-[180px]">
+            <Progress
+              :value="sendProgress.total ? Math.round(sendProgress.sent / sendProgress.total * 100) : 5"
+              size="md"
+              class="flex-1"
+            />
+            <span class="text-xs tabular-nums text-ink-gray-5 flex-shrink-0">{{ sendProgress.sent }}/{{ sendProgress.total }}</span>
+          </div>
+        </template>
 
-        <!-- Send dropdown -->
-        <Dropdown :options="sendOptions" placement="bottom-end">
-          <template #default="{ open }">
-            <Button variant="solid" size="sm" :disabled="!editorStore.campaignDoc">
-              Send
-              <template #suffix><FeatherIcon :name="open ? 'chevron-up' : 'chevron-down'" class="w-3 h-3" /></template>
-            </Button>
-          </template>
-        </Dropdown>
+        <!-- Sent / Failed / Partial: status badge only -->
+        <template v-else-if="campaignStatus === 'Sent' || campaignStatus === 'Partial' || campaignStatus === 'Failed'">
+          <Badge
+            :theme="campaignStatus === 'Sent' ? 'green' : campaignStatus === 'Partial' ? 'orange' : 'red'"
+            variant="subtle"
+            size="md"
+          >
+            <template #prefix>
+              <FeatherIcon :name="campaignStatus === 'Sent' ? 'check-circle' : 'alert-circle'" class="w-3 h-3" />
+            </template>
+            {{ campaignStatus === 'Sent' ? 'Sent' : campaignStatus === 'Partial' ? 'Partially sent' : 'Failed' }}
+          </Badge>
+        </template>
+
+        <!-- Scheduled: status badge with time -->
+        <template v-else-if="campaignStatus === 'Scheduled'">
+          <Badge theme="blue" variant="subtle" size="md">
+            <template #prefix><FeatherIcon name="clock" class="w-3 h-3" /></template>
+            Scheduled{{ editorStore.campaignDoc?.scheduled_at ? ` · ${formatScheduledAt(editorStore.campaignDoc.scheduled_at)}` : '' }}
+          </Badge>
+        </template>
+
+        <!-- Draft: normal preview + send -->
+        <template v-else>
+          <Dropdown :options="previewOptions" placement="bottom-end">
+            <template #default="{ open }">
+              <Button variant="ghost" size="sm">
+                Preview
+                <template #suffix><FeatherIcon :name="open ? 'chevron-up' : 'chevron-down'" class="w-3 h-3" /></template>
+              </Button>
+            </template>
+          </Dropdown>
+          <Dropdown :options="sendOptions" placement="bottom-end">
+            <template #default="{ open }">
+              <Button variant="solid" size="sm" :disabled="!editorStore.campaignDoc">
+                Send
+                <template #suffix><FeatherIcon :name="open ? 'chevron-up' : 'chevron-down'" class="w-3 h-3" /></template>
+              </Button>
+            </template>
+          </Dropdown>
+        </template>
       </div>
     </header>
 
@@ -157,12 +191,22 @@
 
       <!-- Canvas -->
       <main
-        class="flex-1 overflow-y-auto p-6"
+        class="flex-1 overflow-y-auto p-6 relative"
         @dragover.prevent
         @drop="onCanvasDrop"
         @click="editorStore.selectBlock(null)"
       >
-        <div class="mx-auto bg-white shadow-sm" style="max-width:600px;min-height:200px">
+        <!-- Zoom controls -->
+        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-white border border-gray-200 rounded-lg shadow-sm px-1 py-1 z-10">
+          <button type="button" class="w-6 h-6 flex items-center justify-center rounded text-gray-500 hover:bg-gray-100 text-sm leading-none" @click.stop="stepZoom(-1)">−</button>
+          <button type="button" class="min-w-[3rem] text-xs text-gray-600 hover:bg-gray-100 rounded px-1 py-0.5 tabular-nums" @click.stop="canvasZoom = 1">{{ Math.round(canvasZoom * 100) }}%</button>
+          <button type="button" class="w-6 h-6 flex items-center justify-center rounded text-gray-500 hover:bg-gray-100 text-sm leading-none" @click.stop="stepZoom(1)">+</button>
+        </div>
+
+        <div
+          class="mx-auto bg-white shadow-sm origin-top transition-transform"
+          :style="{ maxWidth: editorStore.emailWidth + 'px', minHeight: '200px', transform: `scale(${canvasZoom})`, transformOrigin: 'top center', marginBottom: canvasZoom < 1 ? `calc((${canvasZoom} - 1) * 100%)` : undefined }"
+        >
 
           <!-- Loading skeleton (while fetching a saved campaign) -->
           <div v-if="loadingCampaign" class="p-6 space-y-3" aria-busy="true" aria-label="Loading campaign">
@@ -221,6 +265,30 @@
     @apply="onTemplateApply"
   />
 
+  <!-- Keyboard shortcuts viewer -->
+  <Dialog
+    :model-value="showShortcuts"
+    title="Keyboard Shortcuts"
+    size="sm"
+    @update:model-value="(v) => { if (!v) showShortcuts = false }"
+  >
+    <template #default>
+      <div class="space-y-1 text-sm">
+        <div v-for="s in SHORTCUTS" :key="s.label" class="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
+          <span class="text-ink-gray-7">{{ s.label }}</span>
+          <div class="flex items-center gap-1">
+            <kbd v-for="k in s.keys" :key="k" class="inline-flex items-center px-1.5 py-0.5 rounded bg-surface-gray-2 border border-outline-gray-2 text-xs font-mono text-ink-gray-6">{{ k }}</kbd>
+          </div>
+        </div>
+      </div>
+    </template>
+    <template #actions>
+      <div class="flex justify-end w-full">
+        <Button @click="showShortcuts = false">Close</Button>
+      </div>
+    </template>
+  </Dialog>
+
   <!-- Test email recipient prompt -->
   <Dialog
     :model-value="showTestModal"
@@ -252,6 +320,94 @@
     </template>
   </Dialog>
 
+  <!-- Broken link checker dialog -->
+  <Dialog
+    :model-value="showLinkChecker"
+    title="Link Checker"
+    size="md"
+    @update:model-value="(v) => { if (!v) showLinkChecker.value = false; }"
+  >
+    <template #default>
+      <!-- Loading state -->
+      <div v-if="checkingLinks" class="py-8 flex flex-col items-center gap-3">
+        <FeatherIcon name="loader" class="w-6 h-6 text-ink-gray-4 animate-spin" />
+        <span class="text-sm text-ink-gray-5">Checking all links…</span>
+      </div>
+
+      <!-- Empty state -->
+      <div v-else-if="!linkResults.length" class="py-8 flex flex-col items-center gap-2">
+        <FeatherIcon name="link" class="w-6 h-6 text-ink-gray-3" />
+        <p class="text-sm text-ink-gray-5">No links found in this email.</p>
+      </div>
+
+      <!-- Results -->
+      <div v-else class="flex flex-col gap-1">
+        <!-- Summary row -->
+        <div class="flex items-center gap-2 pb-2 mb-1 border-b border-outline-gray-1">
+          <Badge v-if="linkResults.filter(r => r.status === 'ok').length" theme="green" variant="subtle" size="sm">
+            <template #prefix><FeatherIcon name="check" class="w-3 h-3" /></template>
+            {{ linkResults.filter(r => r.status === 'ok').length }} working
+          </Badge>
+          <Badge v-if="linkResults.filter(r => r.status === 'error').length" theme="red" variant="subtle" size="sm">
+            <template #prefix><FeatherIcon name="alert-circle" class="w-3 h-3" /></template>
+            {{ linkResults.filter(r => r.status === 'error').length }} broken
+          </Badge>
+          <Badge v-if="linkResults.filter(r => r.status === 'skipped').length" theme="gray" variant="subtle" size="sm">
+            {{ linkResults.filter(r => r.status === 'skipped').length }} skipped
+          </Badge>
+          <Button class="ml-auto" size="xs" variant="ghost" icon-left="refresh-cw" :loading="checkingLinks" @click="openLinkChecker">Re-check</Button>
+        </div>
+
+        <!-- Link rows -->
+        <div class="max-h-80 overflow-y-auto flex flex-col gap-1">
+          <div
+            v-for="r in linkResults"
+            :key="r.url"
+            class="rounded border px-3 py-2.5"
+            :class="{
+              'border-outline-gray-1 bg-surface-gray-1': r.status === 'ok' || r.status === 'skipped',
+              'border-red-200 bg-red-50': r.status === 'error',
+            }"
+          >
+            <!-- Top row: url + badge -->
+            <div class="flex items-center gap-2 min-w-0">
+              <FeatherIcon
+                :name="r.status === 'ok' ? 'check-circle' : r.status === 'skipped' ? 'minus' : 'alert-circle'"
+                class="w-3.5 h-3.5 flex-shrink-0"
+                :class="r.status === 'ok' ? 'text-green-500' : r.status === 'skipped' ? 'text-ink-gray-3' : 'text-red-500'"
+              />
+              <span class="text-xs font-mono text-ink-gray-7 truncate flex-1 min-w-0">{{ r.url }}</span>
+              <Badge
+                :theme="r.status === 'ok' ? 'green' : r.status === 'skipped' ? 'gray' : 'red'"
+                variant="subtle"
+                size="sm"
+                class="flex-shrink-0"
+              >{{ r.status === 'ok' ? (r.code || 'OK') : r.status === 'skipped' ? 'Non-HTTP' : r.code ? `${r.code}` : 'Unreachable' }}</Badge>
+            </div>
+
+            <!-- Inline fix for broken links -->
+            <div v-if="r.status === 'error'" class="mt-2 flex items-center gap-1.5">
+              <TextInput
+                size="sm"
+                class="flex-1 min-w-0"
+                placeholder="Replace with correct URL…"
+                :modelValue="r._fix || ''"
+                @update:modelValue="(v) => r._fix = v"
+                @keyup.enter="applyLinkFix(r)"
+              />
+              <Button size="sm" variant="solid" :disabled="!r._fix" @click="applyLinkFix(r)">Fix</Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+    <template #actions>
+      <div class="flex justify-end w-full">
+        <Button @click="showLinkChecker.value = false">Close</Button>
+      </div>
+    </template>
+  </Dialog>
+
   <!-- Schedule sending dialog -->
   <Dialog
     :model-value="showScheduleModal"
@@ -262,11 +418,22 @@
   >
     <template #default>
       <label class="block text-xs font-medium text-ink-gray-7 mb-1.5">Send at</label>
-      <TextInput
-        v-model="scheduleAt"
-        type="datetime-local"
-        :min="minScheduleAt"
-      />
+      <div class="flex gap-2">
+        <DatePicker
+          v-model="scheduleDate"
+          placeholder="Pick a date"
+          :min="minScheduleDate"
+          class="flex-1"
+        />
+        <TimePicker
+          v-model="scheduleTime"
+          placeholder="Pick a time"
+          class="flex-1"
+        />
+      </div>
+      <p v-if="scheduleDate && scheduleTime" class="mt-2 text-xs text-ink-gray-5">
+        Sending on {{ scheduleDate }} at {{ scheduleTime }}
+      </p>
     </template>
     <template #actions>
       <div class="flex items-center justify-end gap-2 w-full">
@@ -274,7 +441,7 @@
         <Button
           variant="solid"
           :loading="scheduling"
-          :disabled="!scheduleAt || scheduling"
+          :disabled="!scheduleDate || !scheduleTime || scheduling"
           @click="scheduleCampaign"
         >Schedule</Button>
       </div>
@@ -285,7 +452,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, provide, nextTick } from "vue";
-import { Button, TextInput, FeatherIcon, Dialog, Dropdown, Tooltip, toast } from "frappe-ui";
+import { Button, TextInput, FeatherIcon, Dialog, Dropdown, Tooltip, toast, Progress, Badge, DatePicker, TimePicker } from "frappe-ui";
 import { useEditorStore } from "../stores/editor";
 import { BLOCK_SCHEMA } from "../blockSchema";
 import Inspector from "../components/Inspector.vue";
@@ -297,10 +464,47 @@ import BlockRenderer from "../components/BlockRenderer.vue";
 
 const editorStore = useEditorStore();
 const saving        = ref(false);
+const showShortcuts = ref(false);
+
+const SHORTCUTS = [
+  { label: "Undo",             keys: ["⌘", "Z"] },
+  { label: "Redo",             keys: ["⌘", "⇧", "Z"] },
+  { label: "Save",             keys: ["⌘", "S"] },
+  { label: "Duplicate block",  keys: ["⌘", "D"] },
+  { label: "Delete block",     keys: ["⌫"] },
+  { label: "Deselect",         keys: ["Esc"] },
+  { label: "Preview",          keys: ["⌘", "⇧", "P"] },
+  { label: "Zoom in",          keys: ["⌘", "+"] },
+  { label: "Zoom out",         keys: ["⌘", "−"] },
+  { label: "Reset zoom",       keys: ["⌘", "0"] },
+];
+
+const canvasZoom = ref(1);
+const ZOOM_LEVELS = [0.5, 0.67, 0.75, 0.9, 1, 1.1, 1.25, 1.5];
+
+function stepZoom(dir) {
+  const idx = ZOOM_LEVELS.findIndex(z => z >= canvasZoom.value - 0.01);
+  const next = dir > 0
+    ? ZOOM_LEVELS[Math.min(idx + 1, ZOOM_LEVELS.length - 1)]
+    : ZOOM_LEVELS[Math.max(idx - 1, 0)];
+  canvasZoom.value = next ?? canvasZoom.value;
+}
 const previewing    = ref(false);
 const loadingCampaign = ref(false);
 const showSettings = ref(false);
 const showTemplateLibrary = ref(false);
+const sendProgress = ref({ status: "Queued", sent: 0, total: 0 });
+let _progressTimer = null;
+const campaignStatus = computed(() => {
+  // While actively polling use live sendProgress status, otherwise use campaignDoc
+  if (["Sending", "Queued"].includes(sendProgress.value.status) && _progressTimer) {
+    return "Sending";
+  }
+  return editorStore.campaignDoc?.status || null;
+});
+const showLinkChecker = ref(false);
+const linkResults = ref([]);
+const checkingLinks = ref(false);
 
 // Left brand dropdown (Frappe Builder-style): navigation + page-level actions
 // that don't belong in the always-visible toolbar.
@@ -336,12 +540,18 @@ const menuOptions = computed(() => [
         icon: "settings",
         onClick: () => (showSettings.value = true),
       },
+      {
+        label: "Keyboard Shortcuts",
+        icon: "command",
+        onClick: () => (showShortcuts.value = true),
+      },
     ],
   },
 ]);
 const previewOptions = computed(() => [
   { label: "Preview", icon: "external-link", onClick: openPreview },
   { label: "Send test email", icon: "send", onClick: openTestModal },
+  { label: "Test broken links", icon: "link", onClick: openLinkChecker },
 ]);
 
 const sendOptions = computed(() => [
@@ -364,11 +574,13 @@ const sending = ref(false);
 const testSending = ref(false);
 const showTestModal = ref(false);
 const showScheduleModal = ref(false);
-const scheduleAt = ref("");
+const scheduleDate = ref("");
+const scheduleTime = ref("");
 const scheduling = ref(false);
-const minScheduleAt = computed(() => {
-  const d = new Date(Date.now() + 60_000); // at least 1 minute from now
-  return d.toISOString().slice(0, 16);
+const minScheduleDate = computed(() => {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 });
 // Prefill with the logged-in user's email when it looks like one (it's the
 // most common test target); blank if the session id isn't an email.
@@ -424,8 +636,24 @@ function beforeUnloadHandler(e) {
 
 // ── Keyboard shortcuts ────────────────────────────────────────────────────────
 function keydownHandler(e) {
-  const mod = e.metaKey || e.ctrlKey;
-  if (!mod) return;
+  // Non-modifier shortcuts (only when not in a text field)
+  if (!e.metaKey && !e.ctrlKey) {
+    const inInput = document.activeElement?.isContentEditable ||
+      ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName);
+    if (!inInput) {
+      if (e.key === "Escape") {
+        editorStore.selectBlock(null);
+        return;
+      }
+      if ((e.key === "Delete" || e.key === "Backspace") && editorStore.selectedBlockId) {
+        e.preventDefault();
+        editorStore.removeBlock(editorStore.selectedBlockId);
+        return;
+      }
+    }
+    return;
+  }
+  const mod = true;
   // Undo: Cmd/Ctrl + Z (without Shift)
   if (e.key === "z" && !e.shiftKey) {
     // Only intercept when not inside an input / contenteditable
@@ -443,11 +671,44 @@ function keydownHandler(e) {
     editorStore.redo();
     return;
   }
-  // Save: Cmd/Ctrl + S (manual trigger alongside auto-save)
+  // Save: Cmd/Ctrl + S
   if (e.key === "s") {
     e.preventDefault();
     clearTimeout(_autoSaveTimer);
     saveCampaign();
+    return;
+  }
+  // Duplicate selected block: Cmd/Ctrl + D
+  if (e.key === "d") {
+    if (document.activeElement?.isContentEditable) return;
+    if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
+    e.preventDefault();
+    if (editorStore.selectedBlockId) editorStore.duplicateBlock(editorStore.selectedBlockId);
+    return;
+  }
+  // Preview: Cmd/Ctrl + Shift + P
+  if (e.key === "p" && e.shiftKey) {
+    e.preventDefault();
+    openPreview();
+    return;
+  }
+  // Zoom in: Cmd/Ctrl + =  or  +
+  if (e.key === "=" || e.key === "+") {
+    e.preventDefault();
+    stepZoom(1);
+    return;
+  }
+  // Zoom out: Cmd/Ctrl + -
+  if (e.key === "-") {
+    e.preventDefault();
+    stepZoom(-1);
+    return;
+  }
+  // Reset zoom: Cmd/Ctrl + 0
+  if (e.key === "0") {
+    e.preventDefault();
+    canvasZoom.value = 1;
+    return;
   }
 }
 
@@ -458,6 +719,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener("beforeunload", beforeUnloadHandler);
   window.removeEventListener("keydown", keydownHandler);
+  clearInterval(_progressTimer);
 });
 
 // Track subject/previewText/campaignName changes as dirty.
@@ -497,6 +759,11 @@ function openPicker(target) {
 provide("openPicker", openPicker);
 
 // ── Error helper ──────────────────────────────────────────────────────────────
+function formatScheduledAt(s) {
+  try { return new Date(s.replace(" ", "T")).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); }
+  catch { return s; }
+}
+
 function describeError(e) {
   let msg = "";
   try {
@@ -554,6 +821,7 @@ async function saveCampaign() {
         title:        editorStore.campaignName || "Untitled Campaign",
         subject:      subject.value,
         preview_text: previewText.value,
+        email_width:  editorStore.emailWidth,
         blocks:       JSON.stringify(editorStore.blocks.map(stripIds)),
       },
     });
@@ -603,6 +871,7 @@ async function openPreview() {
       args: {
         blocks:       JSON.stringify(editorStore.blocks.map(stripIds)),
         preview_text: previewText.value,
+        email_width:  editorStore.emailWidth,
       },
     });
     const html          = res.message.html;
@@ -667,6 +936,7 @@ async function openPreview() {
 // ── Send ──────────────────────────────────────────────────────────────────────
 async function sendCampaign() {
   if (!subject.value?.trim()) {
+    showSettings.value = true;
     toast.warning("Add a subject line before sending.");
     return;
   }
@@ -675,8 +945,8 @@ async function sendCampaign() {
     return;
   }
   if (!recipientConfig.value) {
-    toast.warning("Choose recipients first in Campaign Settings (the title at the top left).");
     showSettings.value = true;
+    toast.warning("Choose recipients before sending.");
     return;
   }
 
@@ -702,6 +972,9 @@ async function sendCampaign() {
       msg += ` (${skipped_invalid} invalid address${skipped_invalid === 1 ? "" : "es"} skipped)`;
     }
     toast.success(msg);
+    sendProgress.value = { status: "Queued", sent: 0, total: count };
+    if (editorStore.campaignDoc) editorStore.campaignDoc.status = "Sending";
+    _startProgressPolling();
   } catch (e) {
     const raw = e?._server_messages;
     let msg = e?.message || "Send failed. Check your outgoing mail settings.";
@@ -712,6 +985,85 @@ async function sendCampaign() {
   } finally {
     sending.value = false;
   }
+}
+
+function _startProgressPolling() {
+  clearInterval(_progressTimer);
+  _progressTimer = setInterval(async () => {
+    if (!editorStore.campaignDoc?.name) { clearInterval(_progressTimer); return; }
+    try {
+      const r = await frappe.call({
+        method: "letters.letters.api.get_send_progress",
+        args: { name: editorStore.campaignDoc.name },
+      });
+      sendProgress.value = r.message;
+      if (["Sent", "Failed", "Partial"].includes(r.message.status)) {
+        clearInterval(_progressTimer);
+        _progressTimer = null;
+        // Sync final status back to campaignDoc so toolbar badge reflects it
+        if (editorStore.campaignDoc) editorStore.campaignDoc.status = r.message.status;
+        const label = r.message.status === "Sent" ? "Campaign sent successfully!" : `Send ${r.message.status.toLowerCase()}.`;
+        toast[r.message.status === "Sent" ? "success" : "warning"](label);
+      }
+    } catch { clearInterval(_progressTimer); _progressTimer = null; }
+  }, 2000);
+}
+
+async function openLinkChecker() {
+  if (!editorStore.blocks.length) {
+    toast.warning("Canvas is empty. Add some blocks first.");
+    return;
+  }
+  showLinkChecker.value = true;
+  checkingLinks.value = true;
+  linkResults.value = [];
+  try {
+    const args = editorStore.campaignDoc?.name
+      ? { name: editorStore.campaignDoc.name }
+      : { blocks: JSON.stringify(editorStore.blocks.map(stripIds)) };
+    const res = await frappe.call({ method: "letters.letters.api.check_links", args });
+    linkResults.value = res.message || [];
+  } catch (e) {
+    toast.error("Link check failed: " + describeError(e));
+    showLinkChecker.value = false;
+  } finally {
+    checkingLinks.value = false;
+  }
+}
+
+function applyLinkFix(result) {
+  const oldUrl = result.url;
+  const newUrl = (result._fix || "").trim();
+  if (!newUrl || newUrl === oldUrl) return;
+
+  function fixInBlock(block) {
+    if (!block) return;
+    if (block.props) {
+      for (const key of Object.keys(block.props)) {
+        if (typeof block.props[key] === "string" && block.props[key].includes(oldUrl)) {
+          block.props[key] = block.props[key].replaceAll(oldUrl, newUrl);
+        }
+      }
+    }
+    // container children
+    if (Array.isArray(block.children)) block.children.forEach(fixInBlock);
+    // columns block: each column has a .blocks array
+    if (Array.isArray(block.columns)) {
+      block.columns.forEach(col => {
+        if (Array.isArray(col.blocks)) col.blocks.forEach(fixInBlock);
+      });
+    }
+  }
+
+  editorStore.blocks.forEach(fixInBlock);
+  editorStore.markDirty();
+
+  // Flip the row to green in the dialog
+  result.url = newUrl;
+  result.status = "ok";
+  result.code = null;
+  result._fix = "";
+  toast.success("Link updated — press ⌘S to save.");
 }
 
 // ── Duplicate ─────────────────────────────────────────────────────────────────
@@ -735,18 +1087,20 @@ async function duplicateCampaign() {
 
 // ── Schedule send ─────────────────────────────────────────────────────────────
 async function scheduleCampaign() {
-  if (!scheduleAt.value) return;
+  if (!scheduleDate.value || !scheduleTime.value) return;
   scheduling.value = true;
   try {
-    // Convert local datetime-local value to ISO string the server understands
-    const dt = new Date(scheduleAt.value).toISOString().replace("T", " ").slice(0, 19);
+    // Combine date (YYYY-MM-DD) + time (HH:mm or HH:mm:ss) into local datetime
+    // string — Frappe server works in local time so no UTC conversion needed.
+    const dt = `${scheduleDate.value} ${scheduleTime.value}`;
     await frappe.call({
       method: "letters.letters.api.schedule_campaign",
       args: { name: editorStore.campaignDoc.name, scheduled_at: dt },
     });
-    toast.success(`Scheduled for ${new Date(scheduleAt.value).toLocaleString()}`);
+    toast.success(`Scheduled for ${scheduleDate.value} at ${scheduleTime.value}`);
     showScheduleModal.value = false;
-    scheduleAt.value = "";
+    scheduleDate.value = "";
+    scheduleTime.value = "";
   } catch (e) {
     toast.error("Schedule failed: " + describeError(e));
   } finally {

@@ -25,12 +25,14 @@ def get_campaign(name):
         "subject": doc.subject,
         "preview_text": doc.preview_text or "",
         "status": doc.status,
+        "scheduled_at": str(doc.scheduled_at) if doc.scheduled_at else None,
+        "email_width": getattr(doc, "email_width", None) or 600,
         "blocks": json.loads(doc.blocks_json) if doc.blocks_json else [],
     }
 
 
 @frappe.whitelist()
-def save_campaign(name=None, title=None, subject=None, preview_text=None, blocks=None):
+def save_campaign(name=None, title=None, subject=None, preview_text=None, blocks=None, email_width=None):
     blocks_json = json.dumps(blocks if isinstance(blocks, list) else json.loads(blocks or "[]"))
 
     if name:
@@ -42,6 +44,11 @@ def save_campaign(name=None, title=None, subject=None, preview_text=None, blocks
             doc.subject = subject
         if preview_text is not None:
             doc.preview_text = preview_text
+        if email_width is not None:
+            try:
+                doc.email_width = int(email_width)
+            except (AttributeError, TypeError, ValueError):
+                pass
         doc.blocks_json = blocks_json
         doc.save()
     else:
@@ -52,6 +59,7 @@ def save_campaign(name=None, title=None, subject=None, preview_text=None, blocks
             "subject": subject or "",
             "preview_text": preview_text or "",
             "status": "Draft",
+            "email_width": int(email_width) if email_width else 600,
             "blocks_json": blocks_json,
         })
         doc.insert()
@@ -60,7 +68,7 @@ def save_campaign(name=None, title=None, subject=None, preview_text=None, blocks
 
 
 @frappe.whitelist()
-def render_preview(name=None, blocks=None, preview_text=None):
+def render_preview(name=None, blocks=None, preview_text=None, email_width=None):
     """Compile blocks to email-safe HTML."""
     from letters.letters.utils.email_compiler import EmailCompiler
 
@@ -70,11 +78,13 @@ def render_preview(name=None, blocks=None, preview_text=None):
         blocks_data = doc.blocks_json or "[]"
         if preview_text is None:
             preview_text = doc.preview_text
+        if email_width is None:
+            email_width = getattr(doc, "email_width", None) or 600
     else:
         blocks_data = blocks if isinstance(blocks, list) else json.loads(blocks or "[]")
 
     try:
-        compiler = EmailCompiler(blocks_data, preview_text=preview_text or "")
+        compiler = EmailCompiler(blocks_data, preview_text=preview_text or "", email_width=email_width or 600)
         html = compiler.compile()
         return {"html": html}
     except Exception as e:
@@ -101,6 +111,7 @@ def duplicate_campaign(name):
         "subject": original.subject or "",
         "preview_text": original.preview_text or "",
         "status": "Draft",
+        "email_width": getattr(original, "email_width", None) or 600,
         "blocks_json": original.blocks_json or "[]",
     })
     new_doc.insert()
@@ -109,7 +120,7 @@ def duplicate_campaign(name):
 
 
 @frappe.whitelist()
-def send_test(blocks=None, subject=None, preview_text=None, name=None, recipient=None):
+def send_test(blocks=None, subject=None, preview_text=None, name=None, recipient=None, email_width=None):
     """Send a test email to the given recipient (defaults to the logged-in user)."""
     from letters.letters.utils.email_compiler import EmailCompiler
 
@@ -119,11 +130,13 @@ def send_test(blocks=None, subject=None, preview_text=None, name=None, recipient
         blocks_data = doc.blocks_json or "[]"
         subject = subject or doc.subject
         preview_text = preview_text or doc.preview_text
+        if email_width is None:
+            email_width = getattr(doc, "email_width", None) or 600
     else:
         blocks_data = blocks if isinstance(blocks, list) else json.loads(blocks or "[]")
 
     try:
-        compiler = EmailCompiler(blocks_data, preview_text=preview_text or "")
+        compiler = EmailCompiler(blocks_data, preview_text=preview_text or "", email_width=email_width or 600)
         html = compiler.compile()
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "Letters send_test compile error")
@@ -217,6 +230,17 @@ def get_campaign_analytics(name):
         {"parent": ["in", send_names], "opened": 1},
         "opened_on", order_by="opened_on desc",
     )
+    # Per-recipient status breakdown from the most recent send
+    latest_send = sends[0].name
+    status_counts = {}
+    for row in frappe.get_all(
+        "Email Send Recipient",
+        filters={"parent": latest_send},
+        fields=["status"],
+    ):
+        s = row.status or "Pending"
+        status_counts[s] = status_counts.get(s, 0) + 1
+
     return {
         "sent_status": sends[0].status,
         "total":       total,
@@ -225,7 +249,30 @@ def get_campaign_analytics(name):
         "open_rate":   round((opened / sent) * 100, 1) if sent else 0,
         "last_opened": str(last_opened) if last_opened else None,
         "last_sent":   str(sends[0].creation),
+        "status_counts": status_counts,
     }
+
+
+@frappe.whitelist()
+def get_campaign_recipients(name, limit=200):
+    """Return the list of recipients for the most recent send of a campaign."""
+    doc = frappe.get_doc("Letters Campaign", name)
+    frappe.has_permission("Letters Campaign", "read", doc=doc, throw=True)
+
+    send = frappe.db.get_value(
+        "Email Send", {"campaign": name}, "name", order_by="creation desc"
+    )
+    if not send:
+        return []
+
+    rows = frappe.get_all(
+        "Email Send Recipient",
+        filters={"parent": send},
+        fields=["email", "status", "opened", "opened_on"],
+        order_by="email asc",
+        limit=int(limit),
+    )
+    return rows
 
 
 @frappe.whitelist()
@@ -383,6 +430,68 @@ def _valid_emails(emails):
     client). Returns (valid_emails, dropped_count)."""
     valid = [e for e in emails if frappe.utils.validate_email_address(e, throw=False)]
     return valid, len(emails) - len(valid)
+
+
+@frappe.whitelist()
+def get_send_progress(name):
+    """Return live send progress for a campaign (polls from the frontend)."""
+    doc = frappe.get_doc("Letters Campaign", name)
+    frappe.has_permission("Letters Campaign", "read", doc=doc, throw=True)
+
+    send = frappe.get_last_doc(
+        "Email Send",
+        filters={"campaign": name, "status": ["in", ["Sending", "Sent", "Failed", "Partial"]]},
+        order_by="creation desc",
+    ) if frappe.db.exists("Email Send", {"campaign": name, "status": ["in", ["Sending", "Sent", "Failed", "Partial"]]}) else None
+
+    if not send:
+        return {"status": "Queued", "sent": 0, "total": 0}
+
+    return {
+        "status": send.status,
+        "sent": send.sent_count or 0,
+        "total": send.total_recipients or 0,
+    }
+
+
+@frappe.whitelist()
+def check_links(blocks=None, name=None):
+    """Extract all hrefs from compiled email HTML and check if they resolve."""
+    import re
+    import urllib.request
+
+    if name:
+        doc = frappe.get_doc("Letters Campaign", name)
+        frappe.has_permission("Letters Campaign", "read", doc=doc, throw=True)
+        blocks_data = json.loads(doc.blocks_json or "[]")
+        preview_text = doc.preview_text or ""
+        email_width = getattr(doc, "email_width", None) or 600
+    else:
+        if not blocks:
+            frappe.throw(_("No blocks provided."))
+        blocks_data = json.loads(blocks) if isinstance(blocks, str) else blocks
+        preview_text = ""
+        email_width = 600
+
+    from .utils.email_compiler import EmailCompiler
+    html = EmailCompiler(blocks_data, preview_text=preview_text, email_width=email_width).compile()
+
+    urls = list(dict.fromkeys(re.findall(r'href=["\']([^"\'#][^"\']*)["\']', html)))
+    results = []
+    for url in urls:
+        if not url.startswith("http"):
+            results.append({"url": url, "status": "skipped", "code": None})
+            continue
+        try:
+            req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                results.append({"url": url, "status": "ok", "code": resp.status})
+        except urllib.error.HTTPError as e:
+            results.append({"url": url, "status": "error", "code": e.code})
+        except Exception:
+            results.append({"url": url, "status": "error", "code": None})
+
+    return results
 
 
 @frappe.whitelist()
@@ -577,7 +686,7 @@ def _execute_send(send_doc_name, campaign_name):
         send_doc = frappe.get_doc("Email Send", send_doc_name)
 
         from letters.letters.utils.email_compiler import EmailCompiler
-        compiler = EmailCompiler(doc.blocks_json, preview_text=doc.preview_text)
+        compiler = EmailCompiler(doc.blocks_json, preview_text=doc.preview_text, email_width=getattr(doc, "email_width", None) or 600)
         html = compiler.compile()
 
         sent = failed = 0

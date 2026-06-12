@@ -1,7 +1,7 @@
 <template>
   <BlockWrapper :block="block" :index="index">
     <div :style="{ backgroundColor: block.props.background_color || '#ffffff', ...paddingStyle }">
-      <div class="flex" :style="{ gap: `${block.props.col_gap ?? 24}px` }">
+      <div class="flex" :style="{ gap: `${block.props.col_gap ?? 24}px`, alignItems: block.props.vertical_align || 'stretch' }">
         <div
           v-for="(col, colIdx) in block.columns || []"
           :key="colIdx"

@@ -19,8 +19,8 @@ _HTML_WRAPPER = """\
 <table width="100%" cellpadding="0" cellspacing="0" border="0"
        style="background-color:#f3f4f6;">
 <tr><td align="center" style="padding:24px 0;">
-<table width="600" cellpadding="0" cellspacing="0" border="0"
-       style="background-color:#ffffff;border-radius:4px;overflow:hidden;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="background-color:#ffffff;border-radius:4px;overflow:hidden;max-width:{email_width}px;width:100%;">
 <tr><td>
 {blocks}
 </td></tr>
@@ -34,9 +34,10 @@ _HTML_WRAPPER = """\
 class EmailCompiler:
     """Converts a validated block tree to email-safe HTML (no external dependencies)."""
 
-    def __init__(self, blocks_json: str | list, preview_text: str = ""):
+    def __init__(self, blocks_json: str | list, preview_text: str = "", email_width: int = 600):
         self._processor = DesignTreeProcessor(blocks_json)
         self._preview_text = preview_text or ""
+        self._email_width = int(email_width) if email_width else 600
 
     def compile(self) -> str:
         self._processor.validate()
@@ -44,6 +45,7 @@ class EmailCompiler:
         return _HTML_WRAPPER.format(
             blocks=blocks_html,
             preheader=self._render_preheader(),
+            email_width=self._email_width,
         )
 
     def _render_preheader(self) -> str:

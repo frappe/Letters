@@ -10,18 +10,45 @@
         <span class="text-sm font-medium text-ink-gray-8">{{ schema.label }}</span>
       </template>
       <template v-else>
-        <span class="text-xs text-ink-gray-4 font-medium uppercase tracking-widest">Properties</span>
+        <FeatherIcon name="mail" class="w-3.5 h-3.5 text-ink-gray-5 flex-shrink-0" />
+        <span class="text-sm font-medium text-ink-gray-8">Body</span>
       </template>
     </div>
 
-    <!-- No selection empty state -->
-    <div v-if="!block" class="flex-1 flex flex-col items-center justify-center px-6 text-center gap-3">
-      <div class="w-10 h-10 rounded-xl bg-surface-gray-2 flex items-center justify-center">
-        <FeatherIcon name="layout" class="w-4 h-4 text-ink-gray-4" />
+    <!-- Canvas (body) properties — shown when nothing is selected -->
+    <div v-if="!block" class="flex-1 overflow-y-auto">
+      <div class="border-b border-outline-gray-1">
+        <button
+          type="button"
+          class="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-surface-gray-2 transition-colors"
+          @click="canvasOpen = !canvasOpen"
+        >
+          <span class="text-xs font-semibold text-ink-gray-7">Canvas</span>
+          <FeatherIcon
+            name="chevron-down"
+            class="w-3.5 h-3.5 text-ink-gray-4 transition-transform duration-150"
+            :class="canvasOpen ? '' : '-rotate-90'"
+          />
+        </button>
+        <div v-show="canvasOpen" class="px-3 pb-3 flex flex-col gap-1">
+          <!-- Width -->
+          <div class="flex items-center gap-2 py-1">
+            <span class="w-24 shrink-0 text-xs text-ink-gray-5">Width</span>
+            <div class="flex-1 min-w-0 flex items-center gap-2">
+              <Slider
+                :modelValue="[store.emailWidth]"
+                :min="320"
+                :max="900"
+                :step="10"
+                size="sm"
+                class="flex-1"
+                @update:modelValue="(arr) => setEmailWidth(arr[0])"
+              />
+              <span class="text-xs text-ink-gray-5 w-10 text-right flex-shrink-0 tabular-nums">{{ store.emailWidth }}px</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <p class="text-sm text-ink-gray-4 leading-relaxed">
-        Click a block to edit its properties.
-      </p>
     </div>
 
     <!-- Sections -->
@@ -151,7 +178,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, watch, defineComponent, h } from "vue";
+import { computed, reactive, ref, watch, defineComponent, h } from "vue";
 import { TextInput, Select, Switch, TabButtons, Button, FeatherIcon, Tooltip, Slider } from "frappe-ui";
 import ColorPicker from "./ColorPicker.vue";
 import { useEditorStore } from "../stores/editor";
@@ -161,6 +188,14 @@ defineProps({ width: { type: Number, default: 288 } });
 
 const store = useEditorStore();
 const block = computed(() => store.selectedBlock);
+const canvasOpen = ref(true);
+
+function setEmailWidth(w) {
+  if (!isNaN(w) && w >= 320 && w <= 900) {
+    store.emailWidth = w;
+    store.markDirty();
+  }
+}
 const schema = computed(() => (block.value ? BLOCK_SCHEMA[block.value.type] : null));
 
 const openSections = reactive(new Set());
@@ -203,6 +238,17 @@ const alignOptions = [
   { value: "center",  icon: "align-center",  label: "Center",  hideLabel: true },
   { value: "right",   icon: "align-right",   label: "Right",   hideLabel: true },
   { value: "justify", icon: "align-justify", label: "Justify", hideLabel: true },
+];
+
+const valignOptions = [
+  { value: "flex-start", icon: "chevron-up",   label: "Top",    hideLabel: true },
+  { value: "center",     icon: "minus",         label: "Middle", hideLabel: true },
+  { value: "flex-end",   icon: "chevron-down",  label: "Bottom", hideLabel: true },
+];
+
+const directionOptions = [
+  { value: "row",    icon: "arrow-right", label: "Row",    hideLabel: true },
+  { value: "column", icon: "arrow-down",  label: "Column", hideLabel: true },
 ];
 
 // ── Sub-components defined inline ───────────────────────────────────────────
@@ -273,6 +319,24 @@ const FieldControl = defineComponent({
         });
       }
 
+      // Vertical alignment
+      if (f.type === "valign") {
+        return h(TabButtons, {
+          buttons: valignOptions,
+          modelValue: v,
+          "onUpdate:modelValue": (val) => emit("change", val),
+        });
+      }
+
+      // Direction
+      if (f.type === "direction") {
+        return h(TabButtons, {
+          buttons: directionOptions,
+          modelValue: v,
+          "onUpdate:modelValue": (val) => emit("change", val),
+        });
+      }
+
       // Slider
       if (f.type === "slider") {
         return h("div", { class: "flex items-center gap-2" }, [
@@ -327,12 +391,9 @@ const FieldControl = defineComponent({
           h("button", {
             type: "button",
             title: "Set to auto",
-            class: [
-              "text-xs font-medium px-1.5 py-1 rounded border transition-colors flex-shrink-0",
-              v === "auto"
-                ? "bg-ink-gray-8 text-white border-ink-gray-8"
-                : "text-ink-gray-5 border-outline-gray-2 hover:bg-surface-gray-2",
-            ],
+            style: v === "auto"
+              ? "font-size:11px;font-weight:500;padding:2px 6px;border-radius:4px;border:1px solid #111827;background:#111827;color:#fff;flex-shrink:0;cursor:pointer;"
+              : "font-size:11px;font-weight:500;padding:2px 6px;border-radius:4px;border:1px solid #d1d5db;background:transparent;color:#6b7280;flex-shrink:0;cursor:pointer;",
             onClick: () => emit("change", "auto"),
           }, "auto"),
         ]);
