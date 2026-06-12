@@ -13,15 +13,6 @@ _HTML_WRAPPER = """\
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="color-scheme" content="light dark" />
-<meta name="supported-color-schemes" content="light dark" />
-<style>
-@media (prefers-color-scheme: dark) {{
-  body, .body-wrap td {{ background-color: #111827 !important; }}
-  .email-card {{ background-color: #1f2937 !important; }}
-  a {{ color: #93c5fd !important; }}
-}}
-</style>
 </head>
 <body style="margin:0;padding:0;background-color:#f3f4f6;">
 {preheader}
