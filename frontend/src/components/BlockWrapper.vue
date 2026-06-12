@@ -25,7 +25,7 @@
       draggable="true"
       class="absolute top-1/2 -translate-y-1/2 -left-7 w-6 h-8 flex items-center justify-center
              cursor-grab active:cursor-grabbing select-none rounded
-             text-gray-300 hover:text-gray-600 hover:bg-gray-100 transition-all z-10
+             text-ink-gray-3 hover:text-ink-gray-7 hover:bg-surface-gray-3 transition-all z-10
              opacity-0 group-hover/block:opacity-100"
       :class="selected ? 'opacity-100' : ''"
       @dragstart="onDragStart"
@@ -102,7 +102,7 @@
     >
       <div
         v-if="paddingTip"
-        class="absolute right-1 top-1 text-xs bg-gray-900 text-white px-1.5 py-0.5 rounded pointer-events-none z-30 font-mono"
+        class="absolute right-1 top-1 text-xs bg-surface-gray-7 text-ink-white px-1.5 py-0.5 rounded pointer-events-none z-30 font-mono"
       >{{ paddingTip }}</div>
     </Transition>
 
