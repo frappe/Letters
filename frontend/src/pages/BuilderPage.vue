@@ -169,8 +169,8 @@
             <div class="px-3 py-2 border-b border-outline-gray-1 bg-surface-gray-1">
               <span class="text-xs font-semibold text-ink-gray-5 uppercase tracking-widest">{{ blockPreview.label }}</span>
             </div>
-            <div style="overflow:hidden;height:200px;position:relative">
-              <div style="transform-origin:top left;transform:scale(0.6);width:600px;position:absolute;top:0;left:0">
+            <div style="overflow:hidden;height:200px;display:flex;align-items:center;justify-content:center;">
+              <div style="transform:scale(0.6);transform-origin:center center;width:600px;flex-shrink:0;">
                 <BlockRenderer :block="blockPreview.block" :index="0" />
               </div>
             </div>
@@ -873,6 +873,14 @@ function showBlockPreview(type, e) {
   const schema = BLOCK_SCHEMA[type] ?? {};
   const defaults = schema.defaults ?? {};
   const previewBlock = { id: 0, type, props: JSON.parse(JSON.stringify(defaults)) };
+  if (type === "columns") {
+    const count = parseInt(defaults.column_count || "2");
+    previewBlock.columns = Array.from({ length: count }, () => ({ blocks: [] }));
+  }
+  if (type === "spacer") {
+    previewBlock.props.background_color = "#f3f4f6";
+    previewBlock.props.height = 80;
+  }
   // Position to the right of the sidebar
   const rect = e.currentTarget.closest("aside").getBoundingClientRect();
   const top = Math.min(e.currentTarget.getBoundingClientRect().top, window.innerHeight - 320);
