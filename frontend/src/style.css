@@ -31,6 +31,7 @@ html, body {
 /* Canvas: always render with light-mode tokens — resets all CSS vars that dark
    mode flips, so email content (text, backgrounds, images) looks accurate */
 [data-theme="dark"] .letters-email-canvas {
+  /* frappe-ui Tailwind tokens (--text-ink-gray-*) */
   --text-ink-gray-1: 237 237 237;
   --text-ink-gray-2: 226 226 226;
   --text-ink-gray-3: 199 199 199;
@@ -48,6 +49,17 @@ html, body {
   --surface-gray-5: 82 82 82;
   --surface-gray-6: 56 56 56;
   --surface-gray-7: 23 23 23;
+  /* Frappe Desk espresso tokens (--ink-gray-*, no prefix) */
+  --ink-white: #ffffff;
+  --ink-gray-1: #ededed;
+  --ink-gray-2: #e2e2e2;
+  --ink-gray-3: #c7c7c7;
+  --ink-gray-4: #999999;
+  --ink-gray-5: #7c7c7c;
+  --ink-gray-6: #525252;
+  --ink-gray-7: #525252;
+  --ink-gray-8: #383838;
+  --ink-gray-9: #171717;
 }
 /* Remove any image brightness filter Frappe Desk applies in dark mode */
 [data-theme="dark"] .letters-email-canvas img {
