@@ -1,12 +1,16 @@
 <template>
   <div
-    class="relative rounded border-2 transition-colors group/block"
+    class="relative transition-colors group/block"
     :class="[
-      selected ? 'border-gray-900 shadow-sm' : 'border-transparent hover:border-gray-200',
-      isDragOver === 'before' ? 'border-t-blue-500' : '',
-      isDragOver === 'after'  ? 'border-b-blue-500' : '',
+      isDragOver === 'before' ? 'border-t-2 border-t-blue-500' : '',
+      isDragOver === 'after'  ? 'border-b-2 border-b-blue-500' : '',
     ]"
-    :style="{ ...spacingStyle, ...topLevelContainerStyle, ...props.extraStyle }"
+    :style="{
+      ...spacingStyle, ...topLevelContainerStyle, ...props.extraStyle,
+      ...blockBorderStyle,
+      outline: selected ? '2px solid #111827' : 'none',
+      outlineOffset: '1px',
+    }"
     @click.stop="store.selectBlock(block.id)"
     @dragover.prevent="onDragOver"
     @dragleave="isDragOver = null"
@@ -116,6 +120,16 @@ const selected = computed(() => store.selectedBlockId === props.block.id);
 // Only top-level blocks (directly in store.blocks) support drag-to-reorder.
 // Child blocks inside containers should not interfere with the top-level order.
 const isTopLevel = computed(() => store.blocks.some((b) => b.id === props.block.id));
+
+// ── Block-level border + corner radius ───────────────────────────────────────
+const blockBorderStyle = computed(() => {
+  const c = props.block.props?.block_border_color;
+  const r = props.block.props?.block_border_radius;
+  return {
+    border: c ? `1px solid ${c}` : "none",
+    borderRadius: r || "0",
+  };
+});
 
 // ── Top-level container width + alignment ────────────────────────────────────
 // Width is only applied here when the container is top-level (not inside another

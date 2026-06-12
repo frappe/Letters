@@ -4,8 +4,6 @@
     <div
       :style="{
         backgroundColor: block.props.background_color || '#f8fafc',
-        border: `1px solid ${block.props.border_color || '#e2e8f0'}`,
-        borderRadius: block.props.border_radius || '12px',
         display: 'flex',
         flexDirection: block.props.layout === 'row' ? 'row' : 'column',
         gap: `${block.props.gap ?? 12}px`,

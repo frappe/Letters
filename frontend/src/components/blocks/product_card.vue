@@ -85,7 +85,5 @@ const paddingStyle = usePadding(blockProps);
 
 const cardStyle = computed(() => ({
   backgroundColor: props.block.props.background_color,
-  border: `1px solid ${props.block.props.border_color}`,
-  borderRadius: props.block.props.border_radius || "12px",
 }));
 </script>

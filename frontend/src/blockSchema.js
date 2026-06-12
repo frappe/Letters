@@ -19,6 +19,13 @@ import { FONT_OPTIONS } from "./fonts";
 // resolved from it at render time. See fonts.js / fonts.py.
 const fontField = { key: "font_family", label: "Font", type: "select", options: FONT_OPTIONS, hint: "Web-safe font for this block" };
 
+// Shared block-level border + rounding fields (applied by BlockWrapper)
+const borderFields = [
+  { key: "block_border_color",  label: "Border color", type: "color" },
+  { key: "block_border_radius", label: "Corner radius", type: "text", placeholder: "8px" },
+];
+const borderDefaults = { block_border_color: "", block_border_radius: "0" };
+
 export const BLOCK_SCHEMA = {
   hero: {
     label: "Hero",
@@ -33,6 +40,7 @@ export const BLOCK_SCHEMA = {
       subheading_color: "#6b7280",
       font_family: "Georgia",
       padding_top: 40, padding_right: 32, padding_bottom: 40, padding_left: 32,
+      ...borderDefaults,
     },
     sections: [
       {
@@ -40,6 +48,7 @@ export const BLOCK_SCHEMA = {
         title: "Style",
         fields: [
           { key: "background_color", label: "Background", type: "color" },
+          ...borderFields,
         ],
       },
       {
@@ -68,6 +77,7 @@ export const BLOCK_SCHEMA = {
       text_color: "#374151",
       line_height: "1.6",
       padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
+      ...borderDefaults,
     },
     sections: [
       {
@@ -91,6 +101,7 @@ export const BLOCK_SCHEMA = {
           { key: "text_color", label: "Text color", type: "color" },
           { key: "line_height", label: "Line height", type: "text", placeholder: "1.6", hint: "Vertical space between lines, e.g. 1.5 or 160%" },
           { key: "letter_spacing", label: "Letter spacing", type: "text", placeholder: "normal", hint: "Space between characters, e.g. 0.05em or 2px" },
+          ...borderFields,
         ],
       },
     ],
@@ -108,6 +119,7 @@ export const BLOCK_SCHEMA = {
       border_radius: "0",
       padding_top: 16, padding_right: 32, padding_bottom: 16, padding_left: 32,
       spacing_top: 0, spacing_bottom: 0,
+      ...borderDefaults,
     },
     sections: [
       {
@@ -125,9 +137,10 @@ export const BLOCK_SCHEMA = {
         title: "Style",
         fields: [
           { key: "background_color", label: "Background", type: "color" },
-          { key: "border", label: "Border", type: "text", placeholder: "1px solid #e5e7eb" },
-          { key: "border_radius", label: "Corners", type: "text", placeholder: "8px" },
+          { key: "border", label: "Image border", type: "text", placeholder: "1px solid #e5e7eb" },
+          { key: "border_radius", label: "Image corners", type: "text", placeholder: "8px" },
           { key: "caption_color", label: "Caption color", type: "color" },
+          ...borderFields,
         ],
       },
     ],
@@ -144,6 +157,7 @@ export const BLOCK_SCHEMA = {
       align: "left",
       font_family: "Arial",
       padding_top: 12, padding_right: 32, padding_bottom: 12, padding_left: 32,
+      ...borderDefaults,
     },
     sections: [
       {
@@ -175,6 +189,7 @@ export const BLOCK_SCHEMA = {
             ],
           },
           { key: "align", label: "Alignment", type: "align" },
+          ...borderFields,
         ],
       },
     ],
@@ -192,6 +207,7 @@ export const BLOCK_SCHEMA = {
       background_color: "#ffffff",
       font_family: "Arial",
       padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
+      ...borderDefaults,
     },
     sections: [
       {
@@ -226,6 +242,7 @@ export const BLOCK_SCHEMA = {
         fields: [
           fontField,
           { key: "background_color", label: "Background", type: "color" },
+          ...borderFields,
         ],
       },
     ],
@@ -245,6 +262,7 @@ export const BLOCK_SCHEMA = {
       font_size: "14px",
       button_padding: "normal",
       padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
+      ...borderDefaults,
     },
     sections: [
       {
@@ -273,6 +291,7 @@ export const BLOCK_SCHEMA = {
             ],
           },
           { key: "border_radius", label: "Corners", type: "text", placeholder: "8px" },
+          ...borderFields,
         ],
       },
       {
@@ -295,6 +314,7 @@ export const BLOCK_SCHEMA = {
       width: "100%",
       align: "center",
       padding_top: 16, padding_right: 32, padding_bottom: 16, padding_left: 32,
+      ...borderDefaults,
     },
     sections: [
       {
@@ -315,6 +335,7 @@ export const BLOCK_SCHEMA = {
           { key: "thickness", label: "Thickness", type: "slider", min: 1, max: 10, step: 1, unit: "px" },
           { key: "width", label: "Length", type: "text", placeholder: "100%" },
           { key: "align", label: "Alignment", type: "align" },
+          ...borderFields,
         ],
       },
     ],
@@ -330,6 +351,7 @@ export const BLOCK_SCHEMA = {
       divider_color: "#e5e7eb",
       col_gap: 24,
       padding_top: 20, padding_right: 24, padding_bottom: 20, padding_left: 24,
+      ...borderDefaults,
     },
     sections: [
       {
@@ -369,6 +391,7 @@ export const BLOCK_SCHEMA = {
         title: "Style",
         fields: [
           { key: "background_color", label: "Background", type: "color" },
+          ...borderFields,
         ],
       },
     ],
@@ -390,6 +413,7 @@ export const BLOCK_SCHEMA = {
       background_color: "#ffffff",
       font_family: "Arial",
       padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
+      ...borderDefaults,
     },
     sections: [
       {
@@ -411,6 +435,7 @@ export const BLOCK_SCHEMA = {
           { key: "link_color",       label: "Link color",   type: "color" },
           { key: "text_color",       label: "Description",  type: "color" },
           { key: "accent_color",     label: "Marker color", type: "color" },
+          ...borderFields,
         ],
       },
     ],
@@ -425,9 +450,8 @@ export const BLOCK_SCHEMA = {
       width: "100%",
       height: "auto",
       background_color: "transparent",
-      border_color: "transparent",
-      border_radius: "0",
       padding_top: 16, padding_right: 16, padding_bottom: 16, padding_left: 16,
+      ...borderDefaults,
     },
     sections: [
       {
@@ -454,8 +478,7 @@ export const BLOCK_SCHEMA = {
         title: "Style",
         fields: [
           { key: "background_color", label: "Background", type: "color" },
-          { key: "border_color",  label: "Border color", type: "color" },
-          { key: "border_radius", label: "Corners", type: "text", placeholder: "12px" },
+          ...borderFields,
         ],
       },
     ],
@@ -470,6 +493,7 @@ export const BLOCK_SCHEMA = {
       text_color: "#6b7280",
       font_family: "Arial",
       padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
+      ...borderDefaults,
     },
     sections: [
       {
@@ -486,6 +510,7 @@ export const BLOCK_SCHEMA = {
           fontField,
           { key: "background_color", label: "Background", type: "color" },
           { key: "text_color", label: "Text color", type: "color" },
+          ...borderFields,
         ],
       },
     ],
@@ -497,6 +522,7 @@ export const BLOCK_SCHEMA = {
     defaults: {
       height: 32,
       background_color: "transparent",
+      ...borderDefaults,
     },
     sections: [
       {
@@ -505,6 +531,7 @@ export const BLOCK_SCHEMA = {
         fields: [
           { key: "height", label: "Height (px)", type: "number", min: 4, max: 300 },
           { key: "background_color", label: "Background", type: "color" },
+          ...borderFields,
         ],
       },
     ],
@@ -524,6 +551,7 @@ export const BLOCK_SCHEMA = {
       background_color: "#f9fafb",
       font_family: "Georgia",
       padding_top: 24, padding_right: 32, padding_bottom: 24, padding_left: 32,
+      ...borderDefaults,
     },
     sections: [
       {
@@ -544,6 +572,7 @@ export const BLOCK_SCHEMA = {
           { key: "border_color",     label: "Accent color", type: "color" },
           { key: "quote_color",      label: "Quote color", type: "color" },
           { key: "author_color",     label: "Author color", type: "color" },
+          ...borderFields,
         ],
       },
     ],
@@ -564,6 +593,7 @@ export const BLOCK_SCHEMA = {
       background_color: "#ffffff",
       align: "center",
       padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
+      ...borderDefaults,
     },
     sections: [
       {
@@ -586,6 +616,7 @@ export const BLOCK_SCHEMA = {
           { key: "color",            label: "Icon color",  type: "color" },
           { key: "background_color", label: "Background",  type: "color" },
           { key: "align",            label: "Alignment",   type: "align" },
+          ...borderFields,
         ],
       },
     ],
@@ -602,13 +633,12 @@ export const BLOCK_SCHEMA = {
       button_label: "Shop Now",
       button_url: "#",
       background_color: "#ffffff",
-      border_color: "#e5e7eb",
-      border_radius: "12px",
       button_color: "#111827",
       title_color: "#111827",
       text_color: "#6b7280",
       font_family: "Arial",
       padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
+      ...borderDefaults,
     },
     sections: [
       {
@@ -625,11 +655,10 @@ export const BLOCK_SCHEMA = {
         fields: [
           fontField,
           { key: "background_color", label: "Card background", type: "color" },
-          { key: "border_color",     label: "Border color",    type: "color" },
-          { key: "border_radius", label: "Corners", type: "text", placeholder: "12px" },
           { key: "button_color", label: "Button color", type: "color" },
           { key: "title_color",  label: "Title color",  type: "color" },
           { key: "text_color",   label: "Text color",   type: "color" },
+          ...borderFields,
         ],
       },
     ],
@@ -648,6 +677,7 @@ export const BLOCK_SCHEMA = {
       tagline_color: "#6b7280",
       font_family: "Arial",
       padding_top: 20, padding_right: 32, padding_bottom: 20, padding_left: 32,
+      ...borderDefaults,
     },
     sections: [
       {
@@ -676,6 +706,7 @@ export const BLOCK_SCHEMA = {
               { label: "Hide", value: false },
             ],
           },
+          ...borderFields,
         ],
       },
     ],
@@ -691,8 +722,9 @@ export const BLOCK_SCHEMA = {
       play_button_color: "#ffffff",
       play_icon_color: "#111827",
       overlay_color: "rgba(0,0,0,0.3)",
-      border_radius: "8px",
+      border_radius: "0",
       padding_top: 16, padding_right: 32, padding_bottom: 16, padding_left: 32,
+      ...borderDefaults,
     },
     sections: [
       {
@@ -710,7 +742,8 @@ export const BLOCK_SCHEMA = {
         fields: [
           { key: "play_button_color", label: "Play button",   type: "color" },
           { key: "play_icon_color",   label: "Play icon",     type: "color" },
-          { key: "border_radius", label: "Corners", type: "text", placeholder: "8px" },
+          { key: "border_radius", label: "Thumbnail corners", type: "text", placeholder: "8px" },
+          ...borderFields,
         ],
       },
     ],
