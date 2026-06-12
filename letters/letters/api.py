@@ -974,7 +974,7 @@ def _execute_send(send_doc_name, campaign_name):
                 row.status = "Failed"
                 frappe.db.set_value(
                     "Email Send Recipient", row.name,
-                    {"status": "Failed", "error_message": str(e)[:500]},
+                    {"status": "Failed", "error_message": str(e)[:500]},  # full trace in Error Log
                     update_modified=False,
                 )
                 failed += 1

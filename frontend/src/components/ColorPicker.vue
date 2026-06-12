@@ -14,7 +14,7 @@
           type="text"
           class="flex-1 min-w-0"
           :modelValue="modelValue"
-          placeholder="—"
+          placeholder="None"
           @update:modelValue="$emit('update:modelValue', $event)"
         />
       </div>

@@ -470,7 +470,7 @@ export const BLOCK_SCHEMA = {
           { key: "layout", label: "Direction", type: "direction" },
           { key: "gap", label: "Gap", type: "number", min: 0, max: 64, unit: "px", hint: "Space between child blocks" },
           { key: "width", label: "Width", type: "dimension", hint: "Use % for fluid, px for fixed, auto to fit content" },
-          { key: "height", label: "Min height", type: "dimension", hint: "Minimum height — block grows taller if content overflows" },
+          { key: "height", label: "Min height", type: "dimension", hint: "Minimum height: block grows taller if content overflows" },
           { key: "align", label: "H Align", type: "align" },
           { key: "vertical_align", label: "V Align", type: "valign" },
         ],

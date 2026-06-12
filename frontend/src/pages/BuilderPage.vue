@@ -752,7 +752,12 @@ watch(recipientConfig, () => {
   if (_suppressDirty === 0) editorStore.markDirty();
 }, { deep: true });
 
-// ── Auto-save (debounced 800ms — avoids saving on every drag pixel) ───────────
+// ── Auto-save (debounced 800ms) ──────────────────────────────────────────────
+// The history debounce (editor.js, 600ms) and this autosave debounce (800ms)
+// are intentionally independent: history coalesces rapid keystrokes into a
+// single undo entry first, and autosave fires slightly later. A save can
+// therefore persist an intermediate state that isn't yet a discrete undo
+// entry, but no data is lost — redo still recovers it.
 let _autoSaveTimer = null;
 watch(() => editorStore.isDirty, (dirty) => {
   if (!dirty) return;
@@ -1086,7 +1091,7 @@ function applyLinkFix(result) {
   result.status = "ok";
   result.code = null;
   result._fix = "";
-  toast.success("Link updated — press ⌘S to save.");
+  toast.success("Link updated: press ⌘S to save.");
 }
 
 // ── Duplicate ─────────────────────────────────────────────────────────────────

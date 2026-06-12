@@ -117,7 +117,7 @@ class _RichTextSanitizer(HTMLParser):
                 href = dict(attrs).get("href") or ""
                 safe = _safe_url(href)
                 self._out.append(
-                    f'<a href="{safe}" style="color:#2563eb;" target="_blank">'
+                    f'<a href="{safe}" target="_blank">'
                 )
             elif tag in _RT_STYLED_SPAN:
                 self._out.append(f'<span style="{_RT_STYLED_SPAN[tag]}">')
