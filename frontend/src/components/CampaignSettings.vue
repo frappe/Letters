@@ -14,10 +14,10 @@
         <div class="absolute inset-0 bg-black/40" @click="close" />
 
         <!-- Panel: left nav + right content, mirroring Frappe Builder's settings -->
-        <div class="relative flex w-full max-w-3xl h-[560px] max-h-[90vh] bg-white rounded-xl shadow-2xl overflow-hidden">
+        <div class="relative flex w-full max-w-3xl h-[560px] max-h-[90vh] bg-surface-white rounded-xl shadow-2xl overflow-hidden">
 
           <!-- Left nav -->
-          <aside class="w-52 flex-shrink-0 bg-gray-50 border-r border-gray-100 p-3 flex flex-col">
+          <aside class="w-52 flex-shrink-0 bg-surface-gray-1 border-r border-outline-gray-1 p-3 flex flex-col">
             <p class="px-2.5 py-2 text-base font-semibold text-ink-gray-9">Settings</p>
             <p class="px-2.5 pt-2 pb-1 text-xs font-medium text-ink-gray-5 uppercase tracking-wide">Campaign</p>
             <nav class="space-y-0.5">
@@ -27,8 +27,8 @@
                 type="button"
                 class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm text-left transition-colors"
                 :class="activeTab === s.id
-                  ? 'bg-white text-ink-gray-9 shadow-sm font-medium'
-                  : 'text-ink-gray-6 hover:text-ink-gray-9 hover:bg-gray-100'"
+                  ? 'bg-surface-white text-ink-gray-9 shadow-sm font-medium'
+                  : 'text-ink-gray-6 hover:text-ink-gray-9 hover:bg-surface-gray-2'"
                 @click="activeTab = s.id"
               >
                 <FeatherIcon :name="s.icon" class="w-4 h-4 flex-shrink-0" />
@@ -39,11 +39,11 @@
 
           <!-- Right content -->
           <div class="flex-1 flex flex-col min-w-0">
-            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-outline-gray-1 flex-shrink-0">
               <h2 class="text-base font-semibold text-ink-gray-9">{{ activeSection.label }}</h2>
               <button
                 type="button"
-                class="w-7 h-7 flex items-center justify-center rounded-md text-ink-gray-5 hover:text-ink-gray-9 hover:bg-gray-100 transition-colors"
+                class="w-7 h-7 flex items-center justify-center rounded-md text-ink-gray-5 hover:text-ink-gray-9 hover:bg-surface-gray-2 transition-colors"
                 aria-label="Close settings"
                 @click="close"
               ><FeatherIcon name="x" class="w-4 h-4" /></button>
@@ -85,7 +85,7 @@
                 <div v-if="isSent">
                   <div v-if="loadingRecipients" class="text-xs text-ink-gray-5 py-6 text-center">Loading…</div>
                   <div v-else>
-                    <div class="max-h-80 overflow-y-auto rounded border border-gray-100 divide-y divide-gray-50">
+                    <div class="max-h-80 overflow-y-auto rounded border border-outline-gray-1 divide-y divide-outline-gray-1">
                       <div
                         v-for="r in recipients"
                         :key="r.email"
@@ -120,7 +120,7 @@
               <div v-else-if="activeTab === 'analytics'" class="space-y-4">
                 <div v-if="loadingAnalytics" class="text-xs text-ink-gray-5 py-6 text-center">Loading analytics…</div>
 
-                <div v-else-if="!analytics || !analytics.sent_status" class="rounded border border-dashed border-gray-200 px-4 py-10 text-center">
+                <div v-else-if="!analytics || !analytics.sent_status" class="rounded border border-dashed border-outline-gray-2 px-4 py-10 text-center">
                   <FeatherIcon name="bar-chart-2" class="w-6 h-6 text-ink-gray-4 mx-auto mb-2" />
                   <p class="text-sm text-ink-gray-6 font-medium">No sends yet</p>
                   <p class="text-xs text-ink-gray-5 mt-1">Analytics appear here once this campaign has been sent.</p>
@@ -129,15 +129,15 @@
                 <div v-else class="space-y-4">
                   <!-- Open rate stats -->
                   <div class="grid grid-cols-3 gap-3">
-                    <div class="rounded border border-gray-100 bg-gray-50 px-4 py-3">
+                    <div class="rounded border border-outline-gray-1 bg-surface-gray-1 px-4 py-3">
                       <p class="text-2xl font-semibold text-ink-gray-9 tabular-nums">{{ analytics.sent }}</p>
                       <p class="text-xs text-ink-gray-5 mt-0.5">Delivered</p>
                     </div>
-                    <div class="rounded border border-gray-100 bg-gray-50 px-4 py-3">
+                    <div class="rounded border border-outline-gray-1 bg-surface-gray-1 px-4 py-3">
                       <p class="text-2xl font-semibold text-ink-gray-9 tabular-nums">{{ analytics.opened }}</p>
                       <p class="text-xs text-ink-gray-5 mt-0.5">Opened</p>
                     </div>
-                    <div class="rounded border border-gray-100 bg-gray-50 px-4 py-3">
+                    <div class="rounded border border-outline-gray-1 bg-surface-gray-1 px-4 py-3">
                       <p class="text-2xl font-semibold text-ink-gray-9 tabular-nums">{{ analytics.open_rate }}%</p>
                       <p class="text-xs text-ink-gray-5 mt-0.5">Open rate</p>
                     </div>
@@ -149,12 +149,12 @@
                     <div
                       v-for="(count, status) in analytics.status_counts"
                       :key="status"
-                      class="flex items-center justify-between text-xs py-1 border-b border-gray-50 last:border-0"
+                      class="flex items-center justify-between text-xs py-1 border-b border-outline-gray-1 last:border-0"
                     >
                       <span class="flex items-center gap-1.5">
                         <span
                           class="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                          :class="status === 'Sent' ? 'bg-green-500' : status === 'Failed' ? 'bg-red-500' : status === 'Pending' ? 'bg-gray-300' : 'bg-yellow-400'"
+                          :class="status === 'Sent' ? 'bg-surface-green-3' : status === 'Failed' ? 'bg-surface-red-4' : status === 'Pending' ? 'bg-surface-gray-4' : 'bg-surface-amber-2'"
                         />
                         <span class="text-ink-gray-6">{{ status }}</span>
                       </span>
@@ -167,7 +167,7 @@
                     <p v-if="analytics.last_opened">Last opened {{ formatDate(analytics.last_opened) }}</p>
                   </div>
 
-                  <p class="text-xs text-ink-gray-4 border-t border-gray-100 pt-3">
+                  <p class="text-xs text-ink-gray-4 border-t border-outline-gray-1 pt-3">
                     Open tracking uses a pixel — undercounts with image blocking, overcounts with inbox proxies, and won't register on localhost.
                   </p>
                 </div>

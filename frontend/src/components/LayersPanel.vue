@@ -23,7 +23,7 @@
       />
     </div>
 
-    <div v-if="store.blocks.length > 1" class="px-3 py-2 border-t border-gray-100">
+    <div v-if="store.blocks.length > 1" class="px-3 py-2 border-t border-outline-gray-1">
       <p class="text-xs text-ink-gray-3 text-center">Drag to reorder · double-click to rename</p>
     </div>
   </div>
@@ -268,7 +268,7 @@ const LayerNode = defineComponent({
 
       const childrenSection = h("div", { class: "relative" }, [
         h("div", {
-          class: "absolute top-0 bottom-0 w-px bg-gray-200",
+          class: "absolute top-0 bottom-0 w-px bg-outline-gray-2",
           style: { left: lineLeft + "px" },
         }),
         ...children.map((child) =>

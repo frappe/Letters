@@ -11,10 +11,10 @@
 
     <!-- ── Tab: Email Group ── -->
     <div v-if="mode === 'group'" class="space-y-4">
-      <div v-if="loadingGroups" class="text-xs text-gray-400 py-2">Loading groups…</div>
-      <div v-else-if="emailGroups.length === 0" class="rounded-lg border border-dashed border-gray-200 px-4 py-6 text-center">
-        <p class="text-sm text-gray-500 font-medium">No Email Groups found</p>
-        <p class="text-xs text-gray-400 mt-1">
+      <div v-if="loadingGroups" class="text-xs text-ink-gray-4 py-2">Loading groups…</div>
+      <div v-else-if="emailGroups.length === 0" class="rounded-lg border border-dashed border-outline-gray-2 px-4 py-6 text-center">
+        <p class="text-sm text-ink-gray-5 font-medium">No Email Groups found</p>
+        <p class="text-xs text-ink-gray-4 mt-1">
           Create one via <strong>Email Group</strong> in Frappe to manage subscribers with unsubscribe support.
         </p>
       </div>
@@ -23,17 +23,17 @@
           v-for="g in emailGroups"
           :key="g.name"
           class="flex items-center gap-3 px-4 py-3 rounded-lg border cursor-pointer transition-colors"
-          :class="selectedGroup === g.name ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-300'"
+          :class="selectedGroup === g.name ? 'border-outline-gray-5 bg-surface-gray-1' : 'border-outline-gray-2 hover:border-outline-gray-3'"
         >
-          <input type="radio" v-model="selectedGroup" :value="g.name" class="accent-gray-900" />
+          <input type="radio" v-model="selectedGroup" :value="g.name" class="accent-ink-gray-9" />
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-gray-800">{{ g.title || g.name }}</p>
-            <p class="text-xs text-gray-400">{{ g.count }} active subscriber{{ g.count === 1 ? "" : "s" }}</p>
+            <p class="text-sm font-medium text-ink-gray-8">{{ g.title || g.name }}</p>
+            <p class="text-xs text-ink-gray-4">{{ g.count }} active subscriber{{ g.count === 1 ? "" : "s" }}</p>
           </div>
-          <span v-if="selectedGroup === g.name" class="text-xs text-gray-500 font-medium">Selected</span>
+          <span v-if="selectedGroup === g.name" class="text-xs text-ink-gray-5 font-medium">Selected</span>
         </label>
       </div>
-      <p class="text-xs text-gray-400">Unsubscribe links are added automatically for Email Group sends.</p>
+      <p class="text-xs text-ink-gray-4">Unsubscribe links are added automatically for Email Group sends.</p>
     </div>
 
     <!-- ── Tab: Paste emails ── -->
@@ -44,8 +44,8 @@
         placeholder="one@example.com&#10;two@example.com&#10;three@example.com"
         size="sm"
       />
-      <p class="text-xs text-gray-400">One email per line, or comma- or semicolon-separated.</p>
-      <div v-if="parsedPasted.length > 0" class="text-xs text-gray-500 font-medium">
+      <p class="text-xs text-ink-gray-4">One email per line, or comma- or semicolon-separated.</p>
+      <div v-if="parsedPasted.length > 0" class="text-xs text-ink-gray-5 font-medium">
         {{ parsedPasted.length }} valid email{{ parsedPasted.length === 1 ? "" : "s" }} detected
       </div>
     </div>
@@ -53,7 +53,7 @@
     <!-- ── Tab: From DocType ── -->
     <div v-if="mode === 'doctype'" class="space-y-4">
       <div>
-        <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">DocType</label>
+        <label class="block text-xs font-semibold text-ink-gray-6 uppercase tracking-wide mb-1.5">DocType</label>
         <Select
           v-model="selectedDoctype"
           :options="doctypes"
@@ -64,7 +64,7 @@
       </div>
 
       <div v-if="emailFields.length > 1">
-        <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Email Field</label>
+        <label class="block text-xs font-semibold text-ink-gray-6 uppercase tracking-wide mb-1.5">Email Field</label>
         <Select
           v-model="selectedField"
           :options="emailFields.map(f => ({ label: `${f.label} (${f.fieldname})`, value: f.fieldname }))"
@@ -75,10 +75,10 @@
       </div>
 
       <div v-if="selectedDoctype && selectedField && filterFields.length" class="space-y-3">
-        <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Filters <span class="font-normal normal-case text-gray-400">(optional, leave blank to include all)</span></p>
+        <p class="text-xs font-semibold text-ink-gray-6 uppercase tracking-wide">Filters <span class="font-normal normal-case text-ink-gray-4">(optional, leave blank to include all)</span></p>
 
         <div v-for="ff in filterFields" :key="ff.fieldname" class="flex items-center gap-3">
-          <label class="w-32 flex-shrink-0 text-xs text-gray-600 font-medium truncate" :title="ff.label">{{ ff.label }}</label>
+          <label class="w-32 flex-shrink-0 text-xs text-ink-gray-6 font-medium truncate" :title="ff.label">{{ ff.label }}</label>
 
           <Select
             v-if="ff.fieldtype === 'Select'"
@@ -111,7 +111,7 @@
           <button
             v-if="activeFilters[ff.fieldname] !== undefined && activeFilters[ff.fieldname] !== ''"
             type="button"
-            class="text-gray-300 hover:text-red-400"
+            class="text-ink-gray-3 hover:text-ink-red-3"
             @click="clearFilter(ff.fieldname)"
           ><FeatherIcon name="x" class="w-3.5 h-3.5" /></button>
         </div>
@@ -123,19 +123,19 @@
             :disabled="countLoading"
             @click="previewCount"
           >{{ countLoading ? "Counting…" : "Preview recipient count" }}</button>
-          <span v-if="recipientCount !== null" class="text-xs text-gray-600 font-medium">
+          <span v-if="recipientCount !== null" class="text-xs text-ink-gray-6 font-medium">
             → {{ recipientCount }} recipient{{ recipientCount === 1 ? "" : "s" }}
           </span>
         </div>
       </div>
 
-      <p v-if="selectedDoctype && selectedField && !filterFields.length && !loadingFilters" class="text-xs text-gray-400">
+      <p v-if="selectedDoctype && selectedField && !filterFields.length && !loadingFilters" class="text-xs text-ink-gray-4">
         No filterable fields found for this DocType.
       </p>
     </div>
 
     <!-- Live summary -->
-    <p class="text-xs text-ink-gray-5 border-t border-gray-100 pt-3">
+    <p class="text-xs text-ink-gray-5 border-t border-outline-gray-1 pt-3">
       <template v-if="summaryText">{{ summaryText }}</template>
       <template v-else>Configure who will receive this campaign.</template>
     </p>

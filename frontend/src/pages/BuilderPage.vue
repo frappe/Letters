@@ -1,24 +1,24 @@
 <template>
-  <div class="letters-builder flex flex-col bg-gray-100 font-sans overflow-hidden" style="height: 100vh">
+  <div class="letters-builder flex flex-col bg-surface-gray-2 font-sans overflow-hidden" style="height: 100vh">
 
     <!-- ── Top bar ─────────────────────────────────────────────────────────── -->
-    <header class="flex-shrink-0 h-12 bg-white border-b border-gray-200 flex items-center px-4 gap-3">
+    <header class="flex-shrink-0 h-12 bg-surface-white border-b border-outline-gray-2 flex items-center px-4 gap-3">
 
       <!-- Brand + page menu (Frappe Builder-style left dropdown) -->
       <Dropdown :options="menuOptions" placement="bottom-start">
         <template #default="{ open }">
           <button
             type="button"
-            class="flex-shrink-0 flex items-center gap-1 h-8 pl-1.5 pr-1 rounded-md hover:bg-gray-100 transition-colors"
+            class="flex-shrink-0 flex items-center gap-1 h-8 pl-1.5 pr-1 rounded-md hover:bg-surface-gray-2 transition-colors"
             aria-label="Campaign menu"
           >
             <span class="w-6 h-6 rounded-md bg-gray-900 text-white flex items-center justify-center text-xs font-bold">L</span>
-            <FeatherIcon :name="open ? 'chevron-up' : 'chevron-down'" class="w-3.5 h-3.5 text-gray-400" />
+            <FeatherIcon :name="open ? 'chevron-up' : 'chevron-down'" class="w-3.5 h-3.5 text-ink-gray-4" />
           </button>
         </template>
       </Dropdown>
 
-      <div class="w-px h-4 bg-gray-200 mx-0.5" />
+      <div class="w-px h-4 bg-outline-gray-2 mx-0.5" />
 
       <!-- Add block / Add container — icon tools (Frappe Builder-style) -->
       <Tooltip text="Add block">
@@ -38,11 +38,11 @@
       <div class="flex-1 flex items-center justify-center min-w-0">
         <button
           type="button"
-          class="flex items-center gap-1.5 min-w-0 max-w-sm px-2 py-1 rounded-md hover:bg-gray-100 transition-colors group"
+          class="flex items-center gap-1.5 min-w-0 max-w-sm px-2 py-1 rounded-md hover:bg-surface-gray-2 transition-colors group"
           title="Campaign settings"
           @click="showSettings = true"
         >
-          <span class="truncate text-sm font-medium text-gray-800">
+          <span class="truncate text-sm font-medium text-ink-gray-8">
             {{ editorStore.campaignName || "Untitled Campaign" }}
           </span>
         </button>
@@ -62,7 +62,7 @@
           />
         </Tooltip>
 
-        <div class="w-px h-4 bg-gray-200 mx-0.5" />
+        <div class="w-px h-4 bg-outline-gray-2 mx-0.5" />
 
         <!-- Sending: inline progress bar -->
         <template v-if="campaignStatus === 'Sending'">
@@ -125,7 +125,7 @@
 
       <!-- Permanent left sidebar: Layers + Add block -->
       <aside
-        class="flex-shrink-0 bg-white border-r border-gray-200 flex flex-col relative"
+        class="flex-shrink-0 bg-surface-white border-r border-outline-gray-2 flex flex-col relative"
         :style="{ width: leftPanelWidth + 'px' }"
       >
         <!-- Drag handle (right edge) -->
@@ -134,16 +134,16 @@
           @mousedown="startLeftResize"
         />
         <!-- Header -->
-        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-outline-gray-1 flex-shrink-0">
           <template v-if="pickerTarget !== null">
-            <span class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Add Block</span>
-            <button type="button" class="text-gray-400 hover:text-gray-600 transition-colors" @click="closePicker">
+            <span class="text-xs font-semibold text-ink-gray-4 uppercase tracking-widest">Add Block</span>
+            <button type="button" class="text-ink-gray-4 hover:text-ink-gray-7 transition-colors" @click="closePicker">
               <FeatherIcon name="x" class="w-3.5 h-3.5" />
             </button>
           </template>
           <template v-else>
-            <span class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Layers</span>
-            <span class="text-xs text-gray-300 tabular-nums">{{ editorStore.blocks.length }}</span>
+            <span class="text-xs font-semibold text-ink-gray-4 uppercase tracking-widest">Layers</span>
+            <span class="text-xs text-ink-gray-3 tabular-nums">{{ editorStore.blocks.length }}</span>
           </template>
         </div>
 
@@ -176,7 +176,7 @@
           class="fixed z-50 pointer-events-none"
           :style="blockPreview.style"
         >
-          <div class="bg-white border border-outline-gray-2 rounded-xl shadow-2xl overflow-hidden" style="width:360px">
+          <div class="bg-surface-white border border-outline-gray-2 rounded-xl shadow-2xl overflow-hidden" style="width:360px">
             <div class="px-3 py-2 border-b border-outline-gray-1 bg-surface-gray-1">
               <span class="text-xs font-semibold text-ink-gray-5 uppercase tracking-widest">{{ blockPreview.label }}</span>
             </div>
@@ -197,10 +197,10 @@
         @click="editorStore.selectBlock(null)"
       >
         <!-- Zoom controls -->
-        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-white border border-gray-200 rounded-lg shadow-sm px-1 py-1 z-10">
-          <button type="button" class="w-6 h-6 flex items-center justify-center rounded text-gray-500 hover:bg-gray-100 text-sm leading-none" @click.stop="stepZoom(-1)">−</button>
-          <button type="button" class="min-w-[3rem] text-xs text-gray-600 hover:bg-gray-100 rounded px-1 py-0.5 tabular-nums" @click.stop="canvasZoom = 1">{{ Math.round(canvasZoom * 100) }}%</button>
-          <button type="button" class="w-6 h-6 flex items-center justify-center rounded text-gray-500 hover:bg-gray-100 text-sm leading-none" @click.stop="stepZoom(1)">+</button>
+        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-surface-white border border-outline-gray-2 rounded-lg shadow-sm px-1 py-1 z-10">
+          <button type="button" class="w-6 h-6 flex items-center justify-center rounded text-ink-gray-5 hover:bg-surface-gray-2 text-sm leading-none" @click.stop="stepZoom(-1)">−</button>
+          <button type="button" class="min-w-[3rem] text-xs text-ink-gray-6 hover:bg-surface-gray-2 rounded px-1 py-0.5 tabular-nums" @click.stop="canvasZoom = 1">{{ Math.round(canvasZoom * 100) }}%</button>
+          <button type="button" class="w-6 h-6 flex items-center justify-center rounded text-ink-gray-5 hover:bg-surface-gray-2 text-sm leading-none" @click.stop="stepZoom(1)">+</button>
         </div>
 
         <div
@@ -210,15 +210,15 @@
 
           <!-- Loading skeleton (while fetching a saved campaign) -->
           <div v-if="loadingCampaign" class="p-6 space-y-3" aria-busy="true" aria-label="Loading campaign">
-            <div v-for="n in 4" :key="n" class="h-16 bg-gray-100 animate-pulse rounded-lg" />
+            <div v-for="n in 4" :key="n" class="h-16 bg-surface-gray-2 animate-pulse rounded-lg" />
           </div>
 
           <!-- Empty state (not loading, no blocks) -->
           <div
             v-else-if="!editorStore.blocks.length"
-            class="border-2 border-dashed border-gray-300 rounded-xl p-16 text-center text-gray-400 bg-white/50 select-none"
+            class="border-2 border-dashed border-outline-gray-2 rounded-xl p-16 text-center bg-surface-white/50 select-none"
           >
-            <div class="mb-3 opacity-40"><FeatherIcon name="inbox" class="w-10 h-10 mx-auto text-gray-400" /></div>
+            <div class="mb-3 opacity-40"><FeatherIcon name="inbox" class="w-10 h-10 mx-auto text-ink-gray-4" /></div>
             <p class="text-sm font-medium mb-1">Your canvas is empty</p>
             <p class="text-xs opacity-60">Use <strong>+ Add block</strong> in the top bar to get started</p>
           </div>
@@ -274,7 +274,7 @@
   >
     <template #default>
       <div class="space-y-1 text-sm">
-        <div v-for="s in SHORTCUTS" :key="s.label" class="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
+        <div v-for="s in SHORTCUTS" :key="s.label" class="flex items-center justify-between py-1.5 border-b border-outline-gray-1 last:border-0">
           <span class="text-ink-gray-7">{{ s.label }}</span>
           <div class="flex items-center gap-1">
             <kbd v-for="k in s.keys" :key="k" class="inline-flex items-center px-1.5 py-0.5 rounded bg-surface-gray-2 border border-outline-gray-2 text-xs font-mono text-ink-gray-6">{{ k }}</kbd>
@@ -366,7 +366,7 @@
             class="rounded border px-3 py-2.5"
             :class="{
               'border-outline-gray-1 bg-surface-gray-1': r.status === 'ok' || r.status === 'skipped',
-              'border-red-200 bg-red-50': r.status === 'error',
+              'border-outline-red-2 bg-surface-red-1': r.status === 'error',
             }"
           >
             <!-- Top row: url + badge -->
@@ -453,6 +453,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, provide, nextTick } from "vue";
 import { Button, TextInput, FeatherIcon, Dialog, Dropdown, Tooltip, toast, Progress, Badge, DatePicker, TimePicker } from "frappe-ui";
+import { useDark, useToggle } from "@vueuse/core";
 import { useEditorStore } from "../stores/editor";
 import { BLOCK_SCHEMA } from "../blockSchema";
 import Inspector from "../components/Inspector.vue";
@@ -464,6 +465,8 @@ import BlockRenderer from "../components/BlockRenderer.vue";
 
 const editorStore = useEditorStore();
 const saving        = ref(false);
+const isDark = useDark({ attribute: "data-theme", valueDark: "dark", valueLight: "light" });
+const toggleDark = useToggle(isDark);
 const showShortcuts = ref(false);
 
 const SHORTCUTS = [
@@ -544,6 +547,11 @@ const menuOptions = computed(() => [
         label: "Keyboard Shortcuts",
         icon: "command",
         onClick: () => (showShortcuts.value = true),
+      },
+      {
+        label: isDark.value ? "Switch to Light Mode" : "Switch to Dark Mode",
+        icon: isDark.value ? "sun" : "moon",
+        onClick: () => toggleDark(),
       },
     ],
   },

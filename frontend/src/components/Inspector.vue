@@ -1,6 +1,6 @@
 <template>
   <aside
-    class="flex-shrink-0 bg-white border-l border-gray-200 flex flex-col overflow-hidden"
+    class="flex-shrink-0 bg-surface-white border-l border-outline-gray-2 flex flex-col overflow-hidden"
     :style="{ width: (width || 288) + 'px' }"
   >
     <!-- Header -->
@@ -392,8 +392,8 @@ const FieldControl = defineComponent({
             type: "button",
             title: "Set to auto",
             style: v === "auto"
-              ? "font-size:11px;font-weight:500;padding:2px 6px;border-radius:4px;border:1px solid #111827;background:#111827;color:#fff;flex-shrink:0;cursor:pointer;"
-              : "font-size:11px;font-weight:500;padding:2px 6px;border-radius:4px;border:1px solid #d1d5db;background:transparent;color:#6b7280;flex-shrink:0;cursor:pointer;",
+              ? "font-size:11px;font-weight:500;padding:2px 6px;border-radius:4px;border:1px solid var(--surface-gray-7);background:var(--surface-gray-7);color:var(--text-ink-white);flex-shrink:0;cursor:pointer;"
+              : "font-size:11px;font-weight:500;padding:2px 6px;border-radius:4px;border:1px solid var(--outline-gray-2);background:transparent;color:var(--text-ink-gray-5);flex-shrink:0;cursor:pointer;",
             onClick: () => emit("change", "auto"),
           }, "auto"),
         ]);
