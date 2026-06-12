@@ -20,7 +20,7 @@
         <TextEditor
           :content="block.props.html_content || ''"
           :editable="isSelected"
-          placeholder="Text…"
+          placeholder="Text"
           :bubble-menu="bubbleMenuButtons"
           editor-class="rich-text-content outline-none min-h-10"
           @change="onChange"
@@ -67,6 +67,16 @@ function onChange(html) {
 </script>
 
 <style>
+/* Show placeholder even when the block is not selected (not focused).
+   TipTap normally gates the placeholder behind :focus — we override that. */
+.rich-text-shell .ProseMirror p.is-editor-empty:first-child::before {
+  color: #d1d5db;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
 /* Force TipTap's ProseMirror to inherit block-level styles from the shell wrapper.
    frappe-ui's TextEditor CSS may reset font-size/color/line-height on .ProseMirror. */
 .rich-text-shell .ProseMirror {

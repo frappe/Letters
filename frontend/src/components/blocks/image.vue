@@ -32,7 +32,7 @@
       <!-- Caption — always visible in editor; hidden in email output when empty -->
       <EditableDiv
         class="mt-2 text-xs outline-none editable-placeholder"
-        data-placeholder="Add a caption…"
+        data-placeholder="Caption"
         :style="{ color: block.props.caption_color || '#9ca3af' }"
         :model-value="block.props.caption"
         @update:model-value="update('caption', $event)"

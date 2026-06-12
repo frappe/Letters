@@ -918,12 +918,12 @@ function insertBlock(type) {
 }
 
 function scrollToSelected() {
-  nextTick(() => nextTick(() => {
-    const id = editorStore.selectedBlockId;
-    if (!id) return;
+  const id = editorStore.selectedBlockId;
+  if (!id) return;
+  setTimeout(() => {
     const el = document.querySelector(`[data-block-id="${id}"]`);
-    el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }));
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, 50);
 }
 
 // ── Strip runtime IDs before saving (recursive for nested children) ──────────
