@@ -27,6 +27,7 @@ _HTML_WRAPPER = """\
 </table>
 </td></tr>
 </table>
+<!--email_open_check-->
 </body>
 </html>"""
 
