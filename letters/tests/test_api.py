@@ -782,3 +782,47 @@ class TestProcessScheduledSends:
         frappe_stub.db.set_value.assert_any_call(
             "Letters Campaign", "CAMP-DUE", "status", "Failed"
         )
+
+
+class TestUrlSafety:
+    """SSRF guard for the link checker (_url_safety_error)."""
+
+    def test_public_https_url_is_allowed(self):
+        # 93.184.216.34 is a public address (example.com style).
+        with patch("socket.getaddrinfo", return_value=[(2, 1, 6, "", ("93.184.216.34", 443))]):
+            assert api_module._url_safety_error("https://example.com/page") is None
+
+    def test_rejects_non_http_scheme(self):
+        assert api_module._url_safety_error("ftp://example.com/x") == "unsupported scheme"
+        assert api_module._url_safety_error("file:///etc/passwd") == "unsupported scheme"
+
+    def test_rejects_loopback(self):
+        with patch("socket.getaddrinfo", return_value=[(2, 1, 6, "", ("127.0.0.1", 8000))]):
+            assert api_module._url_safety_error("http://localhost:8000/admin") is not None
+
+    def test_rejects_cloud_metadata(self):
+        with patch("socket.getaddrinfo", return_value=[(2, 1, 6, "", ("169.254.169.254", 80))]):
+            assert api_module._url_safety_error("http://169.254.169.254/latest/meta-data/") is not None
+
+    def test_rejects_rfc1918_private(self):
+        for ip in ("10.0.0.5", "192.168.1.1", "172.16.0.9"):
+            with patch("socket.getaddrinfo", return_value=[(2, 1, 6, "", (ip, 80))]):
+                assert api_module._url_safety_error(f"http://{ip}/") is not None
+
+    def test_rejects_dns_name_resolving_to_private_ip(self):
+        # A public-looking hostname that resolves to an internal address.
+        with patch("socket.getaddrinfo", return_value=[(2, 1, 6, "", ("10.1.2.3", 80))]):
+            assert api_module._url_safety_error("http://internal.evil.example/") is not None
+
+    def test_rejects_when_any_resolved_ip_is_private(self):
+        # Mixed result set: one public, one private. Must reject.
+        with patch("socket.getaddrinfo", return_value=[
+            (2, 1, 6, "", ("93.184.216.34", 80)),
+            (2, 1, 6, "", ("127.0.0.1", 80)),
+        ]):
+            assert api_module._url_safety_error("http://rebind.example/") is not None
+
+    def test_dns_failure_is_treated_as_unsafe(self):
+        import socket as _socket
+        with patch("socket.getaddrinfo", side_effect=_socket.gaierror):
+            assert api_module._url_safety_error("http://nonexistent.invalid/") == "dns resolution failed"

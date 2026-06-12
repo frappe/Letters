@@ -506,10 +506,71 @@ def get_send_progress(name):
     }
 
 
+# Hard caps for the link checker. A campaign can legitimately contain many
+# links, but we must bound how much server-side fetching a single client call
+# can trigger (total request count + a wall-clock budget across all of them).
+_LINK_CHECK_MAX_URLS = 50
+_LINK_CHECK_TIMEOUT = 5  # per-request, seconds
+_LINK_CHECK_TIME_BUDGET = 25  # total wall-clock across all requests, seconds
+
+
+def _url_safety_error(url):
+    """Return a short reason string if ``url`` is unsafe to fetch server-side,
+    or None if it is a public http(s) URL.
+
+    Blocks SSRF vectors: non-http(s) schemes, and any hostname that resolves to
+    a private, loopback, link-local (incl. 169.254.0.0/16 cloud metadata),
+    reserved, or multicast address. Every resolved address is checked, so a
+    DNS name pointing at an internal IP is rejected too."""
+    import ipaddress
+    import socket
+    from urllib.parse import urlsplit
+
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        return "invalid url"
+
+    if parts.scheme not in ("http", "https"):
+        return "unsupported scheme"
+
+    host = parts.hostname
+    if not host:
+        return "no host"
+
+    # Resolve every address the host maps to; reject if ANY is non-public.
+    try:
+        infos = socket.getaddrinfo(host, parts.port or (443 if parts.scheme == "https" else 80), proto=socket.IPPROTO_TCP)
+    except socket.gaierror:
+        return "dns resolution failed"
+
+    for info in infos:
+        ip_str = info[4][0]
+        try:
+            ip = ipaddress.ip_address(ip_str)
+        except ValueError:
+            return "unresolvable address"
+        if (
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_multicast
+            or ip.is_reserved
+            or ip.is_unspecified
+        ):
+            return "private or reserved address"
+    return None
+
+
 @frappe.whitelist()
 def check_links(blocks=None, name=None):
-    """Extract all hrefs from compiled email HTML and check if they resolve."""
+    """Extract all hrefs from compiled email HTML and check if they resolve.
+
+    URLs are validated against an SSRF allowlist before any fetch: only public
+    http(s) hosts are probed (see _url_safety_error). Internal/loopback/cloud-
+    metadata targets are reported as blocked, never requested."""
     import re
+    import time
     import urllib.request
 
     if name:
@@ -530,13 +591,27 @@ def check_links(blocks=None, name=None):
 
     urls = list(dict.fromkeys(re.findall(r'href=["\']([^"\'#][^"\']*)["\']', html)))
     results = []
+    deadline = time.monotonic() + _LINK_CHECK_TIME_BUDGET
+    checked = 0
     for url in urls:
         if not url.startswith("http"):
             results.append({"url": url, "status": "skipped", "code": None})
             continue
+        if checked >= _LINK_CHECK_MAX_URLS or time.monotonic() >= deadline:
+            results.append({"url": url, "status": "skipped", "code": None})
+            continue
+
+        # SSRF guard: never let a user-supplied URL make us probe an internal
+        # host. Validate (scheme + resolved IP ranges) before any network call.
+        unsafe = _url_safety_error(url)
+        if unsafe:
+            results.append({"url": url, "status": "blocked", "code": None})
+            continue
+
+        checked += 1
         try:
             req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(req, timeout=8) as resp:
+            with urllib.request.urlopen(req, timeout=_LINK_CHECK_TIMEOUT) as resp:
                 results.append({"url": url, "status": "ok", "code": resp.status})
         except urllib.error.HTTPError as e:
             results.append({"url": url, "status": "error", "code": e.code})

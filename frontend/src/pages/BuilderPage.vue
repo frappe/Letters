@@ -355,6 +355,10 @@
           <Badge v-if="linkResults.filter(r => r.status === 'skipped').length" theme="gray" variant="subtle" size="sm">
             {{ linkResults.filter(r => r.status === 'skipped').length }} skipped
           </Badge>
+          <Badge v-if="linkResults.filter(r => r.status === 'blocked').length" theme="orange" variant="subtle" size="sm">
+            <template #prefix><FeatherIcon name="shield-off" class="w-3 h-3" /></template>
+            {{ linkResults.filter(r => r.status === 'blocked').length }} blocked
+          </Badge>
           <Button class="ml-auto" size="xs" variant="ghost" icon-left="refresh-cw" :loading="checkingLinks" @click="openLinkChecker">Re-check</Button>
         </div>
 
@@ -367,22 +371,23 @@
             :class="{
               'border-outline-gray-1 bg-surface-gray-1': r.status === 'ok' || r.status === 'skipped',
               'border-outline-red-2 bg-surface-red-1': r.status === 'error',
+              'border-outline-amber-2 bg-surface-amber-1': r.status === 'blocked',
             }"
           >
             <!-- Top row: url + badge -->
             <div class="flex items-center gap-2 min-w-0">
               <FeatherIcon
-                :name="r.status === 'ok' ? 'check-circle' : r.status === 'skipped' ? 'minus' : 'alert-circle'"
+                :name="r.status === 'ok' ? 'check-circle' : r.status === 'skipped' ? 'minus' : r.status === 'blocked' ? 'shield-off' : 'alert-circle'"
                 class="w-3.5 h-3.5 flex-shrink-0"
-                :class="r.status === 'ok' ? 'text-green-500' : r.status === 'skipped' ? 'text-ink-gray-3' : 'text-red-500'"
+                :class="r.status === 'ok' ? 'text-green-500' : r.status === 'skipped' ? 'text-ink-gray-3' : r.status === 'blocked' ? 'text-orange-500' : 'text-red-500'"
               />
               <span class="text-xs font-mono text-ink-gray-7 truncate flex-1 min-w-0">{{ r.url }}</span>
               <Badge
-                :theme="r.status === 'ok' ? 'green' : r.status === 'skipped' ? 'gray' : 'red'"
+                :theme="r.status === 'ok' ? 'green' : r.status === 'skipped' ? 'gray' : r.status === 'blocked' ? 'orange' : 'red'"
                 variant="subtle"
                 size="sm"
                 class="flex-shrink-0"
-              >{{ r.status === 'ok' ? (r.code || 'OK') : r.status === 'skipped' ? 'Non-HTTP' : r.code ? `${r.code}` : 'Unreachable' }}</Badge>
+              >{{ r.status === 'ok' ? (r.code || 'OK') : r.status === 'skipped' ? 'Non-HTTP' : r.status === 'blocked' ? 'Blocked' : r.code ? `${r.code}` : 'Unreachable' }}</Badge>
             </div>
 
             <!-- Inline fix for broken links -->
