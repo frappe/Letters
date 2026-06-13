@@ -77,12 +77,20 @@ function onChange(html) {
 <style>
 /* Show placeholder even when the block is not selected (not focused).
    TipTap normally gates the placeholder behind :focus — we override that. */
-/* Bubble menu: give it an elevated surface so it doesn't blend into the canvas */
+/* Bubble menu: always light surface with dark icons so it contrasts against the
+   white canvas regardless of the page's dark/light mode. The menu is a Tippy
+   popup appended to <body> — it picks up page-level dark-mode tokens, which
+   makes icons light-on-dark on a white canvas.  Force both surface AND icon
+   color explicitly. */
 .bubble-menu {
-  background-color: var(--surface-white, #ffffff) !important;
-  border: 1px solid var(--outline-gray-2, #e5e7eb) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  background-color: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18) !important;
   border-radius: 6px !important;
+}
+.bubble-menu button,
+.bubble-menu svg {
+  color: #374151 !important;
 }
 
 .rich-text-shell .ProseMirror p.is-editor-empty:first-child::before {
@@ -150,6 +158,13 @@ function onChange(html) {
 }
 .rich-text-content li {
   margin: 0.2em 0;
+}
+/* Marker (bullet/number) matches the block-level font/weight/color */
+.rich-text-shell .ProseMirror li::marker {
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  font-family: inherit;
 }
 .rich-text-content a {
   color: #2563eb;
