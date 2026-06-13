@@ -18,6 +18,7 @@
         :url="block.props.logo_url"
         :alt="'Logo'"
         height-class="h-10"
+        compact
         @uploaded="update('logo_url', $event)"
       >
         <template #default="{ url }">

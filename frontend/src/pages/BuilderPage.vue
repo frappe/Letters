@@ -200,13 +200,6 @@
         @drop="onCanvasDrop"
         @click="editorStore.selectBlock(null)"
       >
-        <!-- Zoom controls -->
-        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-surface-white border border-outline-gray-2 rounded-lg shadow-sm px-1 py-1 z-10">
-          <button type="button" class="w-6 h-6 flex items-center justify-center rounded text-ink-gray-5 hover:bg-surface-gray-2 text-sm leading-none" @click.stop="stepZoom(-1)">−</button>
-          <button type="button" class="min-w-[3rem] text-xs text-ink-gray-6 hover:bg-surface-gray-2 rounded px-1 py-0.5 tabular-nums" @click.stop="canvasZoom = 1">{{ Math.round(canvasZoom * 100) }}%</button>
-          <button type="button" class="w-6 h-6 flex items-center justify-center rounded text-ink-gray-5 hover:bg-surface-gray-2 text-sm leading-none" @click.stop="stepZoom(1)">+</button>
-        </div>
-
         <div
           class="mx-auto bg-white origin-top transition-transform shadow-sm letters-email-canvas"
           :style="{ maxWidth: editorStore.emailWidth + 'px', minHeight: '200px', transform: `scale(${canvasZoom})`, transformOrigin: 'top center', marginBottom: canvasZoom < 1 ? `calc((${canvasZoom} - 1) * 100%)` : undefined, color: '#374151', colorScheme: 'light' }"
@@ -238,6 +231,16 @@
               <BlockAdderRow :after-index="index" @open="(i) => openPicker({ mode: 'top', afterIndex: i })" />
             </template>
           </template>
+        </div>
+
+        <!-- Zoom controls — sticky so they stay pinned to the viewport bottom
+             while the canvas scrolls, instead of floating over the content. -->
+        <div class="sticky bottom-0 z-20 flex justify-center pointer-events-none pt-4">
+          <div class="pointer-events-auto flex items-center gap-1 bg-surface-white border border-outline-gray-2 rounded-lg shadow-md px-1 py-1">
+            <button type="button" class="w-6 h-6 flex items-center justify-center rounded text-ink-gray-5 hover:bg-surface-gray-2 text-sm leading-none" @click.stop="stepZoom(-1)">−</button>
+            <button type="button" class="min-w-[3rem] text-xs text-ink-gray-6 hover:bg-surface-gray-2 rounded px-1 py-0.5 tabular-nums" @click.stop="canvasZoom = 1">{{ Math.round(canvasZoom * 100) }}%</button>
+            <button type="button" class="w-6 h-6 flex items-center justify-center rounded text-ink-gray-5 hover:bg-surface-gray-2 text-sm leading-none" @click.stop="stepZoom(1)">+</button>
+          </div>
         </div>
       </main>
 

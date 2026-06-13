@@ -48,7 +48,7 @@ newsletter = [
     b("rich_text",
       html_content="<p>A quick thank-you. Every bag you buy goes a little further than the coffee — this quarter we've paid <strong>23% above the Fair Trade floor</strong> directly to the farms we work with. That only happens because you keep choosing us over the supermarket shelf. It matters. Thank you.</p>",
       font_size="15px", line_height="1.7", padding_top=8),
-    b("button", label="Shop this month's coffee →", url="#", color="#1c1917", text_color="#ffffff", button_padding="large", padding_top=8),
+    b("button", label="Shop this month's coffee →", url="#", color="#1c1917", text_color="#ffffff", button_padding="normal", padding_top=8),
     b("divider", padding_top=24, padding_bottom=4),
     b("social", x_url="https://x.com", instagram_url="https://instagram.com", website_url="https://example.com", color="#57534e", align="center"),
     b("footer", text="You're receiving the Northwind Dispatch because you bought coffee from us or signed up at the café. Unsubscribe anytime — no hard feelings.", background_color="#f8f5f0", text_color="#78716c"),
@@ -78,7 +78,7 @@ announcement = [
       heading="One source of truth",
       text="Boards read from the same tasks your team already updates. Change something on a board and it's reflected everywhere — no syncing, no stale copies, no “which version is right?”",
       image_position="left"),
-    b("button", label="See Boards in action →", url="#", color="#2563eb", text_color="#ffffff", button_padding="large", padding_top=32, padding_bottom=8),
+    b("button", label="See Boards in action →", url="#", color="#2563eb", text_color="#ffffff", button_padding="normal", padding_top=32, padding_bottom=8),
     b("divider", padding_top=24),
     b("quote",
       quote="We cancelled two other tools the week Boards shipped. It does the planning and the tracking, and our standups are ten minutes shorter.",
@@ -116,7 +116,7 @@ welcome = [
       heading="3 · Check in tonight",
       text="That's it. Do the thing, tap the circle, watch the streak start. Miss a day? Lumen never breaks your streak for one slip — because real life happens and guilt isn't a feature.",
       image_position="left"),
-    b("button", label="Set up my first habit", url="#", color="#16a34a", text_color="#ffffff", button_padding="large", padding_top=24),
+    b("button", label="Set up my first habit", url="#", color="#16a34a", text_color="#ffffff", button_padding="normal", padding_top=24),
     b("divider", padding_top=16),
     b("quote",
       quote="I've started and quit five habit apps. Lumen is the first one I've kept past a month — because it doesn't shame me when I slip.",
@@ -136,7 +136,7 @@ promo = [
       subheading="Our biggest sale of the season ends Sunday at midnight. Use code SPRING40 at checkout — no minimum, no exclusions.",
       background_color="#fff7ed", heading_color="#9a3412", subheading_color="#c2410c",
       heading_size="34px", padding_top=52, padding_bottom=40),
-    b("button", label="Shop the sale →", url="#", color="#ea580c", text_color="#ffffff", button_padding="large", padding_top=8, padding_bottom=8),
+    b("button", label="Shop the sale →", url="#", color="#ea580c", text_color="#ffffff", button_padding="normal", padding_top=8, padding_bottom=8),
     b("rich_text",
       html_content="<p>This is the one we tell you to wait for. Everything — new arrivals included — is 40% off for the next three days. Here's where we'd start.</p>",
       font_size="15px", line_height="1.7", align="center", text_color="#78716c", padding_top=8, padding_bottom=8),
@@ -162,7 +162,7 @@ promo = [
       quote="I waited for this sale all year and bought three things in one go. The merino crew alone is worth full price.",
       author="Sophie Lindqvist", role="Verified buyer",
       background_color="#fff7ed", border_color="#fed7aa"),
-    b("button", label="Take 40% off everything", url="#", color="#ea580c", text_color="#ffffff", button_padding="large", padding_top=24, padding_bottom=8),
+    b("button", label="Take 40% off everything", url="#", color="#ea580c", text_color="#ffffff", button_padding="normal", padding_top=24, padding_bottom=8),
     b("rich_text",
       html_content="<p>Sale ends Sunday at 11:59pm. Code SPRING40 applies automatically at checkout. Discount can't be combined with other offers or applied to gift cards.</p>",
       font_size="12px", line_height="1.6", align="center", text_color="#a8a29e", padding_top=8, padding_bottom=8),
@@ -206,7 +206,7 @@ digest = [
     b("rich_text",
       html_content="<p>A small ask: if a friend would like The Frontier, forward this to them. We don't run ads and we don't sell your data — word of mouth is the entire growth strategy, and it's worked for 40,000 readers so far.</p>",
       font_size="15px", line_height="1.7", padding_top=8),
-    b("button", label="Forward to a friend", url="#", color="#4f46e5", text_color="#ffffff", button_padding="large", padding_top=16),
+    b("button", label="Forward to a friend", url="#", color="#4f46e5", text_color="#ffffff", button_padding="normal", padding_top=16),
     b("divider", padding_top=16, padding_bottom=4),
     b("social", x_url="https://x.com", linkedin_url="https://linkedin.com", website_url="https://example.com", color="#6366f1", align="center"),
     b("footer", text="You're subscribed to The Frontier Weekly. Unsubscribe in one click anytime — we'll never make it hard.", background_color="#eef2ff", text_color="#6366f1"),
@@ -220,6 +220,46 @@ def strip_unused(blocks):
         if props:
             blk["props"] = {k: v for k, v in props.items() if v is not None and not k.endswith("_unused")}
     return blocks
+
+
+def apply_font(blocks, font):
+    """Force a single font family across every block in a template, so a template
+    never mixes typefaces. Blocks that don't take a font (divider, spacer, social)
+    are left untouched."""
+    no_font = {"divider", "spacer", "social"}
+    for blk in blocks:
+        if blk["type"] in no_font:
+            continue
+        blk.setdefault("props", {})["font_family"] = font
+    return blocks
+
+
+def add_images(blocks, seed_prefix, logo_text):
+    """Seed templates with placeholder images so they look complete out of the box:
+    a logo in the header, photos in image+text rows, and product shots."""
+    logo = f"https://placehold.co/180x48/efefef/9ca3af?text={logo_text}"
+    n = 0
+    for blk in blocks:
+        t = blk["type"]
+        props = blk.setdefault("props", {})
+        if t == "header":
+            props["logo_url"] = logo
+        elif t == "image_text":
+            n += 1
+            props.setdefault("image_url", f"https://picsum.photos/seed/{seed_prefix}{n}/480/360")
+            props.setdefault("image_width", "200px")
+        elif t == "product_card":
+            n += 1
+            props.setdefault("image_url", f"https://picsum.photos/seed/{seed_prefix}{n}/600/400")
+    return blocks
+
+
+# Per-template single font + placeholder imagery.
+apply_font(newsletter, "Georgia");      add_images(newsletter, "northwind", "Northwind")
+apply_font(announcement, "Inter");      add_images(announcement, "driftwave", "Driftwave")
+apply_font(welcome, "Poppins");         add_images(welcome, "lumen", "Lumen")
+apply_font(promo, "Arial");             add_images(promo, "atlas", "Atlas")
+apply_font(digest, "Georgia");          add_images(digest, "frontier", "The+Frontier")
 
 
 # DocType is autonamed `field:title`, so each fixture's `name` must equal its title.

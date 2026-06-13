@@ -35,11 +35,12 @@
           </template>
         </template>
 
-        <!-- Empty state dropzone -->
+        <!-- Empty state dropzone — compact variant (logos) drops the description
+             line and shrinks padding so it never overflows a short header. -->
         <div
           v-else
-          class="w-full border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors select-none"
-          :class="[heightClass, isDragging
+          class="w-full border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-center cursor-pointer transition-colors select-none px-3"
+          :class="[compact ? 'gap-0.5 py-2' : 'gap-1.5 py-6', !compact && heightClass, isDragging
             ? 'border-gray-500 bg-gray-100'
             : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100']"
           @click.stop="openFileSelector"
@@ -49,9 +50,9 @@
         >
           <span v-if="uploading" class="text-xs text-gray-400">Uploading {{ progress }}%…</span>
           <template v-else>
-            <FeatherIcon name="image" class="w-6 h-6 text-gray-400" />
-            <span class="text-xs text-gray-600 font-medium">Click or drop image</span>
-            <span class="text-xs text-gray-400">PNG, JPG or WebP, max 5 MB</span>
+            <FeatherIcon name="image" :class="compact ? 'w-4 h-4' : 'w-6 h-6'" class="text-gray-400" />
+            <span class="text-xs text-gray-600 font-medium text-center leading-tight">{{ compact ? 'Add logo' : 'Click or drop image' }}</span>
+            <span v-if="!compact" class="text-xs text-gray-400 text-center leading-tight">PNG, JPG or WebP · max 5 MB</span>
           </template>
         </div>
 
@@ -71,6 +72,7 @@ const props = defineProps({
   heightClass: { type: String, default: "h-44" },   // dropzone height
   replaceClass:{ type: String, default: "" },        // extra classes for replace btn
   hideReplace: { type: Boolean, default: false },
+  compact:     { type: Boolean, default: false },     // small empty state (e.g. header logo)
 });
 
 const emit = defineEmits(["uploaded"]);
