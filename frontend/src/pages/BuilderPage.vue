@@ -485,6 +485,8 @@ import CampaignSettings from "../components/CampaignSettings.vue";
 import TemplatePicker from "../components/TemplatePicker.vue";
 import BlockAdderRow from "../components/BlockAdderRow.vue";
 import BlockRenderer from "../components/BlockRenderer.vue";
+import { useZoom } from "../composables/useZoom";
+import { usePanelResize } from "../composables/usePanelResize";
 
 const editorStore = useEditorStore();
 const saving        = ref(false);
@@ -511,32 +513,7 @@ const SHORTCUTS = [
   { label: "Reset zoom",       keys: [MOD, "0"] },
 ];
 
-const canvasZoom = ref(1);
-const ZOOM_LEVELS = [0.5, 0.67, 0.75, 0.9, 1, 1.1, 1.25, 1.5];
-
-// The zoom pill is hidden by default; it appears whenever the zoom changes
-// (shortcut, trackpad, or its own buttons) and fades out 2.5s after the last
-// change so it never permanently covers the canvas.
-const zoomVisible = ref(false);
-let _zoomHideTimer = null;
-function flashZoom() {
-  zoomVisible.value = true;
-  clearTimeout(_zoomHideTimer);
-  _zoomHideTimer = setTimeout(() => { zoomVisible.value = false; }, 2500);
-}
-watch(canvasZoom, flashZoom);
-
-function resetZoom() {
-  canvasZoom.value = 1;
-}
-
-function stepZoom(dir) {
-  const idx = ZOOM_LEVELS.findIndex(z => z >= canvasZoom.value - 0.01);
-  const next = dir > 0
-    ? ZOOM_LEVELS[Math.min(idx + 1, ZOOM_LEVELS.length - 1)]
-    : ZOOM_LEVELS[Math.max(idx - 1, 0)];
-  canvasZoom.value = next ?? canvasZoom.value;
-}
+const { canvasZoom, zoomVisible, resetZoom, stepZoom } = useZoom();
 const previewing    = ref(false);
 const loadingCampaign = ref(false);
 const showSettings = ref(false);
@@ -647,40 +624,7 @@ const subject    = ref("");
 const previewText = ref("");
 
 // ── Panel resize ──────────────────────────────────────────────────────────────
-const leftPanelWidth  = ref(208); // 52 * 4px = 208
-const rightPanelWidth = ref(288); // 72 * 4px = 288
-const MIN_PANEL = 160;
-const MAX_PANEL = 480;
-
-function startLeftResize(e) {
-  e.preventDefault();
-  const startX = e.clientX;
-  const startW = leftPanelWidth.value;
-  function onMove(ev) {
-    leftPanelWidth.value = Math.min(MAX_PANEL, Math.max(MIN_PANEL, startW + ev.clientX - startX));
-  }
-  function onUp() {
-    window.removeEventListener("mousemove", onMove);
-    window.removeEventListener("mouseup", onUp);
-  }
-  window.addEventListener("mousemove", onMove);
-  window.addEventListener("mouseup", onUp);
-}
-
-function startRightResize(e) {
-  e.preventDefault();
-  const startX = e.clientX;
-  const startW = rightPanelWidth.value;
-  function onMove(ev) {
-    rightPanelWidth.value = Math.min(MAX_PANEL, Math.max(MIN_PANEL, startW - (ev.clientX - startX)));
-  }
-  function onUp() {
-    window.removeEventListener("mousemove", onMove);
-    window.removeEventListener("mouseup", onUp);
-  }
-  window.addEventListener("mousemove", onMove);
-  window.addEventListener("mouseup", onUp);
-}
+const { leftPanelWidth, rightPanelWidth, startLeftResize, startRightResize } = usePanelResize();
 
 // ── Unsaved changes protection ────────────────────────────────────────────────
 function beforeUnloadHandler(e) {
