@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import frappe
 from frappe import _
@@ -15,8 +17,8 @@ SEND_JOB_TIMEOUT = 600
 COMMIT_EVERY = 100
 
 
-@frappe.whitelist()
-def get_campaign(name):
+@frappe.whitelist(methods=["GET", "POST"])
+def get_campaign(name: str):
     doc = frappe.get_doc("Letters Campaign", name)
     frappe.has_permission("Letters Campaign", "read", doc=doc, throw=True)
     return {
@@ -93,8 +95,8 @@ def _unique_campaign_title(base):
     return f"{base} - {n}"
 
 
-@frappe.whitelist()
-def save_campaign(name=None, title=None, subject=None, preview_text=None, blocks=None, email_width=None, recipient_config=None):
+@frappe.whitelist(methods=["POST"])
+def save_campaign(name: str | None = None, title: str | None = None, subject: str | None = None, preview_text: str | None = None, blocks: str | None = None, email_width: int | None = None, recipient_config: str | None = None):
     blocks_json = json.dumps(blocks if isinstance(blocks, list) else json.loads(blocks or "[]"))
     normalized_config = _normalize_recipient_config(recipient_config)
 
@@ -133,7 +135,7 @@ def save_campaign(name=None, title=None, subject=None, preview_text=None, blocks
     return {"name": doc.name, "title": doc.title, "status": doc.status}
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET", "POST"])
 def get_templates():
     """Return all active Letters Templates with rendered preview HTML for the picker."""
     from letters.letters.utils.email_compiler import EmailCompiler
@@ -155,8 +157,8 @@ def get_templates():
     return templates
 
 
-@frappe.whitelist()
-def render_preview(name=None, blocks=None, preview_text=None, email_width=None):
+@frappe.whitelist(methods=["GET", "POST"])
+def render_preview(name: str | None = None, blocks: str | None = None, preview_text: str | None = None, email_width: int | None = None):
     """Compile blocks to email-safe HTML."""
     from letters.letters.utils.email_compiler import EmailCompiler
 
@@ -186,8 +188,8 @@ def _is_email_field(df):
     return df.fieldtype == "Email" or (df.fieldtype == "Data" and (df.options or "") == "Email")
 
 
-@frappe.whitelist()
-def duplicate_campaign(name):
+@frappe.whitelist(methods=["POST"])
+def duplicate_campaign(name: str):
     """Create an exact copy of a campaign as a new Draft."""
     original = frappe.get_doc("Letters Campaign", name)
     frappe.has_permission("Letters Campaign", "read", doc=original, throw=True)
@@ -208,8 +210,8 @@ def duplicate_campaign(name):
     return {"name": new_doc.name, "title": new_doc.title}
 
 
-@frappe.whitelist()
-def send_test(blocks=None, subject=None, preview_text=None, name=None, recipient=None, email_width=None):
+@frappe.whitelist(methods=["POST"])
+def send_test(blocks: str | None = None, subject: str | None = None, preview_text: str | None = None, name: str | None = None, recipient: str | None = None, email_width: int | None = None):
     """Send a test email to the given recipient (defaults to the logged-in user)."""
     from letters.letters.utils.email_compiler import EmailCompiler
 
@@ -253,8 +255,8 @@ def send_test(blocks=None, subject=None, preview_text=None, name=None, recipient
 
 # ── Open tracking & analytics ─────────────────────────────────────────────────
 
-@frappe.whitelist(allow_guest=True)
-def track_open(recipient_email=None, reference_name=None, reference_doctype=None, **kwargs):
+@frappe.whitelist(allow_guest=True, methods=["GET"])
+def track_open(recipient_email: str | None = None, reference_name: str | None = None, reference_doctype: str | None = None, **kwargs):
     """Tracking-pixel endpoint: record an email open, then return a 1x1 gif.
 
     Frappe's email queue generates and *signs* this URL (via email_read_tracker_url),
@@ -294,8 +296,8 @@ def _record_open(campaign_name, email):
     frappe.db.commit()
 
 
-@frappe.whitelist()
-def get_campaign_analytics(name):
+@frappe.whitelist(methods=["GET", "POST"])
+def get_campaign_analytics(name: str):
     """Open-rate analytics for a campaign, aggregated over its recipient rows."""
     doc = frappe.get_doc("Letters Campaign", name)
     frappe.has_permission("Letters Campaign", "read", doc=doc, throw=True)
@@ -353,8 +355,8 @@ def get_campaign_analytics(name):
     }
 
 
-@frappe.whitelist()
-def get_campaign_recipients(name, limit=200):
+@frappe.whitelist(methods=["GET", "POST"])
+def get_campaign_recipients(name: str, limit: int = 200):
     """Return the list of recipients for the most recent send of a campaign."""
     doc = frappe.get_doc("Letters Campaign", name)
     frappe.has_permission("Letters Campaign", "read", doc=doc, throw=True)
@@ -375,7 +377,7 @@ def get_campaign_recipients(name, limit=200):
     return rows
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET", "POST"])
 def get_doctypes_with_email_fields():
     """Return doctypes that have at least one email field, that the user can read."""
     doctypes = set()
@@ -406,8 +408,8 @@ def get_doctypes_with_email_fields():
     return result
 
 
-@frappe.whitelist()
-def get_email_fields(doctype):
+@frappe.whitelist(methods=["GET", "POST"])
+def get_email_fields(doctype: str):
     """Return field names/labels of email fields for a doctype (incl. custom fields)."""
     frappe.has_permission(doctype, "read", throw=True)
     meta = frappe.get_meta(doctype)
@@ -418,8 +420,8 @@ def get_email_fields(doctype):
     ]
 
 
-@frappe.whitelist()
-def get_doctype_filter_fields(doctype):
+@frappe.whitelist(methods=["GET", "POST"])
+def get_doctype_filter_fields(doctype: str):
     """Return fields suitable as filters for the given doctype.
 
     Returns Select, Link, and Date/Datetime fields so the user can
@@ -462,8 +464,8 @@ def get_doctype_filter_fields(doctype):
     return fields
 
 
-@frappe.whitelist()
-def count_doctype_recipients(doctype, email_field, filters=None):
+@frappe.whitelist(methods=["GET", "POST"])
+def count_doctype_recipients(doctype: str, email_field: str, filters: str | None = None):
     """Preview how many records match the given filter config."""
     frappe.has_permission(doctype, "read", throw=True)
     filter_dict = json.loads(filters) if isinstance(filters, str) else (filters or {})
@@ -475,7 +477,7 @@ def count_doctype_recipients(doctype, email_field, filters=None):
     return {"count": count}
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["GET", "POST"])
 def get_email_groups():
     """Return all Email Groups with active member counts (single GROUP BY query)."""
     groups = frappe.get_all(
@@ -532,8 +534,8 @@ def _valid_emails(emails):
     return valid, len(emails) - len(valid)
 
 
-@frappe.whitelist()
-def get_send_progress(name):
+@frappe.whitelist(methods=["GET", "POST"])
+def get_send_progress(name: str):
     """Return live send progress for a campaign (polls from the frontend)."""
     doc = frappe.get_doc("Letters Campaign", name)
     frappe.has_permission("Letters Campaign", "read", doc=doc, throw=True)
@@ -741,8 +743,8 @@ def _resolve_link_check_args(blocks, name):
     return blocks_data, preview_text, email_width
 
 
-@frappe.whitelist()
-def check_links(blocks=None, name=None):
+@frappe.whitelist(methods=["GET", "POST"])
+def check_links(blocks: str | None = None, name: str | None = None):
     """Synchronous link check (used by tests and the CLI). Prefer
     start_link_check / get_link_check_result in the UI to avoid tying
     up a web worker for the full probe duration."""
@@ -750,8 +752,8 @@ def check_links(blocks=None, name=None):
     return _run_link_check(blocks_data, preview_text, email_width)
 
 
-@frappe.whitelist()
-def start_link_check(blocks=None, name=None):
+@frappe.whitelist(methods=["POST"])
+def start_link_check(blocks: str | None = None, name: str | None = None):
     """Enqueue a background link check and return a job key the caller
     can poll with get_link_check_result. The result is cached for 5 min."""
     blocks_data, preview_text, email_width = _resolve_link_check_args(blocks, name)
@@ -768,8 +770,8 @@ def start_link_check(blocks=None, name=None):
     return {"job_key": job_key}
 
 
-@frappe.whitelist()
-def get_link_check_result(job_key):
+@frappe.whitelist(methods=["GET", "POST"])
+def get_link_check_result(job_key: str):
     """Return {"status": "pending"} or {"status": "done", "results": [...]}."""
     result = frappe.cache().get_value(f"link_check:{job_key}")
     if result is None:
@@ -784,8 +786,8 @@ def _link_check_worker(blocks_json, preview_text, email_width, job_key):
     frappe.cache().set_value(f"link_check:{job_key}", results, expires_in_sec=300)
 
 
-@frappe.whitelist()
-def schedule_campaign(name, scheduled_at):
+@frappe.whitelist(methods=["POST"])
+def schedule_campaign(name: str, scheduled_at: str):
     """Mark a campaign to be sent at a future datetime (ISO-8601 string, server timezone)."""
     doc = frappe.get_doc("Letters Campaign", name)
     frappe.has_permission("Letters Campaign", "write", doc=doc, throw=True)
@@ -816,8 +818,8 @@ def schedule_campaign(name, scheduled_at):
     return {"scheduled_at": str(dt)}
 
 
-@frappe.whitelist()
-def send_campaign(name, recipients=None, email_group=None, doctype_config=None):
+@frappe.whitelist(methods=["POST"])
+def send_campaign(name: str, recipients: str | None = None, email_group: str | None = None, doctype_config: str | None = None):
     """
     Compile and send a campaign.
 
