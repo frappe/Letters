@@ -487,15 +487,24 @@ import BlockRenderer from "../components/BlockRenderer.vue";
 import { useZoom } from "../composables/useZoom";
 import { usePanelResize } from "../composables/usePanelResize";
 import { useBlockPicker } from "../composables/useBlockPicker";
+import { useCampaign } from "../composables/useCampaign";
 import { describeError, formatScheduledAt, stripIds, collectFontFamilies } from "../utils/builderHelpers";
 
 const editorStore = useEditorStore();
-const saving        = ref(false);
-const savedFlash    = ref(false);
-let _savedFlashTimer = null;
 const isDark = useDark({ attribute: "data-theme", valueDark: "dark", valueLight: "light" });
 const toggleDark = useToggle(isDark);
 const showShortcuts = ref(false);
+
+// ── Campaign document lifecycle (fields, save/send/schedule/duplicate) ─────────
+const {
+  subject, previewText, recipientConfig,
+  showSettings, showTemplatePicker, showScheduleModal,
+  saving, savedFlash, loadingCampaign, duplicating, scheduling,
+  scheduleDate, scheduleTime, minScheduleDate, openScheduleModal,
+  sendProgress, campaignStatus,
+  onTemplateSubmit, saveNow,
+  sendCampaign, scheduleCampaign, duplicateCampaign,
+} = useCampaign(editorStore);
 
 const isMac = navigator.platform.startsWith("Mac") || navigator.userAgent.includes("Mac");
 const MOD = isMac ? "⌘" : "Ctrl";
@@ -516,18 +525,6 @@ const SHORTCUTS = [
 
 const { canvasZoom, zoomVisible, resetZoom, stepZoom } = useZoom();
 const previewing    = ref(false);
-const loadingCampaign = ref(false);
-const showSettings = ref(false);
-const showTemplatePicker = ref(false);
-const sendProgress = ref({ status: "Queued", sent: 0, total: 0 });
-let _progressTimer = null;
-const campaignStatus = computed(() => {
-  // While actively polling use live sendProgress status, otherwise use campaignDoc
-  if (["Sending", "Queued"].includes(sendProgress.value.status) && _progressTimer) {
-    return "Sending";
-  }
-  return editorStore.campaignDoc?.status || null;
-});
 const showLinkChecker = ref(false);
 const linkResults = ref([]);
 const checkingLinks = ref(false);
@@ -590,39 +587,17 @@ const sendOptions = computed(() => [
   {
     label: "Schedule sending",
     icon: "clock",
-    onClick: () => {
-      const existing = editorStore.campaignDoc?.scheduled_at;
-      if (existing) {
-        const [d, t] = existing.split(" ");
-        scheduleDate.value = d || "";
-        scheduleTime.value = t ? t.slice(0, 5) : "";
-      }
-      showScheduleModal.value = true;
-    },
+    onClick: openScheduleModal,
     disabled: !editorStore.campaignDoc,
   },
 ]);
 
-const recipientConfig = ref(null); // { type, email_group | recipients | (doctype + email_field + filters) }
-const sending = ref(false);
 const testSending = ref(false);
 const showTestModal = ref(false);
-const showScheduleModal = ref(false);
-const scheduleDate = ref("");
-const scheduleTime = ref("");
-const scheduling = ref(false);
-const minScheduleDate = computed(() => {
-  const d = new Date();
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-});
 // Prefill with the logged-in user's email when it looks like one (it's the
 // most common test target); blank if the session id isn't an email.
 const _sessionUser = (typeof window !== "undefined" && window.frappe?.session?.user) || "";
 const testRecipient = ref(_sessionUser.includes("@") ? _sessionUser : "");
-const duplicating = ref(false);
-const subject    = ref("");
-const previewText = ref("");
 
 // ── Panel resize ──────────────────────────────────────────────────────────────
 const { leftPanelWidth, rightPanelWidth, startLeftResize, startRightResize } = usePanelResize();
@@ -682,8 +657,7 @@ function keydownHandler(e) {
   // Save: Cmd/Ctrl + S
   if (e.key === "s") {
     e.preventDefault();
-    clearTimeout(_autoSaveTimer);
-    saveCampaign();
+    saveNow();
     return;
   }
   // Copy selected block: Cmd/Ctrl + C (only when not in a text field)
@@ -749,24 +723,7 @@ onUnmounted(() => {
   window.removeEventListener("beforeunload", beforeUnloadHandler);
   window.removeEventListener("keydown", keydownHandler);
   window.removeEventListener("wheel", wheelHandler);
-  clearInterval(_progressTimer);
 });
-
-// Track subject/previewText/campaignName changes as dirty.
-// _suppressDirty is a counter (not a boolean) so concurrent loadCampaign
-// calls each hold their own increment and don't accidentally re-enable
-// dirty tracking while another load is still in flight.
-let _suppressDirty = 0;
-watch([subject, previewText, () => editorStore.campaignName], () => {
-  if (_suppressDirty === 0) editorStore.markDirty();
-});
-
-// Recipient selection is persisted on the campaign (so scheduled sends and
-// reloads know the audience). Deep-watch it and mark dirty so autosave flushes
-// the change like any other edit.
-watch(recipientConfig, () => {
-  if (_suppressDirty === 0) editorStore.markDirty();
-}, { deep: true });
 
 // ── Google Fonts injection ───────────────────────────────────────────────────
 // Watch the block tree for web-font usage and inject <link> tags so the editor
@@ -777,129 +734,6 @@ watch(
   (names) => injectGoogleFonts(names),
   { immediate: true, deep: false }
 );
-
-// ── Auto-save (debounced 800ms) ──────────────────────────────────────────────
-// The history debounce (editor.js, 600ms) and this autosave debounce (800ms)
-// are intentionally independent: history coalesces rapid keystrokes into a
-// single undo entry first, and autosave fires slightly later. A save can
-// therefore persist an intermediate state that isn't yet a discrete undo
-// entry, but no data is lost — redo still recovers it.
-let _autoSaveTimer = null;
-watch(() => editorStore.isDirty, (dirty) => {
-  if (!dirty) return;
-  clearTimeout(_autoSaveTimer);
-  _autoSaveTimer = setTimeout(() => {
-    if (editorStore.isDirty && !saving.value) saveCampaign();
-  }, 800);
-});
-
-// ── Load campaign from URL ?name=xxx ─────────────────────────────────────────
-const urlParams   = new URLSearchParams(window.location.search);
-const initialName = urlParams.get("name");
-
-onMounted(async () => {
-  if (initialName) {
-    await loadCampaign(initialName);
-    // A freshly created campaign (e.g. from the Desk form) has no blocks yet —
-    // greet the user with the template picker instead of an empty canvas.
-    if (!editorStore.blocks.length) showTemplatePicker.value = true;
-  } else {
-    // No campaign name in URL — show template picker so the user chooses a
-    // starting point before seeing the canvas.
-    showTemplatePicker.value = true;
-  }
-});
-
-// Handles a template/blank choice from the picker. Two modes:
-//   - Existing campaign already loaded → apply blocks to it and save.
-//   - No campaign yet → create a new one, then load it.
-async function onTemplateSubmit(blocks) {
-  if (editorStore.campaignDoc?.name) {
-    editorStore.loadTemplate(blocks);
-    await saveCampaign();
-    showTemplatePicker.value = false;
-    return;
-  }
-
-  const res = await frappe.call({
-    method: "letters.letters.api.save_campaign",
-    args: {
-      name: null,
-      title: "Untitled Campaign",
-      subject: "",
-      preview_text: "",
-      email_width: 600,
-      blocks: JSON.stringify(blocks),
-      recipient_config: null,
-    },
-  });
-  showTemplatePicker.value = false;
-  await loadCampaign(res.message.name);
-  const url = new URL(window.location.href);
-  url.searchParams.set("name", res.message.name);
-  window.history.replaceState({}, "", url.toString());
-}
-
-async function loadCampaign(name) {
-  loadingCampaign.value = true;
-  _suppressDirty++;
-  try {
-    const res = await frappe.call({ method: "letters.letters.api.get_campaign", args: { name } });
-    const doc = res.message;
-    editorStore.loadFromDoc(doc);
-    subject.value         = doc.subject || "";
-    previewText.value     = doc.preview_text || "";
-    recipientConfig.value = doc.recipient_config || null;
-    document.title = (doc.title || "Untitled Campaign") + " · Letters";
-    // Allow one Vue flush cycle before re-enabling dirty tracking
-    await Promise.resolve();
-  } catch (e) {
-    toast.error("Couldn't load campaign: " + describeError(e));
-  } finally {
-    // Always decrement, even on error, so the watcher is never permanently silenced
-    _suppressDirty--;
-    loadingCampaign.value = false;
-  }
-}
-
-// ── Save ──────────────────────────────────────────────────────────────────────
-async function saveCampaign() {
-  saving.value = true;
-  try {
-    const res = await frappe.call({
-      method: "letters.letters.api.save_campaign",
-      args: {
-        name:         editorStore.campaignDoc?.name || null,
-        title:        editorStore.campaignName || "Untitled Campaign",
-        subject:      subject.value,
-        preview_text: previewText.value,
-        email_width:  editorStore.emailWidth,
-        blocks:       JSON.stringify(editorStore.blocks.map(stripIds)),
-        recipient_config: JSON.stringify(recipientConfig.value),
-      },
-    });
-    const saved = res.message;
-    const isNew = !editorStore.campaignDoc;
-    // Always replace the full doc object so status/title stay consistent
-    editorStore.campaignDoc = saved;
-    if (isNew) {
-      const url = new URL(window.location.href);
-      url.searchParams.set("name", saved.name);
-      window.history.replaceState({}, "", url.toString());
-    }
-    editorStore.clearDirty();
-    // Keep browser tab title in sync with the campaign name
-    document.title = (editorStore.campaignName || "Untitled Campaign") + " · Letters";
-    // Brief "Saved" confirmation in the toolbar
-    clearTimeout(_savedFlashTimer);
-    savedFlash.value = true;
-    _savedFlashTimer = setTimeout(() => { savedFlash.value = false; }, 2000);
-  } catch (e) {
-    toast.error("Couldn't save: " + describeError(e));
-  } finally {
-    saving.value = false;
-  }
-}
 
 // ── Preview ───────────────────────────────────────────────────────────────────
 async function openPreview() {
@@ -990,82 +824,6 @@ async function openPreview() {
   }
 }
 
-// ── Send ──────────────────────────────────────────────────────────────────────
-async function sendCampaign() {
-  if (!subject.value?.trim()) {
-    showSettings.value = true;
-    toast.warning("Add a subject line before sending.");
-    return;
-  }
-  if (!editorStore.blocks.length) {
-    toast.warning("Your canvas is empty. Add some blocks before sending.");
-    return;
-  }
-  if (!recipientConfig.value) {
-    showSettings.value = true;
-    toast.warning("Choose recipients before sending.");
-    return;
-  }
-
-  sending.value = true;
-  try {
-    const cfg  = recipientConfig.value;
-    const args = { name: editorStore.campaignDoc?.name };
-    if (cfg.type === "group") {
-      args.email_group = cfg.email_group;
-    } else if (cfg.type === "paste") {
-      args.recipients = JSON.stringify(cfg.recipients);
-    } else if (cfg.type === "doctype") {
-      args.doctype_config = JSON.stringify({
-        doctype:     cfg.doctype,
-        email_field: cfg.email_field,
-        filters:     cfg.filters || {},
-      });
-    }
-    const res = await frappe.call({ method: "letters.letters.api.send_campaign", args });
-    const { count, skipped_invalid } = res.message;
-    let msg = `Queued for ${count} recipient${count === 1 ? "" : "s"}!`;
-    if (skipped_invalid > 0) {
-      msg += ` (${skipped_invalid} invalid address${skipped_invalid === 1 ? "" : "es"} skipped)`;
-    }
-    toast.success(msg);
-    sendProgress.value = { status: "Queued", sent: 0, total: count };
-    if (editorStore.campaignDoc) editorStore.campaignDoc.status = "Sending";
-    _startProgressPolling();
-  } catch (e) {
-    const raw = e?._server_messages;
-    let msg = e?.message || "Send failed. Check your outgoing mail settings.";
-    if (raw) {
-      try { msg = JSON.parse(JSON.parse(raw)[0]).message || msg; } catch { /* keep */ }
-    }
-    toast.error(msg);
-  } finally {
-    sending.value = false;
-  }
-}
-
-function _startProgressPolling() {
-  clearInterval(_progressTimer);
-  _progressTimer = setInterval(async () => {
-    if (!editorStore.campaignDoc?.name) { clearInterval(_progressTimer); return; }
-    try {
-      const r = await frappe.call({
-        method: "letters.letters.api.get_send_progress",
-        args: { name: editorStore.campaignDoc.name },
-      });
-      sendProgress.value = r.message;
-      if (["Sent", "Failed", "Partial"].includes(r.message.status)) {
-        clearInterval(_progressTimer);
-        _progressTimer = null;
-        // Sync final status back to campaignDoc so toolbar badge reflects it
-        if (editorStore.campaignDoc) editorStore.campaignDoc.status = r.message.status;
-        const label = r.message.status === "Sent" ? "Campaign sent successfully!" : `Send ${r.message.status.toLowerCase()}.`;
-        toast[r.message.status === "Sent" ? "success" : "warning"](label);
-      }
-    } catch { clearInterval(_progressTimer); _progressTimer = null; }
-  }, 2000);
-}
-
 let _linkCheckPollTimer = null;
 
 async function openLinkChecker() {
@@ -1152,72 +910,6 @@ function applyLinkFix(result) {
   result.code = null;
   result._fix = "";
   toast.success("Link updated: press ⌘S to save.");
-}
-
-// ── Duplicate ─────────────────────────────────────────────────────────────────
-async function duplicateCampaign() {
-  if (!editorStore.campaignDoc?.name) return;
-  duplicating.value = true;
-  try {
-    const res = await frappe.call({
-      method: "letters.letters.api.duplicate_campaign",
-      args: { name: editorStore.campaignDoc.name },
-    });
-    const newName = res.message.name;
-    toast.success(`Duplicated as "${res.message.title}". Opening it now.`);
-    // Navigate to the new campaign in the same tab
-    window.location.href = `/app/letters-builder?name=${encodeURIComponent(newName)}`;
-  } catch (e) {
-    toast.error("Duplicate failed: " + describeError(e));
-    duplicating.value = false;
-  }
-}
-
-// ── Schedule send ─────────────────────────────────────────────────────────────
-async function scheduleCampaign() {
-  if (!scheduleDate.value || !scheduleTime.value) return;
-  if (!subject.value?.trim()) {
-    showScheduleModal.value = false;
-    showSettings.value = true;
-    toast.warning("Add a subject line before scheduling.");
-    return;
-  }
-  if (!recipientConfig.value) {
-    showScheduleModal.value = false;
-    showSettings.value = true;
-    toast.warning("Choose recipients before scheduling.");
-    return;
-  }
-  scheduling.value = true;
-  try {
-    // The scheduled send reads content + audience from the saved campaign, so
-    // flush any pending edits before scheduling — otherwise the fire could run
-    // against a stale (or recipient-less) saved state.
-    if (editorStore.isDirty) {
-      clearTimeout(_autoSaveTimer);
-      await saveCampaign();
-    }
-    // Combine date (YYYY-MM-DD) + time (HH:mm or HH:mm:ss) into local datetime
-    // string — Frappe server works in local time so no UTC conversion needed.
-    const dt = `${scheduleDate.value} ${scheduleTime.value}`;
-    await frappe.call({
-      method: "letters.letters.api.schedule_campaign",
-      args: { name: editorStore.campaignDoc.name, scheduled_at: dt },
-    });
-    // Reflect the new status locally so the toolbar shows the Scheduled badge.
-    if (editorStore.campaignDoc) {
-      editorStore.campaignDoc.status = "Scheduled";
-      editorStore.campaignDoc.scheduled_at = dt;
-    }
-    toast.success(`Scheduled for ${scheduleDate.value} at ${scheduleTime.value}`);
-    showScheduleModal.value = false;
-    scheduleDate.value = "";
-    scheduleTime.value = "";
-  } catch (e) {
-    toast.error("Schedule failed: " + describeError(e));
-  } finally {
-    scheduling.value = false;
-  }
 }
 
 // ── Test send ─────────────────────────────────────────────────────────────────
