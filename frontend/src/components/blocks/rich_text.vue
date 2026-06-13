@@ -101,6 +101,12 @@ function onChange(html) {
   pointer-events: none;
 }
 
+/* Tailwind Typography's .prose class (added by frappe-ui's TextEditor) applies
+   max-width: 65ch (~540px). Override it so the editor fills the full block width. */
+.rich-text-shell .prose {
+  max-width: none !important;
+}
+
 /* Force ProseMirror root to inherit the shell's block-level styles.
    Only the root needs !important — child elements inherit naturally from it.
    Using !important only here avoids overriding TipTap's inline style spans. */
