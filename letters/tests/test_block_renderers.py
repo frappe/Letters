@@ -14,7 +14,6 @@ import pytest
 from letters.letters.utils.block_renderers import (
     _safe_url,
     _abs_image_src,
-    _hex_to_rgba,
     _padding,
     _spacing_wrapper,
     _sanitize_rich_html,
@@ -108,26 +107,6 @@ class TestAbsImageSrc:
         # Without a Frappe runtime get_url() is unavailable, so the path is left
         # as-is rather than crashing. (In production it becomes absolute.)
         assert _abs_image_src("/files/x.png") == "/files/x.png"
-
-
-# ── _hex_to_rgba ──────────────────────────────────────────────────────────────
-
-class TestHexToRgba:
-    def test_six_digit_hex(self):
-        assert _hex_to_rgba("#374151", 0.1) == "rgba(55,65,81,0.1)"
-
-    def test_three_digit_hex_expands(self):
-        assert _hex_to_rgba("#fff", 1) == "rgba(255,255,255,1)"
-
-    def test_without_hash(self):
-        assert _hex_to_rgba("111827", 0.5) == "rgba(17,24,39,0.5)"
-
-    def test_invalid_hex_returns_fallback(self):
-        result = _hex_to_rgba("ZZZZZZ", 0.2)
-        assert result == "rgba(0,0,0,0.2)"
-
-    def test_empty_string_returns_fallback(self):
-        assert _hex_to_rgba("", 0.3) == "rgba(0,0,0,0.3)"
 
 
 # ── _padding ──────────────────────────────────────────────────────────────────

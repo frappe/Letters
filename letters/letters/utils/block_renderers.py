@@ -3,8 +3,6 @@ from base64 import b64encode
 from html import escape
 from html.parser import HTMLParser
 from typing import Any, List, Optional, Tuple
-import re
-
 from letters.letters.utils.fonts import font_stack
 
 
@@ -37,18 +35,6 @@ def _abs_image_src(url: str) -> str:
             return escape(url)
     return escape(url)
 
-
-def _hex_to_rgba(hex_color: str, alpha: float) -> str:
-    """Convert a #RRGGBB hex string to an rgba() value safe for all email clients."""
-    hex_color = hex_color.strip().lstrip("#")
-    if len(hex_color) == 3:
-        hex_color = "".join(c * 2 for c in hex_color)
-    if len(hex_color) != 6 or not re.fullmatch(r"[0-9a-fA-F]{6}", hex_color):
-        return f"rgba(0,0,0,{alpha})"
-    r = int(hex_color[0:2], 16)
-    g = int(hex_color[2:4], 16)
-    b = int(hex_color[4:6], 16)
-    return f"rgba({r},{g},{b},{alpha})"
 
 
 def _padding(props: dict, dt: int = 20, dr: int = 16, db: int = 20, dl: int = 16) -> str:

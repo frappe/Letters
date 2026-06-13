@@ -35,7 +35,7 @@
       </Tooltip>
 
       <!-- Centered campaign title — click opens settings too -->
-      <div class="flex-1 flex items-center justify-center min-w-0">
+      <div class="flex-1 flex items-center justify-center gap-2 min-w-0">
         <button
           type="button"
           class="flex items-center gap-1.5 min-w-0 max-w-sm px-2 py-1 rounded-md hover:bg-surface-gray-2 transition-colors group"
@@ -46,6 +46,10 @@
             {{ editorStore.campaignName || "Untitled Campaign" }}
           </span>
         </button>
+        <Transition name="fade">
+          <span v-if="saving" class="text-xs text-ink-gray-4 flex-shrink-0">Saving…</span>
+          <span v-else-if="savedFlash" class="text-xs text-ink-gray-4 flex-shrink-0">Saved</span>
+        </Transition>
       </div>
 
       <!-- Actions -->
@@ -220,7 +224,7 @@
           >
             <div class="mb-3 opacity-40"><FeatherIcon name="inbox" class="w-10 h-10 mx-auto text-ink-gray-4" /></div>
             <p class="text-sm font-medium mb-1">Your canvas is empty</p>
-            <p class="text-xs opacity-60">Use <strong>+ Add block</strong> in the top bar to get started</p>
+            <p class="text-xs opacity-60">Click <strong>+</strong> in the toolbar to add your first block</p>
           </div>
 
           <!-- Block list with inline adders -->
@@ -467,6 +471,8 @@ import BlockRenderer from "../components/BlockRenderer.vue";
 
 const editorStore = useEditorStore();
 const saving        = ref(false);
+const savedFlash    = ref(false);
+let _savedFlashTimer = null;
 const isDark = useDark({ attribute: "data-theme", valueDark: "dark", valueLight: "light" });
 const toggleDark = useToggle(isDark);
 const showShortcuts = ref(false);
@@ -877,6 +883,10 @@ async function saveCampaign() {
     editorStore.clearDirty();
     // Keep browser tab title in sync with the campaign name
     document.title = (editorStore.campaignName || "Untitled Campaign") + " · Letters";
+    // Brief "Saved" confirmation in the toolbar
+    clearTimeout(_savedFlashTimer);
+    savedFlash.value = true;
+    _savedFlashTimer = setTimeout(() => { savedFlash.value = false; }, 2000);
   } catch (e) {
     toast.error("Couldn't save: " + describeError(e));
   } finally {
@@ -1410,6 +1420,10 @@ function onCanvasDrop() {
 .dialog-content {
   transform: none !important;
 }
+
+/* Save flash fade transition */
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 
 /* Placeholder text for contenteditable fields */
 .editable-placeholder:empty::before {
