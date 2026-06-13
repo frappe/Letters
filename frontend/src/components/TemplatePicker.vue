@@ -1,6 +1,6 @@
 <template>
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-    <div class="bg-surface-white rounded-2xl shadow-2xl w-[900px] max-h-[85vh] flex flex-col overflow-hidden">
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+    <div class="bg-surface-modal border border-outline-gray-2 rounded-2xl shadow-2xl ring-1 ring-black/5 w-[900px] max-h-[85vh] flex flex-col overflow-hidden">
 
       <!-- Header -->
       <div class="flex-shrink-0 px-8 pt-7 pb-5 border-b border-outline-gray-1">
