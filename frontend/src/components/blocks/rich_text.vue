@@ -8,12 +8,13 @@
       <div
         class="rich-text-shell"
         :style="{
-          fontFamily: fontStack(block.props.font_family, 'Arial, Helvetica, sans-serif'),
-          fontSize:   block.props.font_size   || '15px',
-          fontWeight: block.props.font_weight || '400',
-          color:      block.props.text_color  || '#374151',
-          lineHeight: block.props.line_height || '1.6',
-          textAlign:  block.props.align       || 'left',
+          fontFamily:    fontStack(block.props.font_family, 'Arial, Helvetica, sans-serif'),
+          fontSize:      block.props.font_size      || '15px',
+          fontWeight:    block.props.font_weight    || '400',
+          color:         block.props.text_color     || '#374151',
+          lineHeight:    block.props.line_height    || '1.6',
+          textAlign:     block.props.align          || 'left',
+          letterSpacing: block.props.letter_spacing || 'normal',
         }"
         @click.stop="store.selectBlock(block.id)"
       >
@@ -27,7 +28,7 @@
           :content="block.props.html_content || ''"
           :editable="isSelected"
           placeholder="Text"
-          :bubble-menu="bubbleMenuButtons"
+          :fixed-menu="isSelected ? bubbleMenuButtons : false"
           editor-class="rich-text-content outline-none min-h-10"
           @change="onChange"
         />
@@ -107,6 +108,7 @@ function onChange(html) {
   line-height: inherit !important;
   font-family: inherit !important;
   text-align: inherit !important;
+  letter-spacing: inherit !important;
   margin: 0 !important;
 }
 

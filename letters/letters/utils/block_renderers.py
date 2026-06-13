@@ -1004,6 +1004,10 @@ class RichTextRenderer(BlockRenderer):
         padding        = _padding(p, 20, 16, 20, 16)
 
         ls_style = f"letter-spacing:{letter_spacing};" if letter_spacing and letter_spacing != "normal" else ""
+        # Inject text-align on every <p> so mobile email clients respect alignment
+        # (many ignore text-align on <td> wrappers).
+        if align and align != "left":
+            html_content = html_content.replace("<p>", f'<p style="text-align:{align};">')
         html = (
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
             f'<tr><td align="{align}" style="padding:{padding};'
