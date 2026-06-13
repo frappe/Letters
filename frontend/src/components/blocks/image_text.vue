@@ -24,17 +24,17 @@
             @pointerdown.prevent.stop="startImageResize($event)"
             @click.stop
           >
-            <div class="w-1 h-8 rounded-full bg-gray-400 group-hover:bg-gray-700 transition-colors opacity-60 group-hover:opacity-100" />
+            <div class="w-1 h-8 rounded-full bg-ink-gray-4 group-hover:bg-ink-gray-7 transition-colors opacity-60 group-hover:opacity-100" />
           </div>
           <!-- Width tooltip -->
           <div
             v-if="resizeTip"
-            class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-gray-900 text-white
+            class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-ink-gray-9 text-white
                    px-1.5 py-0.5 rounded pointer-events-none whitespace-nowrap font-mono z-20"
           >{{ resizeTip }}</div>
         </div>
         <EditableDiv
-          class="outline-none leading-relaxed text-gray-700"
+          class="outline-none leading-relaxed text-ink-gray-7"
           :style="{ fontFamily: fontStack(block.props.font_family, 'Arial, Helvetica, sans-serif') }"
           :model-value="block.props.text"
           @update:model-value="update('text', $event)"
@@ -71,13 +71,13 @@
               @pointerdown.prevent.stop="startImageResize($event)"
               @click.stop
             >
-              <div class="w-1 h-8 rounded-full bg-gray-400 group-hover:bg-gray-700 transition-colors opacity-60 group-hover:opacity-100" />
+              <div class="w-1 h-8 rounded-full bg-ink-gray-4 group-hover:bg-ink-gray-7 transition-colors opacity-60 group-hover:opacity-100" />
             </div>
 
             <!-- Width tooltip -->
             <div
               v-if="resizeTip"
-              class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-gray-900 text-white
+              class="absolute -top-6 left-1/2 -translate-x-1/2 text-xs bg-ink-gray-9 text-white
                      px-1.5 py-0.5 rounded pointer-events-none whitespace-nowrap font-mono z-20"
             >{{ resizeTip }}</div>
           </div>
@@ -85,7 +85,7 @@
           <!-- Text -->
           <div class="flex-1">
             <EditableDiv
-              class="outline-none min-h-10 leading-relaxed text-gray-700"
+              class="outline-none min-h-10 leading-relaxed text-ink-gray-7"
               :style="{ fontFamily: fontStack(block.props.font_family, 'Arial, Helvetica, sans-serif') }"
               :model-value="block.props.text"
               @update:model-value="update('text', $event)"

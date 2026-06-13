@@ -21,7 +21,7 @@
               class="w-full object-cover block"
               style="height: 208px"
             />
-            <div v-else class="w-full bg-gray-200 flex items-center justify-center text-gray-400 text-sm" style="height:208px;">
+            <div v-else class="w-full bg-surface-gray-2 flex items-center justify-center text-ink-gray-4 text-sm" style="height:208px;">
               Click to upload thumbnail
             </div>
           </template>
@@ -47,7 +47,7 @@
       <!-- Caption -->
       <EditableDiv
         v-if="block.props.caption"
-        class="mt-2 text-center text-xs text-gray-500 outline-none"
+        class="mt-2 text-center text-xs text-ink-gray-5 outline-none"
         :model-value="block.props.caption"
         @update:model-value="update('caption', $event)"
         @click.stop="store.selectBlock(block.id)"

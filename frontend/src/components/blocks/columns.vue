@@ -36,8 +36,8 @@
             <!-- Remove child button -->
             <button
               type="button"
-              class="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-white border border-gray-200
-                     shadow-sm text-gray-400 hover:text-red-500 hover:border-red-200 text-xs
+              class="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-surface-white border border-outline-gray-2
+                     shadow-sm text-ink-gray-4 hover:text-red-500 hover:border-red-200 text-xs
                      leading-none z-20 opacity-0 group-hover/colchild:opacity-100 transition-opacity
                      flex items-center justify-center"
               title="Remove block"
@@ -50,7 +50,7 @@
           <!-- Empty column placeholder -->
           <div
             v-if="!col.blocks?.length"
-            class="flex-1 flex items-center justify-center py-6 border-2 border-dashed border-gray-200 rounded-lg text-gray-300 text-xs select-none"
+            class="flex-1 flex items-center justify-center py-6 border-2 border-dashed border-outline-gray-2 rounded-lg text-ink-gray-3 text-xs select-none"
           >Empty column</div>
 
           <!-- Add block to this column -->
@@ -58,8 +58,8 @@
             v-if="store.selectedBlockId === block.id || isChildSelected(col)"
             type="button"
             class="mt-2 w-full flex items-center justify-center gap-1 py-1.5 rounded-lg
-                   border border-dashed border-gray-200 text-xs text-gray-400
-                   hover:border-gray-400 hover:text-gray-600 transition-colors"
+                   border border-dashed border-outline-gray-2 text-xs text-ink-gray-4
+                   hover:border-outline-gray-4 hover:text-ink-gray-6 transition-colors"
             @click.stop="addToColumn(colIdx)"
           >
             <FeatherIcon name="plus" class="w-3 h-3" /> Add block

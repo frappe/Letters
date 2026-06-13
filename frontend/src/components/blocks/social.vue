@@ -13,7 +13,7 @@
         >
           <span>{{ link.label }}</span>
         </a>
-        <span v-if="visibleLinks.length === 0" class="text-xs text-gray-400 italic">
+        <span v-if="visibleLinks.length === 0" class="text-xs text-ink-gray-4 italic">
           No links added yet. Enter URLs in the Inspector.
         </span>
       </div>

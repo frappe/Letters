@@ -44,13 +44,13 @@
               />
               <!-- URL input (only when selected) -->
               <div v-if="isSelected" class="flex items-center gap-1 min-w-0">
-                <FeatherIcon name="link" class="w-3 h-3 text-gray-300 flex-shrink-0" />
+                <FeatherIcon name="link" class="w-3 h-3 text-ink-gray-3 flex-shrink-0" />
                 <input
                   type="text"
                   :value="item.url || ''"
                   placeholder="https://example.com"
-                  class="text-xs text-gray-400 bg-transparent border-0 border-b border-dashed
-                         border-gray-200 outline-none w-44 focus:border-gray-400 focus:text-gray-600"
+                  class="text-xs text-ink-gray-4 bg-transparent border-0 border-b border-dashed
+                         border-outline-gray-2 outline-none w-44 focus:border-outline-gray-4 focus:text-ink-gray-6"
                   @input="updateItem(i, 'url', $event.target.value)"
                   @click.stop
                 />
@@ -75,7 +75,7 @@
             type="button"
             title="Remove item"
             class="flex-shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity
-                   text-gray-300 hover:text-red-400"
+                   text-ink-gray-3 hover:text-red-400"
             @click.stop="removeItem(i)"
           >
             <FeatherIcon name="x" class="w-3.5 h-3.5" />
@@ -87,7 +87,7 @@
       <button
         v-if="isSelected"
         type="button"
-        class="mt-3 flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700 transition-colors"
+        class="mt-3 flex items-center gap-1 text-xs text-ink-gray-4 hover:text-ink-gray-7 transition-colors"
         @click.stop="addItem"
       >
         <FeatherIcon name="plus" class="w-3 h-3" /> Add item

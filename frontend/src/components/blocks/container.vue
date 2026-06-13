@@ -36,7 +36,7 @@
           <div
             class="absolute top-1/2 -translate-y-1/2 -left-5 w-4 h-6 flex items-center justify-center
                    cursor-grab active:cursor-grabbing select-none rounded
-                   text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-all z-20
+                   text-ink-gray-3 hover:text-ink-gray-5 hover:bg-surface-gray-2 transition-all z-20
                    opacity-0 group-hover/child:opacity-100"
             @click.stop
           >
@@ -49,8 +49,8 @@
           <!-- Remove child button -->
           <button
             type="button"
-            class="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-white border border-gray-200
-                   shadow-sm text-gray-400 hover:text-red-500 hover:border-red-200
+            class="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-surface-white border border-outline-gray-2
+                   shadow-sm text-ink-gray-4 hover:text-red-500 hover:border-red-200
                    text-xs leading-none z-20
                    opacity-0 group-hover/child:opacity-100 transition-opacity
                    flex items-center justify-center"
@@ -68,10 +68,10 @@
         v-else
         class="flex flex-col items-center justify-center gap-2 py-8 select-none pointer-events-none"
       >
-        <FeatherIcon name="box" class="w-5 h-5 text-gray-300" />
-        <p class="text-xs text-gray-400 text-center leading-relaxed">
+        <FeatherIcon name="box" class="w-5 h-5 text-ink-gray-3" />
+        <p class="text-xs text-ink-gray-4 text-center leading-relaxed">
           Empty. Use the <strong>Layers</strong> panel<br/>
-          <span class="text-gray-300">to add blocks inside.</span>
+          <span class="text-ink-gray-3">to add blocks inside.</span>
         </p>
       </div>
     </div>

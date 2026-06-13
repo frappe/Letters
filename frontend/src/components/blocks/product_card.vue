@@ -18,7 +18,7 @@
               class="w-full object-cover block"
               style="height: 176px"
             />
-            <div v-else class="w-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs" style="height:176px;">
+            <div v-else class="w-full bg-surface-gray-2 flex items-center justify-center text-ink-gray-4 text-xs" style="height:176px;">
               Click to upload image
             </div>
           </template>

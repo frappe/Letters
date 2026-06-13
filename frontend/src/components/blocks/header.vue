@@ -29,7 +29,7 @@
           />
           <div
             v-else
-            class="flex items-center justify-center bg-gray-100 rounded text-gray-400 text-xs"
+            class="flex items-center justify-center bg-surface-gray-2 rounded text-ink-gray-4 text-xs"
             :style="{ height: block.props.logo_height || '40px', width: '120px' }"
           >Logo</div>
         </template>

@@ -20,7 +20,7 @@
         <!-- Static placeholder when empty and not selected (TipTap doesn't show placeholder when not editable) -->
         <div
           v-if="!isSelected && !block.props.html_content"
-          class="rich-text-content min-h-10 text-gray-300 select-none pointer-events-none"
+          class="rich-text-content min-h-10 text-ink-gray-3 select-none pointer-events-none"
         >Text</div>
         <TextEditor
           v-else
