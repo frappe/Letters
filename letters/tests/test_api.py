@@ -820,9 +820,8 @@ class TestScheduleCampaign:
 class TestProcessScheduledSends:
     def setup_method(self):
         _reset()
-        # frappe.db.sql returns a truthy value to simulate a successful atomic claim
-        frappe_stub.db.sql.reset_mock()
-        frappe_stub.db.sql.return_value = 1
+        # The atomic claim wins when the UPDATE's affected-row count is 1.
+        frappe_stub.db._cursor.rowcount = 1
 
     def test_marks_failed_when_send_raises(self):
         """A due campaign whose send can't start (e.g. no saved audience) is
@@ -846,7 +845,7 @@ class TestProcessScheduledSends:
         send_campaign must not be called for that row."""
         import datetime
         GETALL["Letters Campaign"] = [FrappeDict(name="CAMP-RACE")]
-        frappe_stub.db.sql.return_value = 0  # claim lost
+        frappe_stub.db._cursor.rowcount = 0  # claim lost
         frappe_stub.utils.now_datetime = lambda: datetime.datetime(2099, 1, 1)
 
         with _frappe_utils_importable():

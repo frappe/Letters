@@ -557,11 +557,12 @@ def _execute_send(send_doc_name, campaign_name):
             frappe.db.set_value("Letters Campaign", campaign_name, "status", "Failed")
             # Mark all Pending rows as Failed so they don't show misleadingly in
             # the recipient list after a batch-level error (e.g. compile failure).
-            frappe.db.sql(
-                "UPDATE `tabEmail Send Recipient` SET status = 'Failed'"
-                " WHERE parent = %s AND status = 'Pending'",
-                send_doc_name,
-            )
+            recipient = frappe.qb.DocType("Email Send Recipient")
+            (
+                frappe.qb.update(recipient)
+                .set(recipient.status, "Failed")
+                .where((recipient.parent == send_doc_name) & (recipient.status == "Pending"))
+            ).run()
             frappe.db.commit()
         except Exception:
             frappe.log_error(frappe.get_traceback(), "Letters _execute_send cleanup error")
@@ -582,11 +583,15 @@ def process_scheduled_sends():
             # Atomic claim: only the worker that flips Scheduled -> Draft wins.
             # Concurrent workers reading the same due list will find status no
             # longer "Scheduled" and claim nothing, preventing duplicate sends.
-            claimed = frappe.db.sql(
-                "UPDATE `tabLetters Campaign` SET status = 'Draft'"
-                " WHERE name = %s AND status = 'Scheduled'",
-                row.name,
-            )
+            # The UPDATE's return value is empty for non-SELECTs, so the claim is
+            # decided by the affected-row count: 1 = we won, 0 = already taken.
+            campaign = frappe.qb.DocType("Letters Campaign")
+            (
+                frappe.qb.update(campaign)
+                .set(campaign.status, "Draft")
+                .where((campaign.name == row.name) & (campaign.status == "Scheduled"))
+            ).run()
+            claimed = frappe.db._cursor.rowcount
             frappe.db.commit()
             if not claimed:
                 continue
