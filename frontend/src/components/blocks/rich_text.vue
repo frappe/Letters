@@ -28,7 +28,8 @@
           :content="block.props.html_content || ''"
           :editable="isSelected"
           placeholder="Text"
-          :fixed-menu="isSelected ? bubbleMenuButtons : false"
+          :bubble-menu="bubbleMenuButtons"
+          :bubble-menu-options="{ shouldShow: () => true }"
           editor-class="rich-text-content outline-none min-h-10"
           @change="onChange"
         />
@@ -53,9 +54,10 @@ const paddingStyle = usePadding(blockProps, { top: 20, right: 16, bottom: 20, le
 
 const isSelected = computed(() => store.selectedBlockId === props.block.id);
 
-// Buttons shown in the bubble menu (on text selection).
+// Formatting options in the bubble menu.
+// Bold is omitted — font weight is controlled block-level via the inspector's
+// Weight field; keeping Bold here would visually conflict with that setting.
 const bubbleMenuButtons = [
-  "Bold",
   "Italic",
   "Underline",
   "Strikethrough",
@@ -93,9 +95,24 @@ function onChange(html) {
   line-height: inherit !important;
   font-family: inherit !important;
 }
+/* Inline + block elements: inherit all block-level styles */
 .rich-text-shell .ProseMirror p,
 .rich-text-shell .ProseMirror li,
 .rich-text-shell .ProseMirror span,
+.rich-text-shell .ProseMirror strong,
+.rich-text-shell .ProseMirror b,
+.rich-text-shell .ProseMirror em,
+.rich-text-shell .ProseMirror i {
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  color: inherit !important;
+  line-height: inherit !important;
+  font-family: inherit !important;
+  text-align: inherit !important;
+  letter-spacing: inherit !important;
+}
+
+/* Headings: same overrides + reset browser default heading margin */
 .rich-text-shell .ProseMirror h1,
 .rich-text-shell .ProseMirror h2,
 .rich-text-shell .ProseMirror h3,
@@ -114,12 +131,14 @@ function onChange(html) {
 
 .rich-text-content ul {
   list-style-type: disc;
-  padding-left: 1.5em;
+  list-style-position: inside;
+  padding-left: 0;
   margin: 0.5em 0;
 }
 .rich-text-content ol {
   list-style-type: decimal;
-  padding-left: 1.5em;
+  list-style-position: inside;
+  padding-left: 0;
   margin: 0.5em 0;
 }
 .rich-text-content li {
