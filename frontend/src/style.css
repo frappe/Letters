@@ -28,6 +28,27 @@ html, body {
   background-color: rgb(43 43 43) !important;
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+   Modal surfaces (Settings dialog, Template picker).
+   The frappe-ui surface tokens (bg-surface-white / bg-surface-modal) don't
+   resolve reliably inside the embedded builder, leaving modals transparent.
+   These explicit classes give them solid, high-contrast colors in BOTH themes
+   — the same approach used for the panels above. Light values are the default;
+   [data-theme="dark"] overrides them. */
+.lt-surface       { background-color: #ffffff; }   /* elevated panel */
+.lt-surface-sub   { background-color: #f9fafb; }   /* recessed / sidebar */
+.lt-border        { border-color: #e5e7eb !important; }
+.lt-title         { color: #111827 !important; }   /* headings */
+.lt-text          { color: #374151 !important; }   /* body */
+.lt-muted         { color: #6b7280 !important; }   /* secondary */
+
+[data-theme="dark"] .lt-surface     { background-color: #262626; }
+[data-theme="dark"] .lt-surface-sub { background-color: #1c1c1c; }
+[data-theme="dark"] .lt-border      { border-color: #3a3a3a !important; }
+[data-theme="dark"] .lt-title       { color: #f5f5f5 !important; }
+[data-theme="dark"] .lt-text        { color: #d4d4d4 !important; }
+[data-theme="dark"] .lt-muted       { color: #a3a3a3 !important; }
+
 /* Canvas: always render with light-mode tokens — resets all CSS vars that dark
    mode flips, so email content (text, backgrounds, images) looks accurate */
 [data-theme="dark"] .letters-email-canvas {

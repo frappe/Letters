@@ -1,11 +1,11 @@
 <template>
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black">
-    <div class="bg-surface-modal border border-outline-gray-2 rounded-2xl shadow-2xl ring-1 ring-black/5 w-[900px] max-h-[85vh] flex flex-col overflow-hidden">
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+    <div class="lt-surface lt-border border rounded-2xl shadow-2xl w-[900px] max-h-[85vh] flex flex-col overflow-hidden">
 
       <!-- Header -->
-      <div class="flex-shrink-0 px-8 pt-7 pb-5 border-b border-outline-gray-1">
-        <h2 class="text-xl font-semibold text-ink-gray-9">New Campaign</h2>
-        <p class="text-sm text-ink-gray-6 mt-1">Start from a template or begin with a blank canvas.</p>
+      <div class="lt-border flex-shrink-0 px-8 pt-7 pb-5 border-b">
+        <h2 class="lt-title text-xl font-semibold">New Campaign</h2>
+        <p class="lt-muted text-sm mt-1">Start from a template or begin with a blank canvas.</p>
       </div>
 
       <!-- Grid -->
@@ -24,21 +24,21 @@
           <!-- Blank tile -->
           <button
             type="button"
-            class="group text-left rounded-xl border-2 border-dashed border-outline-gray-2 hover:border-ink-gray-9 transition-all overflow-hidden focus:outline-none focus:border-ink-gray-9 disabled:opacity-50"
+            class="lt-surface lt-border group text-left rounded-xl border-2 border-dashed hover:border-blue-500 transition-all overflow-hidden focus:outline-none focus:border-blue-500 disabled:opacity-50"
             :disabled="creating"
             @click="pick(blankBlocks)"
           >
-            <div class="h-48 bg-surface-gray-1 flex flex-col items-center justify-center gap-2 group-hover:bg-surface-gray-2 transition-colors">
-              <div class="w-10 h-10 rounded-full bg-surface-white border-2 border-outline-gray-2 flex items-center justify-center group-hover:border-outline-gray-3 transition-colors">
-                <svg class="w-5 h-5 text-ink-gray-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <div class="lt-surface-sub h-48 flex flex-col items-center justify-center gap-2">
+              <div class="lt-surface lt-border w-10 h-10 rounded-full border-2 flex items-center justify-center">
+                <svg class="lt-muted w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
               </div>
-              <span class="text-xs text-ink-gray-5 group-hover:text-ink-gray-7 transition-colors">Blank canvas</span>
+              <span class="lt-muted text-xs">Blank canvas</span>
             </div>
-            <div class="px-4 py-3 border-t border-outline-gray-1">
-              <p class="text-sm font-semibold text-ink-gray-8">Blank</p>
-              <p class="text-xs text-ink-gray-5 mt-0.5">Header and footer only</p>
+            <div class="lt-border px-4 py-3 border-t">
+              <p class="lt-title text-sm font-semibold">Blank</p>
+              <p class="lt-muted text-xs mt-0.5">Header and footer only</p>
             </div>
           </button>
 
@@ -47,7 +47,7 @@
             v-for="tpl in templates"
             :key="tpl.name"
             type="button"
-            class="group text-left rounded-xl border-2 border-outline-gray-1 hover:border-ink-gray-9 transition-all overflow-hidden focus:outline-none focus:border-ink-gray-9 disabled:opacity-50"
+            class="lt-surface lt-border group text-left rounded-xl border-2 hover:border-blue-500 transition-all overflow-hidden focus:outline-none focus:border-blue-500 disabled:opacity-50"
             :disabled="creating"
             @click="pick(JSON.parse(tpl.blocks_json || '[]'))"
           >
@@ -65,17 +65,17 @@
               </div>
               <div class="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
             </div>
-            <div class="px-4 py-3 border-t border-outline-gray-1">
-              <p class="text-sm font-semibold text-ink-gray-8 group-hover:text-ink-gray-9">{{ tpl.title }}</p>
+            <div class="lt-border px-4 py-3 border-t">
+              <p class="lt-title text-sm font-semibold">{{ tpl.title }}</p>
             </div>
           </button>
         </div>
       </div>
 
       <!-- Footer -->
-      <div v-if="creating" class="flex-shrink-0 px-8 py-4 border-t border-outline-gray-1 flex items-center gap-3">
-        <div class="w-4 h-4 border-2 border-outline-gray-2 border-t-ink-gray-7 rounded-full animate-spin" />
-        <span class="text-sm text-ink-gray-6">Setting up your campaign…</span>
+      <div v-if="creating" class="lt-border flex-shrink-0 px-8 py-4 border-t flex items-center gap-3">
+        <div class="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+        <span class="lt-muted text-sm">Setting up your campaign…</span>
       </div>
     </div>
   </div>
