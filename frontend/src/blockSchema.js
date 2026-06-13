@@ -12,7 +12,17 @@
 // Supported control types: "color", "select", "text", "number", "slider", "align", "dimension".
 // Fields may include a `hint` string shown as a tooltip on the label.
 
-import { FONT_OPTIONS } from "./fonts";
+import { FONT_OPTIONS, fontWeightOptions } from "./fonts";
+
+// Reusable font-weight field — options are dynamic based on the selected font.
+// System fonts (Arial, Georgia…) only show Normal/Bold since they ship with two
+// weight files. Web fonts (Inter, Poppins…) show all available weights.
+const fontWeightField = (label = "Weight") => ({
+  key: "font_weight",
+  label,
+  type: "select",
+  options: (blockProps) => fontWeightOptions(blockProps?.font_family),
+});
 
 // Reusable "Font" control. Spread into a block's typography/style section.
 // `value` is the human font name (e.g. "Arial"); the email-safe CSS stack is
@@ -95,17 +105,7 @@ export const BLOCK_SCHEMA = {
           fontField,
           { key: "align", label: "Alignment", type: "align" },
           { key: "font_size", label: "Font size", type: "text", placeholder: "15px" },
-          {
-            key: "font_weight",
-            label: "Weight",
-            type: "select",
-            options: [
-              { label: "Normal", value: "400" },
-              { label: "Medium", value: "500" },
-              { label: "Semibold", value: "600" },
-              { label: "Bold", value: "700" },
-            ],
-          },
+          fontWeightField(),
           { key: "text_color", label: "Text color", type: "color" },
           { key: "line_height", label: "Line height", type: "text", placeholder: "1.6", hint: "Vertical space between lines, e.g. 1.5 or 160%" },
           { key: "letter_spacing", label: "Letter spacing", type: "select", options: [
@@ -182,16 +182,7 @@ export const BLOCK_SCHEMA = {
           fontField,
           { key: "text_color", label: "Text color", type: "color" },
           { key: "font_size", label: "Font size", type: "text", placeholder: "11px" },
-          {
-            key: "font_weight",
-            label: "Weight",
-            type: "select",
-            options: [
-              { label: "Normal", value: "400" },
-              { label: "Semibold", value: "600" },
-              { label: "Bold", value: "700" },
-            ],
-          },
+          fontWeightField(),
           { key: "line_color", label: "Line color", type: "color" },
           {
             key: "line_position",

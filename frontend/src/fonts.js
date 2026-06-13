@@ -86,6 +86,8 @@ export const FONT_OPTIONS = [
 // Helpers
 // ---------------------------------------------------------------------------
 
+const WEIGHT_LABELS = { 400: "Normal", 500: "Medium", 600: "Semibold", 700: "Bold" };
+
 /** Resolve a stored font name to its full CSS stack. */
 export function fontStack(name, fallback = "") {
   return FONT_STACKS[(name || "").trim()] || fallback;
@@ -94,6 +96,21 @@ export function fontStack(name, fallback = "") {
 /** Return true if the font name is a web font (needs a Google Fonts <link>). */
 export function isWebFont(name) {
   return Object.prototype.hasOwnProperty.call(WEB_FONT_META, (name || "").trim());
+}
+
+/**
+ * Return the weight picker options for a given font name.
+ * Web fonts expose their actual weight variants; system fonts only have 400/700.
+ */
+export function fontWeightOptions(fontName) {
+  const meta = WEB_FONT_META[(fontName || "").trim()];
+  if (meta) {
+    return meta.weights.map(w => ({ label: WEIGHT_LABELS[w] || String(w), value: String(w) }));
+  }
+  return [
+    { label: "Normal", value: "400" },
+    { label: "Bold",   value: "700" },
+  ];
 }
 
 /**

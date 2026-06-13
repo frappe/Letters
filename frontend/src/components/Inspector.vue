@@ -80,7 +80,7 @@
             :label="field.label"
             :hint="field.hint"
           >
-            <FieldControl :field="field" :value="value(field.key)" @change="set(field.key, $event)" />
+            <FieldControl :field="field" :value="value(field.key)" :block-props="block?.props" @change="set(field.key, $event)" />
           </PropRow>
         </div>
       </div>
@@ -183,6 +183,7 @@ import { TextInput, Select, Switch, TabButtons, Button, FeatherIcon, Tooltip, Sl
 import ColorPicker from "./ColorPicker.vue";
 import { useEditorStore } from "../stores/editor";
 import { BLOCK_SCHEMA } from "../blockSchema";
+import { fontWeightOptions } from "../fonts";
 
 defineProps({ width: { type: Number, default: 288 } });
 
@@ -218,7 +219,18 @@ function toggleSection(id) {
 
 function value(key) { return block.value?.props?.[key]; }
 function set(key, val) {
-  if (block.value) store.updateBlockProps(block.value.id, { [key]: val });
+  if (!block.value) return;
+  const updates = { [key]: val };
+  // When the font changes, clamp font_weight to a value the new font supports.
+  if (key === "font_family") {
+    const opts = fontWeightOptions(val);
+    const validWeights = new Set(opts.map(o => o.value));
+    const current = block.value.props?.font_weight;
+    if (current && !validWeights.has(current)) {
+      updates.font_weight = validWeights.has("400") ? "400" : opts[0].value;
+    }
+  }
+  store.updateBlockProps(block.value.id, updates);
 }
 
 function hasBooleanOptions(field) {
@@ -278,7 +290,7 @@ const PropRow = defineComponent({
 
 // FieldControl: renders the right control for a field descriptor
 const FieldControl = defineComponent({
-  props: { field: Object, value: { default: undefined } },
+  props: { field: Object, value: { default: undefined }, blockProps: { type: Object, default: () => ({}) } },
   emits: ["change"],
   setup(props, { emit }) {
     return () => {
@@ -295,7 +307,8 @@ const FieldControl = defineComponent({
 
       // Select (boolean → Switch)
       if (f.type === "select") {
-        if (hasBooleanOptions(f)) {
+        const options = typeof f.options === "function" ? f.options(props.blockProps) : f.options;
+        if (hasBooleanOptions({ ...f, options })) {
           return h(Switch, {
             modelValue: !!v,
             "onUpdate:modelValue": (val) => emit("change", val),
@@ -303,7 +316,7 @@ const FieldControl = defineComponent({
         }
         return h(Select, {
           modelValue: v,
-          options: f.options,
+          options,
           size: "sm",
           class: "w-full",
           "onUpdate:modelValue": (val) => emit("change", val),

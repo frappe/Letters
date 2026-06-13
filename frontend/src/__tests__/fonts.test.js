@@ -206,25 +206,45 @@ describe("FONT_OPTIONS", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 7. blockSchema weight options
+// 7. fontWeightOptions() — dynamic weight picker
 // ---------------------------------------------------------------------------
 
-describe("blockSchema font weight options", () => {
-  const SRC = readFileSync(resolve(__dirname, "../blockSchema.js"), "utf-8");
+import { fontWeightOptions } from "../fonts";
 
-  it("includes Normal (400)", () => {
-    expect(SRC).toContain('"400"');
+describe("fontWeightOptions()", () => {
+  it("system font returns only Normal and Bold", () => {
+    const opts = fontWeightOptions("Arial");
+    expect(opts.map(o => o.value)).toEqual(["400", "700"]);
   });
 
-  it("includes Medium (500)", () => {
-    expect(SRC).toContain('"500"');
+  it("unknown / empty font returns only Normal and Bold", () => {
+    expect(fontWeightOptions("").map(o => o.value)).toEqual(["400", "700"]);
+    expect(fontWeightOptions(null).map(o => o.value)).toEqual(["400", "700"]);
   });
 
-  it("includes Semibold (600)", () => {
-    expect(SRC).toContain('"600"');
+  it("Inter returns 400/500/600/700", () => {
+    const vals = fontWeightOptions("Inter").map(o => o.value);
+    expect(vals).toEqual(["400", "500", "600", "700"]);
   });
 
-  it("includes Bold (700)", () => {
-    expect(SRC).toContain('"700"');
+  it("Roboto returns 400/500/700 (no 600)", () => {
+    const vals = fontWeightOptions("Roboto").map(o => o.value);
+    expect(vals).toEqual(["400", "500", "700"]);
+  });
+
+  it("all options have non-empty label and value", () => {
+    for (const name of [...Object.keys(WEB_FONT_META), "Arial", "Georgia"]) {
+      for (const opt of fontWeightOptions(name)) {
+        expect(opt.label.length).toBeGreaterThan(0);
+        expect(opt.value.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("blockSchema uses fontWeightField (dynamic options) not hardcoded arrays", () => {
+    const SRC = readFileSync(resolve(__dirname, "../blockSchema.js"), "utf-8");
+    expect(SRC).toContain("fontWeightField()");
+    // Should NOT contain the old hardcoded Medium/Semibold options
+    expect(SRC).not.toMatch(/key:\s*["']font_weight["'][^}]*options:\s*\[/s);
   });
 });
