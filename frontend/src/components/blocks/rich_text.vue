@@ -53,10 +53,8 @@ const paddingStyle = usePadding(blockProps, { top: 20, right: 16, bottom: 20, le
 
 const isSelected = computed(() => store.selectedBlockId === props.block.id);
 
-// Formatting options in the bubble menu.
-// Bold is omitted — font weight is controlled block-level via the inspector's
-// Weight field; keeping Bold here would visually conflict with that setting.
 const bubbleMenuButtons = [
+  "Bold",
   "Italic",
   "Underline",
   "Strikethrough",
@@ -77,20 +75,21 @@ function onChange(html) {
 <style>
 /* Show placeholder even when the block is not selected (not focused).
    TipTap normally gates the placeholder behind :focus — we override that. */
-/* Bubble menu: always light surface with dark icons so it contrasts against the
-   white canvas regardless of the page's dark/light mode. The menu is a Tippy
-   popup appended to <body> — it picks up page-level dark-mode tokens, which
-   makes icons light-on-dark on a white canvas.  Force both surface AND icon
-   color explicitly. */
-.bubble-menu {
+/* Bubble menu: the Tippy popup appends to <body> and picks up dark-mode tokens
+   even when the canvas is always light. Force the inner Menu div (bg-surface-base
+   from frappe-ui Tailwind) to a fixed light surface + dark icons so the toolbar
+   is always readable against the white email canvas. */
+.bubble-menu > div {
   background-color: #ffffff !important;
-  border: 1px solid #d1d5db !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18) !important;
-  border-radius: 6px !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14) !important;
+  border-radius: 8px !important;
 }
-.bubble-menu button,
+.bubble-menu button {
+  color: #1f2937 !important;
+}
 .bubble-menu svg {
-  color: #374151 !important;
+  color: #1f2937 !important;
 }
 
 .rich-text-shell .ProseMirror p.is-editor-empty:first-child::before {
@@ -110,16 +109,25 @@ function onChange(html) {
   line-height: inherit !important;
   font-family: inherit !important;
 }
-/* Inline + block elements: inherit all block-level styles */
+/* Block/inline elements — inherit all block-level styles from the shell.
+   strong and b are excluded from font-weight so inline Bold markup still works. */
 .rich-text-shell .ProseMirror p,
 .rich-text-shell .ProseMirror li,
 .rich-text-shell .ProseMirror span,
-.rich-text-shell .ProseMirror strong,
-.rich-text-shell .ProseMirror b,
 .rich-text-shell .ProseMirror em,
 .rich-text-shell .ProseMirror i {
   font-size: inherit !important;
   font-weight: inherit !important;
+  color: inherit !important;
+  line-height: inherit !important;
+  font-family: inherit !important;
+  text-align: inherit !important;
+  letter-spacing: inherit !important;
+}
+/* strong/b: inherit everything except font-weight so <strong> stays bold */
+.rich-text-shell .ProseMirror strong,
+.rich-text-shell .ProseMirror b {
+  font-size: inherit !important;
   color: inherit !important;
   line-height: inherit !important;
   font-family: inherit !important;
