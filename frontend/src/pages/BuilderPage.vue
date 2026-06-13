@@ -487,6 +487,7 @@ import BlockAdderRow from "../components/BlockAdderRow.vue";
 import BlockRenderer from "../components/BlockRenderer.vue";
 import { useZoom } from "../composables/useZoom";
 import { usePanelResize } from "../composables/usePanelResize";
+import { describeError, formatScheduledAt, stripIds, collectFontFamilies } from "../utils/builderHelpers";
 
 const editorStore = useEditorStore();
 const saving        = ref(false);
@@ -764,17 +765,6 @@ watch(recipientConfig, () => {
 // Watch the block tree for web-font usage and inject <link> tags so the editor
 // preview renders the correct weights. Runs immediately on mount (immediate:true)
 // and again whenever any font_family prop changes.
-function collectFontFamilies(blocks) {
-  const names = [];
-  for (const block of blocks || []) {
-    if (block.props?.font_family) names.push(block.props.font_family);
-    for (const col of block.props?.columns || []) {
-      names.push(...collectFontFamilies(col.blocks));
-    }
-    names.push(...collectFontFamilies(block.children));
-  }
-  return names;
-}
 watch(
   () => collectFontFamilies(editorStore.blocks),
   (names) => injectGoogleFonts(names),
@@ -812,29 +802,6 @@ function openPicker(target) {
   }
 }
 provide("openPicker", openPicker);
-
-// ── Error helper ──────────────────────────────────────────────────────────────
-function formatScheduledAt(s) {
-  try { return new Date(s.replace(" ", "T")).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); }
-  catch { return s; }
-}
-
-function describeError(e) {
-  let msg = "";
-  try {
-    const msgs = e?._server_messages;
-    if (msgs) {
-      const parsed = JSON.parse(msgs);
-      const first = parsed[0];
-      try { msg = JSON.parse(first).message || first; } catch { msg = first; }
-    }
-  } catch { /* fall through */ }
-  // Deliberately never fall back to e.exc — that's a raw server traceback and
-  // must not be shown to users.
-  if (!msg) msg = e?.message || "Something went wrong. Please try again.";
-  // Frappe messages may contain HTML; strip tags so toasts stay clean.
-  return String(msg).replace(/<[^>]*>/g, "").trim() || "Something went wrong. Please try again.";
-}
 
 // ── Load campaign from URL ?name=xxx ─────────────────────────────────────────
 const urlParams   = new URLSearchParams(window.location.search);
@@ -1429,21 +1396,6 @@ function scrollToSelected() {
     const el = document.querySelector(`[data-block-id="${id}"]`);
     el?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, 50);
-}
-
-// ── Strip runtime IDs before saving (recursive for nested children) ──────────
-function stripIds(block) {
-  const { id: _id, ...rest } = block;
-  if (rest.children?.length) {
-    rest.children = rest.children.map(stripIds);
-  }
-  if (rest.columns?.length) {
-    rest.columns = rest.columns.map(col => ({
-      ...col,
-      blocks: (col.blocks || []).map(stripIds),
-    }));
-  }
-  return rest;
 }
 
 // ── Drag-to-canvas drop (still supported — appends at end) ────────────────────
