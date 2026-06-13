@@ -591,7 +591,7 @@ class TestRichTextRenderer:
     def test_plain_paragraph_rendered(self):
         out = self.renderer.render(self._block("<p>Hello world</p>"))
         assert "Hello world" in out
-        assert "<p>" in out
+        assert "<p " in out  # p always gets a style attribute
 
     def test_bold_and_italic_preserved(self):
         out = self.renderer.render(self._block("<p><strong>Bold</strong> and <em>Italic</em></p>"))
@@ -629,6 +629,25 @@ class TestRichTextRenderer:
         out = self.renderer.render(self._block("<p>hi</p>"))
         assert "<table" in out
         assert 'width="100%"' in out
+
+    def test_last_paragraph_has_zero_bottom_margin(self):
+        # The last <p> must have margin:0 so it doesn't add trailing space beyond
+        # the block's padding_bottom (which may be 0).
+        out = self.renderer.render(self._block("<p>Only paragraph</p>"))
+        # The single paragraph is also the last one — must end with margin:0.
+        assert 'margin:0;' in out
+
+    def test_middle_paragraphs_have_bottom_margin(self):
+        # Only the last <p> should lose its bottom margin; earlier ones keep it.
+        out = self.renderer.render(self._block("<p>First</p><p>Last</p>"))
+        assert "margin:0 0 0.75em 0;" in out   # first paragraph keeps spacing
+        assert "margin:0;" in out               # last paragraph gets zero
+
+    def test_single_paragraph_no_trailing_space(self):
+        # When there is only one paragraph and padding_bottom is 0, the rendered
+        # output must NOT contain a non-zero bottom margin on the <p>.
+        out = self.renderer.render(self._block("<p>Hello</p>", padding_bottom=0))
+        assert "margin:0 0 0.75em" not in out
 
 
 # ── ImageRenderer link-through ────────────────────────────────────────────────

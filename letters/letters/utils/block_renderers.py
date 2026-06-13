@@ -1007,10 +1007,25 @@ class RichTextRenderer(BlockRenderer):
         # Normalise <p> tags: reset email-client default margins and apply text-align.
         # Email clients (Gmail, Outlook) add ~1em top+bottom margin to <p> by default,
         # which creates unintended gaps. We own the outer block padding so p gets 0 margin.
+        # The last <p> gets margin:0 so it doesn't bleed past the block's padding_bottom.
         p_style = "margin:0 0 0.75em 0;"
+        p_last_style = "margin:0;"
         if align and align != "left":
             p_style += f"text-align:{align};"
+            p_last_style += f"text-align:{align};"
         html_content = html_content.replace("<p>", f"<p style=\"{p_style}\">")
+        # Replace only the final </p> to apply the last-paragraph zero margin.
+        last_close = html_content.rfind("</p>")
+        if last_close != -1:
+            # Find the matching opening tag just before last_close and swap its style
+            last_open = html_content.rfind("<p ", 0, last_close)
+            if last_open != -1:
+                tag_end = html_content.index(">", last_open)
+                html_content = (
+                    html_content[:last_open]
+                    + f'<p style="{p_last_style}">'
+                    + html_content[tag_end + 1:]
+                )
         html = (
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
             f'<tr><td align="{align}" style="padding:{padding};'
