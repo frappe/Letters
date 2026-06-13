@@ -1,15 +1,25 @@
 frappe.ui.form.on("Letters Campaign", {
     refresh(frm) {
-        // Only offer the builder for a saved campaign. On a brand-new, unsaved
-        // form we don't surface any builder/template entry point — campaigns are
-        // meant to be started via "New Campaign" (which opens the picker).
-        if (frm.is_new()) return;
+        // Builder entry point (restored): available on new and saved campaigns.
         frm.add_custom_button(__("Open in Letters Builder"), () => {
-            window.open(
-                `/app/letters-builder?name=${encodeURIComponent(frm.doc.name)}`,
-                "_blank"
-            );
+            const path = frm.is_new()
+                ? "/app/letters-builder"
+                : `/app/letters-builder?name=${encodeURIComponent(frm.doc.name)}`;
+            window.open(path, "_blank");
         });
+
+        // Remove Frappe's built-in form "Templates" feature on this DocType — it's
+        // unrelated to Letters' own template system and only adds confusion here.
+        // The native control is a top-bar button for new docs and a three-dot menu
+        // item for saved docs; strip both. Deferred so the toolbar has rendered.
+        setTimeout(() => {
+            const tm = frm.toolbar && frm.toolbar.template_manager;
+            if (tm && tm.$btn) tm.$btn.remove();
+            frm.page.wrapper
+                .find(".menu-btn-group .dropdown-item, .page-actions .dropdown-item")
+                .filter((_, el) => el.textContent.trim() === __("Templates"))
+                .remove();
+        }, 0);
     },
 });
 
