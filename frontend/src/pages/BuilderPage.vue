@@ -180,7 +180,7 @@
           class="fixed z-50 pointer-events-none"
           :style="blockPreview.style"
         >
-          <div class="bg-surface-white border border-outline-gray-2 rounded-xl shadow-2xl overflow-hidden" style="width:360px">
+          <div class="bg-surface-base border border-outline-gray-2 rounded-xl shadow-2xl overflow-hidden" style="width:360px">
             <div class="px-3 py-2 border-b border-outline-gray-1 bg-surface-gray-1">
               <span class="text-xs font-semibold text-ink-gray-5 uppercase tracking-widest">{{ blockPreview.label }}</span>
             </div>
@@ -213,7 +213,7 @@
           <!-- Empty state (not loading, no blocks) -->
           <div
             v-else-if="!editorStore.blocks.length"
-            class="border-2 border-dashed border-outline-gray-2 rounded-xl p-16 text-center bg-surface-white/50 select-none"
+            class="border-2 border-dashed border-outline-gray-2 rounded-xl p-16 text-center bg-surface-base/50 select-none"
           >
             <div class="mb-3 opacity-40"><FeatherIcon name="inbox" class="w-10 h-10 mx-auto text-ink-gray-4" /></div>
             <p class="text-sm font-medium mb-1">Your canvas is empty</p>

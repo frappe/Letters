@@ -36,7 +36,7 @@
             <!-- Remove child button -->
             <button
               type="button"
-              class="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-surface-white border border-outline-gray-2
+              class="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-surface-base border border-outline-gray-2
                      shadow-sm text-ink-gray-4 hover:text-red-500 hover:border-red-200 text-xs
                      leading-none z-20 opacity-0 group-hover/colchild:opacity-100 transition-opacity
                      flex items-center justify-center"

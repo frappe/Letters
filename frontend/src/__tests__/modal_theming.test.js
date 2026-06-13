@@ -1,129 +1,130 @@
 /**
  * Regression guards for modal / panel theming.
  *
- * Background: the frappe-ui semantic surface tokens (bg-surface-white,
- * bg-surface-modal, text-ink-gray-*) do NOT resolve reliably inside the
- * embedded Frappe Desk builder, which left the Settings dialog and Template
- * picker transparent and their headings unreadable. The fix was a set of
- * explicit `.lt-*` classes in style.css with hard-coded light values plus
- * [data-theme="dark"] overrides — the same bulletproof pattern the panels use.
+ * Background: the Settings dialog and Template picker once rendered transparent
+ * with unreadable headings. Root cause: they used `bg-surface-modal` (and the
+ * also-retired `bg-surface-white`) — tokens this version of frappe-ui RETIRED.
+ * No Tailwind utility rule is generated for them, so the class resolved to
+ * nothing. The current tokens (bg-surface-base, bg-surface-gray-*,
+ * text-ink-gray-*, border-outline-gray-*) DO generate rules and auto-flip in
+ * dark mode via [data-theme="dark"]; the rest of the builder relies on them.
  *
- * These tests assert, at the source level, that:
- *  1. style.css defines every .lt-* class with BOTH a light default and a
- *     [data-theme="dark"] override.
- *  2. The modal components use the .lt-* classes and do NOT regress to the
- *     unreliable bg-surface / text-ink tokens for their shell.
- *  3. Inspector matches the toolbar/layers panel with a literal bg-white.
- *  4. email_campaign.js keeps "Open in Letters Builder" and removes Frappe's
- *     native Templates button.
+ * The fix is to use current frappe-ui semantic tokens — NOT bespoke hard-coded
+ * `.lt-*` classes (an earlier misdiagnosis). These tests assert, at the source
+ * level, that:
+ *   1. No component references the retired surface-modal/surface-card tokens.
+ *   2. No component reintroduces the bespoke `.lt-*` theming classes.
+ *   3. The two modals use real frappe-ui surface + ink + outline tokens.
+ *   4. Inspector keeps a solid background matching its sibling panels.
+ *   5. email_campaign.js keeps "Open in Letters Builder" and removes Frappe's
+ *      native Templates button.
  */
 
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "fs";
+import { readFileSync, readdirSync } from "fs";
 import { resolve } from "path";
 
 const read = (rel) => readFileSync(resolve(__dirname, rel), "utf-8");
 
-const STYLE = read("../style.css");
 const PICKER = read("../components/TemplatePicker.vue");
 const SETTINGS = read("../components/CampaignSettings.vue");
 const INSPECTOR = read("../components/Inspector.vue");
+const STYLE = read("../style.css");
 const CAMPAIGN_JS = read(
   "../../../letters/public/frappe_customizations/email_campaign.js"
 );
 
-// The modal theming classes and the values they MUST carry in each theme.
-const LT_CLASSES = {
-  ".lt-surface": { light: "#ffffff", dark: "#262626" },
-  ".lt-surface-sub": { light: "#f9fafb", dark: "#1c1c1c" },
-  ".lt-border": { light: "#e5e7eb", dark: "#3a3a3a" },
-  ".lt-title": { light: "#111827", dark: "#f5f5f5" },
-  ".lt-text": { light: "#374151", dark: "#d4d4d4" },
-  ".lt-muted": { light: "#6b7280", dark: "#a3a3a3" },
-};
+// Every .vue/.js source file under src/ (excluding tests), for repo-wide bans.
+function allSourceFiles(dir = resolve(__dirname, "..")) {
+  const out = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === "__tests__" || entry.name === "node_modules") continue;
+    const full = resolve(dir, entry.name);
+    if (entry.isDirectory()) out.push(...allSourceFiles(full));
+    else if (/\.(vue|js)$/.test(entry.name)) out.push(full);
+  }
+  return out;
+}
+
+// frappe-ui tokens this version retired: no Tailwind utility rule is generated
+// for them, so the class resolves to nothing (transparent / no color). The
+// current equivalents are bg-surface-base / bg-surface-elevation-* for the
+// white elevated surface, and bg-surface-gray-* for recessed areas.
+const RETIRED_TOKENS = [
+  "surface-white",
+  "surface-modal",
+  "surface-card",
+  "surface-cards",
+  "surface-selected",
+];
 
 // ---------------------------------------------------------------------------
-// 1. style.css defines every .lt-* class in both themes
+// 1. No retired frappe-ui tokens anywhere in src/
 // ---------------------------------------------------------------------------
 
-describe("style.css .lt-* modal theming classes", () => {
-  for (const [cls, { light, dark }] of Object.entries(LT_CLASSES)) {
-    it(`${cls}: has a light-default declaration with ${light}`, () => {
-      // e.g.  .lt-surface       { background-color: #ffffff; }
-      const re = new RegExp(
-        `(?<!\\]\\s)\\${cls}\\s*\\{[^}]*${light}`,
-        "i"
-      );
-      expect(re.test(STYLE), `${cls} missing light value ${light}`).toBe(true);
-    });
+describe("no retired frappe-ui surface tokens", () => {
+  const files = allSourceFiles();
 
-    it(`${cls}: has a [data-theme="dark"] override with ${dark}`, () => {
-      const re = new RegExp(
-        `\\[data-theme="dark"\\]\\s*\\${cls}\\s*\\{[^}]*${dark}`,
-        "i"
-      );
-      expect(re.test(STYLE), `${cls} missing dark override ${dark}`).toBe(true);
+  for (const token of RETIRED_TOKENS) {
+    it(`no source file references "${token}" (retired → resolves transparent)`, () => {
+      const offenders = files.filter((f) => readFileSync(f, "utf-8").includes(token));
+      expect(offenders, `Found ${token} in:\n${offenders.join("\n")}`).toEqual([]);
     });
   }
+});
 
-  it("light and dark surface values actually differ (real theming)", () => {
-    for (const { light, dark } of Object.values(LT_CLASSES)) {
-      expect(light).not.toBe(dark);
-    }
+// ---------------------------------------------------------------------------
+// 2. The bespoke .lt-* workaround is gone and stays gone
+// ---------------------------------------------------------------------------
+
+describe("no bespoke .lt-* theming classes", () => {
+  it("style.css does not define .lt-* classes", () => {
+    expect(STYLE).not.toMatch(/\.lt-(surface|border|title|text|muted)/);
+  });
+
+  it("no component uses .lt-* classes", () => {
+    const offenders = allSourceFiles().filter((f) =>
+      /\blt-(surface|border|title|text|muted)/.test(readFileSync(f, "utf-8"))
+    );
+    expect(offenders).toEqual([]);
   });
 });
 
 // ---------------------------------------------------------------------------
-// 2. Template picker uses .lt-* and is NOT transparent
+// 3. Modals use real frappe-ui tokens (solid surface + readable ink)
 // ---------------------------------------------------------------------------
 
-describe("TemplatePicker.vue theming", () => {
-  it("modal shell uses .lt-surface (solid background)", () => {
-    expect(PICKER).toContain("lt-surface");
+describe("TemplatePicker.vue uses frappe-ui tokens", () => {
+  it("shell has a solid frappe-ui surface", () => {
+    expect(PICKER).toContain("bg-surface-base");
   });
-
-  it("heading + subtitle use high-contrast .lt-title / .lt-muted", () => {
-    expect(PICKER).toContain("lt-title");
-    expect(PICKER).toContain("lt-muted");
+  it("heading + subtitle use frappe-ui ink tokens (auto-contrast both themes)", () => {
+    expect(PICKER).toContain("text-ink-gray-9"); // heading
+    expect(PICKER).toMatch(/text-ink-gray-[56]/); // muted subtitle
   });
-
-  it("backdrop is a solid dim, not transparent", () => {
+  it("backdrop is a solid dim", () => {
     expect(PICKER).toMatch(/bg-black\/\d+/);
   });
+});
 
-  it("does NOT use unreliable bg-surface-white/modal for the shell", () => {
-    expect(PICKER).not.toContain("bg-surface-white");
-    expect(PICKER).not.toContain("bg-surface-modal");
+describe("CampaignSettings.vue uses frappe-ui tokens", () => {
+  it("panel has a solid frappe-ui surface", () => {
+    expect(SETTINGS).toContain("bg-surface-base");
+  });
+  it("titles use a frappe-ui ink token", () => {
+    expect(SETTINGS).toContain("text-ink-gray-9");
   });
 });
 
 // ---------------------------------------------------------------------------
-// 3. Settings modal uses .lt-* and is NOT transparent
-// ---------------------------------------------------------------------------
-
-describe("CampaignSettings.vue theming", () => {
-  it("panel uses .lt-surface (solid background)", () => {
-    expect(SETTINGS).toContain("lt-surface");
-  });
-
-  it("titles use .lt-title for contrast in both themes", () => {
-    expect(SETTINGS).toContain("lt-title");
-  });
-
-  it("does NOT use unreliable bg-surface-white/modal for the shell", () => {
-    expect(SETTINGS).not.toContain("bg-surface-white");
-    expect(SETTINGS).not.toContain("bg-surface-modal");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 4. Inspector matches toolbar/layers panel (literal bg-white, no token)
+// 4. Inspector keeps a solid background (matches sibling panels)
 // ---------------------------------------------------------------------------
 
 describe("Inspector.vue background", () => {
-  it("root uses literal bg-white, not bg-surface-white", () => {
-    expect(INSPECTOR).toContain("bg-white");
-    expect(INSPECTOR).not.toContain("bg-surface-white");
+  it("root has a solid background, not transparent", () => {
+    // header uses literal bg-white; Inspector matches it. A frappe-ui
+    // bg-surface-base would also satisfy "solid" — accept either.
+    expect(INSPECTOR).toMatch(/\bbg-(white|surface-base)\b/);
   });
 });
 
@@ -135,7 +136,6 @@ describe("email_campaign.js form customizations", () => {
   it('keeps the "Open in Letters Builder" custom button', () => {
     expect(CAMPAIGN_JS).toContain("Open in Letters Builder");
   });
-
   it("removes Frappe's native Templates feature (template_manager)", () => {
     expect(CAMPAIGN_JS).toContain("template_manager");
     expect(CAMPAIGN_JS).toContain("Templates");

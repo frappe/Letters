@@ -14,12 +14,12 @@
         <div class="absolute inset-0 bg-black/60" @click="close" />
 
         <!-- Panel: left nav + right content, mirroring Frappe Builder's settings -->
-        <div class="lt-surface relative flex w-full max-w-3xl h-[560px] max-h-[90vh] rounded-xl shadow-2xl overflow-hidden">
+        <div class="bg-surface-base relative flex w-full max-w-3xl h-[560px] max-h-[90vh] rounded-xl shadow-2xl overflow-hidden">
 
           <!-- Left nav -->
-          <aside class="lt-surface-sub lt-border w-52 flex-shrink-0 border-r p-3 flex flex-col">
-            <p class="lt-title px-2.5 py-2 text-base font-semibold">Settings</p>
-            <p class="lt-muted px-2.5 pt-2 pb-1 text-xs font-medium uppercase tracking-wide">Campaign</p>
+          <aside class="bg-surface-gray-2 border-outline-gray-2 w-52 flex-shrink-0 border-r p-3 flex flex-col">
+            <p class="text-ink-gray-9 px-2.5 py-2 text-base font-semibold">Settings</p>
+            <p class="text-ink-gray-5 px-2.5 pt-2 pb-1 text-xs font-medium uppercase tracking-wide">Campaign</p>
             <nav class="space-y-0.5">
               <button
                 v-for="s in sections"
@@ -27,8 +27,8 @@
                 type="button"
                 class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm text-left transition-colors"
                 :class="activeTab === s.id
-                  ? 'lt-surface lt-title shadow-sm font-medium'
-                  : 'lt-muted hover:bg-black/5'"
+                  ? 'bg-surface-base text-ink-gray-9 shadow-sm font-medium'
+                  : 'text-ink-gray-5 hover:bg-black/5'"
                 @click="activeTab = s.id"
               >
                 <FeatherIcon :name="s.icon" class="w-4 h-4 flex-shrink-0" />
@@ -38,9 +38,9 @@
           </aside>
 
           <!-- Right content -->
-          <div class="lt-surface flex-1 flex flex-col min-w-0">
-            <div class="lt-border flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
-              <h2 class="lt-title text-base font-semibold">{{ activeSection.label }}</h2>
+          <div class="bg-surface-base flex-1 flex flex-col min-w-0">
+            <div class="border-outline-gray-2 flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
+              <h2 class="text-ink-gray-9 text-base font-semibold">{{ activeSection.label }}</h2>
               <button
                 type="button"
                 class="w-7 h-7 flex items-center justify-center rounded-md text-ink-gray-5 hover:text-ink-gray-9 hover:bg-surface-gray-2 transition-colors"
