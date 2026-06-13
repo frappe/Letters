@@ -44,6 +44,14 @@ export const BLOCK_SCHEMA = {
     },
     sections: [
       {
+        id: "content",
+        title: "Content",
+        fields: [
+          { key: "heading",    label: "Heading",    type: "text", placeholder: "Your headline here" },
+          { key: "subheading", label: "Subheading", type: "text", placeholder: "Supporting text" },
+        ],
+      },
+      {
         id: "style",
         title: "Style",
         fields: [

@@ -355,10 +355,12 @@
           <Badge v-if="linkResults.filter(r => r.status === 'skipped').length" theme="gray" variant="subtle" size="sm">
             {{ linkResults.filter(r => r.status === 'skipped').length }} skipped
           </Badge>
-          <Badge v-if="linkResults.filter(r => r.status === 'blocked').length" theme="orange" variant="subtle" size="sm">
-            <template #prefix><FeatherIcon name="shield-off" class="w-3 h-3" /></template>
-            {{ linkResults.filter(r => r.status === 'blocked').length }} blocked
-          </Badge>
+          <Tooltip v-if="linkResults.filter(r => r.status === 'blocked').length" text="The server blocked automated requests. The link likely works fine for real recipients.">
+            <Badge theme="orange" variant="subtle" size="sm">
+              <template #prefix><FeatherIcon name="shield-off" class="w-3 h-3" /></template>
+              {{ linkResults.filter(r => r.status === 'blocked').length }} blocked
+            </Badge>
+          </Tooltip>
           <Button class="ml-auto" size="xs" variant="ghost" icon-left="refresh-cw" :loading="checkingLinks" @click="openLinkChecker">Re-check</Button>
         </div>
 
@@ -382,12 +384,16 @@
                 :class="r.status === 'ok' ? 'text-green-500' : r.status === 'skipped' ? 'text-ink-gray-3' : r.status === 'blocked' ? 'text-orange-500' : 'text-red-500'"
               />
               <span class="text-xs font-mono text-ink-gray-7 truncate flex-1 min-w-0">{{ r.url }}</span>
+              <Tooltip v-if="r.status === 'blocked'" text="Server blocked automated requests. Link likely works for real recipients.">
+                <Badge theme="orange" variant="subtle" size="sm" class="flex-shrink-0">Blocked</Badge>
+              </Tooltip>
               <Badge
-                :theme="r.status === 'ok' ? 'green' : r.status === 'skipped' ? 'gray' : r.status === 'blocked' ? 'orange' : 'red'"
+                v-else
+                :theme="r.status === 'ok' ? 'green' : r.status === 'skipped' ? 'gray' : 'red'"
                 variant="subtle"
                 size="sm"
                 class="flex-shrink-0"
-              >{{ r.status === 'ok' ? (r.code || 'OK') : r.status === 'skipped' ? 'Non-HTTP' : r.status === 'blocked' ? 'Blocked' : r.code ? `${r.code}` : 'Unreachable' }}</Badge>
+              >{{ r.status === 'ok' ? (r.code || 'OK') : r.status === 'skipped' ? 'Non-HTTP' : r.code ? `${r.code}` : 'Unreachable' }}</Badge>
             </div>
 
             <!-- Inline fix for broken links -->
@@ -438,7 +444,7 @@
         />
       </div>
       <p v-if="scheduleDate && scheduleTime" class="mt-2 text-xs text-ink-gray-5">
-        Sending on {{ scheduleDate }} at {{ scheduleTime }}
+        Sending on {{ formatScheduledAt(scheduleDate + ' ' + scheduleTime) }}
       </p>
     </template>
     <template #actions>
