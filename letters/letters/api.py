@@ -119,6 +119,28 @@ def save_campaign(name=None, title=None, subject=None, preview_text=None, blocks
 
 
 @frappe.whitelist()
+def get_templates():
+    """Return all active Letters Templates with rendered preview HTML for the picker."""
+    from letters.letters.utils.email_compiler import EmailCompiler
+
+    templates = frappe.get_all(
+        "Letters Template",
+        filters={"is_active": 1},
+        fields=["name", "title", "thumbnail", "blocks_json", "sort_order"],
+        order_by="sort_order asc, title asc",
+    )
+    for tpl in templates:
+        blocks_data = json.loads(tpl.get("blocks_json") or "[]")
+        try:
+            compiler = EmailCompiler(blocks_data, preview_text="", email_width=600)
+            tpl["preview_html"] = compiler.compile()
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), "Letters template preview error")
+            tpl["preview_html"] = ""
+    return templates
+
+
+@frappe.whitelist()
 def render_preview(name=None, blocks=None, preview_text=None, email_width=None):
     """Compile blocks to email-safe HTML."""
     from letters.letters.utils.email_compiler import EmailCompiler

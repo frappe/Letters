@@ -263,10 +263,9 @@
     :campaign-doc="editorStore.campaignDoc"
   />
 
-  <TemplateLibrary
-    v-if="showTemplateLibrary"
-    @close="showTemplateLibrary = false"
-    @apply="onTemplateApply"
+  <TemplatePicker
+    v-if="showTemplatePicker"
+    @created="onTemplatePickerCreated"
   />
 
   <!-- Keyboard shortcuts viewer -->
@@ -467,7 +466,7 @@ import { WEB_FONT_META, injectGoogleFonts } from "../fonts";
 import Inspector from "../components/Inspector.vue";
 import LayersPanel from "../components/LayersPanel.vue";
 import CampaignSettings from "../components/CampaignSettings.vue";
-import TemplateLibrary from "../components/TemplateLibrary.vue";
+import TemplatePicker from "../components/TemplatePicker.vue";
 import BlockAdderRow from "../components/BlockAdderRow.vue";
 import BlockRenderer from "../components/BlockRenderer.vue";
 
@@ -509,7 +508,7 @@ function stepZoom(dir) {
 const previewing    = ref(false);
 const loadingCampaign = ref(false);
 const showSettings = ref(false);
-const showTemplateLibrary = ref(false);
+const showTemplatePicker = ref(false);
 const sendProgress = ref({ status: "Queued", sent: 0, total: 0 });
 let _progressTimer = null;
 const campaignStatus = computed(() => {
@@ -541,12 +540,7 @@ const menuOptions = computed(() => [
     group: "campaign",
     hideLabel: true,
     items: [
-      {
-        label: "Browse Templates",
-        icon: "grid",
-        onClick: () => (showTemplateLibrary.value = true),
-      },
-      {
+{
         label: "Duplicate Campaign",
         icon: "copy",
         onClick: duplicateCampaign,
@@ -871,8 +865,22 @@ const urlParams   = new URLSearchParams(window.location.search);
 const initialName = urlParams.get("name");
 
 onMounted(async () => {
-  if (initialName) await loadCampaign(initialName);
+  if (initialName) {
+    await loadCampaign(initialName);
+  } else {
+    // No campaign name in URL — show template picker so the user chooses a
+    // starting point before seeing the canvas.
+    showTemplatePicker.value = true;
+  }
 });
+
+async function onTemplatePickerCreated(campaignName) {
+  showTemplatePicker.value = false;
+  await loadCampaign(campaignName);
+  const url = new URL(window.location.href);
+  url.searchParams.set("name", campaignName);
+  window.history.replaceState({}, "", url.toString());
+}
 
 async function loadCampaign(name) {
   loadingCampaign.value = true;
@@ -1290,12 +1298,6 @@ async function sendTest() {
   }
 }
 
-// ── Template library ──────────────────────────────────────────────────────────
-function onTemplateApply(templateBlocks) {
-  editorStore.loadTemplate(templateBlocks);
-  showTemplateLibrary.value = false;
-  toast.success("Template applied. Customize it and save when ready.");
-}
 
 // ── Block picker previews (SVG sketches) ──────────────────────────────────────
 // ── Block picker ──────────────────────────────────────────────────────────────

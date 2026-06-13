@@ -90,9 +90,33 @@ describe("rich_text CSS inheritance", () => {
     }
   });
 
-  it("strong and b are included in inherit rules (block weight must override bold)", () => {
+  it("strong and b are included in inherit rules", () => {
     expect(css).toContain(".ProseMirror strong");
     expect(css).toContain(".ProseMirror b");
+  });
+
+  it("strong and b do NOT have font-weight: inherit — bold markup must stay bold", () => {
+    // Find the rule block that contains .ProseMirror strong or .ProseMirror b.
+    // It must NOT declare font-weight: inherit, otherwise <strong> renders at
+    // block weight (400) instead of bold (700).
+    //
+    // Strategy: split on rule blocks and check that any block containing
+    // `.ProseMirror strong` or `.ProseMirror b` in its selector list does not
+    // also contain `font-weight: inherit`.
+    const ruleBlocks = css.split("}");
+    for (const block of ruleBlocks) {
+      const selectorPart = block.split("{")[0] || "";
+      const bodyPart = block.split("{")[1] || "";
+      if (
+        selectorPart.includes(".ProseMirror strong") ||
+        selectorPart.includes(".ProseMirror b")
+      ) {
+        expect(
+          bodyPart,
+          "font-weight: inherit found in strong/b rule — this breaks Bold markup rendering"
+        ).not.toMatch(/font-weight\s*:\s*inherit/);
+      }
+    }
   });
 });
 
@@ -116,7 +140,24 @@ describe("bubble-menu behaviour", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 3. List markers — must use list-style-position: inside
+// 3. Bubble menu contrast — must have white bg and dark text
+// ---------------------------------------------------------------------------
+
+describe("bubble-menu contrast", () => {
+  const css = styleBlock();
+
+  it(".bubble-menu has white background", () => {
+    expect(css).toContain(".bubble-menu");
+    expect(css).toMatch(/\.bubble-menu[\s\S]*?background-color\s*:\s*#ffffff/);
+  });
+
+  it(".bubble-menu buttons/svgs have dark text color", () => {
+    expect(css).toMatch(/\.bubble-menu\s+button[\s\S]*?color\s*:\s*#1f2937/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4. List markers — must use list-style-position: inside
 // ---------------------------------------------------------------------------
 
 describe("list style position", () => {

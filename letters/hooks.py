@@ -30,5 +30,7 @@ page_js = {"letters-builder": "public/js/letters-builder.js"}
 
 doctype_js = {"Letters Campaign": "public/frappe_customizations/email_campaign.js"}
 
+fixtures = ["Letters Template"]
+
 # Override standard DocType forms
 # override_doctype_class = {}

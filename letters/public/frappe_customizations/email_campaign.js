@@ -8,3 +8,13 @@ frappe.ui.form.on("Letters Campaign", {
         });
     },
 });
+
+// Override the list view "New" button to go straight to the builder
+// (which shows the template picker instead of the blank Frappe form).
+frappe.listview_settings["Letters Campaign"] = {
+    onload(listview) {
+        listview.page.set_primary_action(__("New Campaign"), () => {
+            window.open("/app/letters-builder", "_blank");
+        }, "plus");
+    },
+};
