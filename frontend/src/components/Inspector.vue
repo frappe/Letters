@@ -31,7 +31,6 @@
           />
         </button>
         <div v-show="canvasOpen" class="px-3 pb-4 flex flex-col gap-2">
-          <!-- Width -->
           <div class="flex items-center gap-2 py-1">
             <span class="w-24 shrink-0 text-xs text-ink-gray-5">Width</span>
             <div class="flex-1 min-w-0 flex items-center gap-2">
@@ -51,7 +50,7 @@
       </div>
     </div>
 
-    <!-- Sections -->
+    <!-- Block sections -->
     <div v-else class="flex-1 overflow-y-auto">
 
       <!-- Schema-defined sections -->
@@ -72,7 +71,6 @@
             :class="openSections.has(section.id) ? '' : '-rotate-90'"
           />
         </button>
-
         <div v-show="openSections.has(section.id)" class="px-3 pb-4 flex flex-col gap-2">
           <PropRow
             v-for="field in section.fields"
@@ -178,9 +176,11 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, watch, defineComponent, h } from "vue";
-import { TextInput, Select, Switch, TabButtons, Button, FeatherIcon, Tooltip, Slider } from "frappe-ui";
+import { computed, reactive, ref, watch } from "vue";
+import { TextInput, Button, FeatherIcon, Slider } from "frappe-ui";
 import ColorPicker from "./ColorPicker.vue";
+import FieldControl from "./FieldControl.vue";
+import PropRow from "./PropRow.vue";
 import { useEditorStore } from "../stores/editor";
 import { BLOCK_SCHEMA } from "../blockSchema";
 import { fontWeightOptions } from "../fonts";
@@ -190,6 +190,7 @@ defineProps({ width: { type: Number, default: 288 } });
 const store = useEditorStore();
 const block = computed(() => store.selectedBlock);
 const canvasOpen = ref(true);
+const schema = computed(() => (block.value ? BLOCK_SCHEMA[block.value.type] : null));
 
 function setEmailWidth(w) {
   if (!isNaN(w) && w >= 320 && w <= 900) {
@@ -197,7 +198,6 @@ function setEmailWidth(w) {
     store.markDirty();
   }
 }
-const schema = computed(() => (block.value ? BLOCK_SCHEMA[block.value.type] : null));
 
 const openSections = reactive(new Set());
 watch(
@@ -232,195 +232,4 @@ function set(key, val) {
   }
   store.updateBlockProps(block.value.id, updates);
 }
-
-function hasBooleanOptions(field) {
-  return field.options?.some((o) => typeof o.value === "boolean") ?? false;
-}
-
-function parseDimension(val) {
-  if (!val || val === "auto") return { num: 0, unit: "px" };
-  const m = String(val).match(/^(\d*\.?\d+)(px|%)$/);
-  if (m) return { num: parseFloat(m[1]), unit: m[2] };
-  const n = parseFloat(val);
-  return { num: isNaN(n) ? 0 : n, unit: val.includes("px") ? "px" : "%" };
-}
-
-const alignOptions = [
-  { value: "left",    icon: "align-left",    label: "Left",    hideLabel: true },
-  { value: "center",  icon: "align-center",  label: "Center",  hideLabel: true },
-  { value: "right",   icon: "align-right",   label: "Right",   hideLabel: true },
-  { value: "justify", icon: "align-justify", label: "Justify", hideLabel: true },
-];
-
-const valignOptions = [
-  { value: "flex-start", icon: "chevron-up",   label: "Top",    hideLabel: true },
-  { value: "center",     icon: "minus",         label: "Middle", hideLabel: true },
-  { value: "flex-end",   icon: "chevron-down",  label: "Bottom", hideLabel: true },
-];
-
-const directionOptions = [
-  { value: "row",    icon: "arrow-right", label: "Row",    hideLabel: true },
-  { value: "column", icon: "arrow-down",  label: "Column", hideLabel: true },
-];
-
-// ── Sub-components defined inline ───────────────────────────────────────────
-
-// PropRow: label left, slot content right. compact = label only (no fixed width)
-const PropRow = defineComponent({
-  props: { label: String, hint: String, compact: Boolean },
-  setup(props, { slots }) {
-    return () => {
-      const labelSpan = h("span", {
-        class: props.compact
-          ? "text-xs text-ink-gray-5 shrink-0"
-          : "w-24 shrink-0 text-xs text-ink-gray-5 truncate",
-      }, props.label);
-
-      const labelEl = props.hint
-        ? h(Tooltip, { text: props.hint, placement: "left" }, { default: () => labelSpan })
-        : labelSpan;
-
-      return h("div", { class: "flex items-center gap-2 py-1.5" }, [
-        labelEl,
-        h("div", { class: "flex-1 min-w-0" }, slots.default?.()),
-      ]);
-    };
-  },
-});
-
-// FieldControl: renders the right control for a field descriptor
-const FieldControl = defineComponent({
-  props: { field: Object, value: { default: undefined }, blockProps: { type: Object, default: () => ({}) } },
-  emits: ["change"],
-  setup(props, { emit }) {
-    return () => {
-      const f = props.field;
-      const v = props.value;
-
-      // Color
-      if (f.type === "color") {
-        return h(ColorPicker, {
-          modelValue: v,
-          "onUpdate:modelValue": (val) => emit("change", val),
-        });
-      }
-
-      // Select (boolean → Switch)
-      if (f.type === "select") {
-        const options = typeof f.options === "function" ? f.options(props.blockProps) : f.options;
-        if (hasBooleanOptions({ ...f, options })) {
-          return h(Switch, {
-            modelValue: !!v,
-            "onUpdate:modelValue": (val) => emit("change", val),
-          });
-        }
-        return h(Select, {
-          modelValue: v,
-          options,
-          size: "sm",
-          class: "w-full",
-          "onUpdate:modelValue": (val) => emit("change", val),
-        });
-      }
-
-      // Alignment
-      if (f.type === "align") {
-        return h(TabButtons, {
-          buttons: alignOptions,
-          modelValue: v,
-          "onUpdate:modelValue": (val) => emit("change", val),
-        });
-      }
-
-      // Vertical alignment
-      if (f.type === "valign") {
-        return h(TabButtons, {
-          buttons: valignOptions,
-          modelValue: v,
-          "onUpdate:modelValue": (val) => emit("change", val),
-        });
-      }
-
-      // Direction
-      if (f.type === "direction") {
-        return h(TabButtons, {
-          buttons: directionOptions,
-          modelValue: v,
-          "onUpdate:modelValue": (val) => emit("change", val),
-        });
-      }
-
-      // Slider
-      if (f.type === "slider") {
-        return h("div", { class: "flex items-center gap-2" }, [
-          h(Slider, {
-            modelValue: [v ?? f.min ?? 0],
-            min: f.min ?? 0,
-            max: f.max ?? 100,
-            step: f.step ?? 1,
-            size: "sm",
-            "onUpdate:modelValue": (arr) => emit("change", arr[0]),
-          }),
-          h("span", { class: "text-xs text-ink-gray-5 w-8 text-right flex-shrink-0 tabular-nums" },
-            `${v ?? f.min ?? 0}${f.unit ?? ""}`),
-        ]);
-      }
-
-      // Number
-      if (f.type === "number") {
-        return h("div", { class: "flex items-center gap-1.5" }, [
-          h(TextInput, {
-            type: "number",
-            min: f.min,
-            max: f.max,
-            size: "sm",
-            modelValue: v,
-            "onUpdate:modelValue": (val) => emit("change", Number(val)),
-          }),
-          f.unit ? h("span", { class: "text-xs text-ink-gray-4 flex-shrink-0" }, f.unit) : null,
-        ]);
-      }
-
-      // Dimension
-      if (f.type === "dimension") {
-        const { num, unit } = parseDimension(v);
-        return h("div", { class: "flex items-center gap-1" }, [
-          h(TextInput, {
-            type: "number",
-            min: 0,
-            size: "sm",
-            class: "flex-1 min-w-0",
-            modelValue: num,
-            "onUpdate:modelValue": (val) => emit("change", val + parseDimension(v).unit),
-          }),
-          h(TabButtons, {
-            buttons: [
-              { value: "px", label: "px" },
-              { value: "%",  label: "%" },
-            ],
-            modelValue: unit,
-            "onUpdate:modelValue": (u) => emit("change", parseDimension(v).num + u),
-          }),
-          h("button", {
-            type: "button",
-            title: "Set to auto",
-            style: v === "auto"
-              ? "font-size:11px;font-weight:500;padding:2px 6px;border-radius:4px;border:1px solid var(--surface-gray-7);background:var(--surface-gray-7);color:var(--text-ink-white);flex-shrink:0;cursor:pointer;"
-              : "font-size:11px;font-weight:500;padding:2px 6px;border-radius:4px;border:1px solid var(--outline-gray-2);background:transparent;color:var(--text-ink-gray-5);flex-shrink:0;cursor:pointer;",
-            onClick: () => emit("change", "auto"),
-          }, "auto"),
-        ]);
-      }
-
-      // Default: text
-      return h(TextInput, {
-        type: "text",
-        placeholder: f.placeholder || "",
-        size: "sm",
-        modelValue: v,
-        "onUpdate:modelValue": (val) => emit("change", val),
-      });
-    };
-  },
-});
 </script>

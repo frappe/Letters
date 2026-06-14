@@ -71,23 +71,24 @@ def _is_email_field(df):
 @frappe.whitelist(methods=["GET", "POST"])
 def get_doctypes_with_email_fields():
     """Return doctypes that have at least one email field, that the user can read."""
-    doctypes = set()
+    DocField    = frappe.qb.DocType("DocField")
+    CustomField = frappe.qb.DocType("Custom Field")
 
-    # Standard fields (DocField) — match both possible representations.
-    for filters in (
-        {"fieldtype": "Data", "options": "Email"},
-        {"fieldtype": "Email"},
-    ):
-        for row in frappe.get_all("DocField", filters=filters, fields=["parent"], distinct=True):
-            doctypes.add(row.parent)
+    df_rows = (
+        frappe.qb.from_(DocField)
+        .select(DocField.parent)
+        .where((DocField.fieldtype == "Email") | ((DocField.fieldtype == "Data") & (DocField.options == "Email")))
+        .distinct()
+    ).run(as_dict=True)
 
-    # Custom fields live in a separate doctype.
-    for filters in (
-        {"fieldtype": "Data", "options": "Email"},
-        {"fieldtype": "Email"},
-    ):
-        for row in frappe.get_all("Custom Field", filters=filters, fields=["dt"], distinct=True):
-            doctypes.add(row.dt)
+    cf_rows = (
+        frappe.qb.from_(CustomField)
+        .select(CustomField.dt)
+        .where((CustomField.fieldtype == "Email") | ((CustomField.fieldtype == "Data") & (CustomField.options == "Email")))
+        .distinct()
+    ).run(as_dict=True)
+
+    doctypes = {r.parent for r in df_rows} | {r.dt for r in cf_rows}
 
     result = []
     for dt in sorted(doctypes):

@@ -173,7 +173,7 @@ class TestGetCampaign:
 
         api_module.get_campaign("CAMP-001")
 
-        frappe_stub.has_permission.assert_called_once_with(
+        frappe_stub.has_permission.assert_called_with(
             "Letters Campaign", "read", doc=doc, throw=True
         )
 
@@ -229,7 +229,7 @@ class TestSendCampaignPermission:
     def test_permission_check_is_called(self):
         doc = _campaign_doc()
         self._run_send(doc)
-        frappe_stub.has_permission.assert_called_once_with(
+        frappe_stub.has_permission.assert_called_with(
             "Letters Campaign", "write", doc=doc, throw=True
         )
 

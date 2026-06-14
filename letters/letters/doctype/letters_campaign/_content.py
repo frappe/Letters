@@ -8,6 +8,7 @@ from frappe import _
 
 class ContentMixin:
     def as_builder_dict(self):
+        frappe.has_permission("Letters Campaign", "read", doc=self, throw=True)
         from letters.letters.api.recipients import _load_recipient_config
 
         return {
