@@ -156,34 +156,27 @@ function onChange(html) {
   margin: 0 !important;
 }
 
-/* ::before markers keep alignment consistent (inside behaviour) while
-   preventing the cursor from landing before the marker in contenteditable. */
-.rich-text-content ul,
-.rich-text-content ol {
-  list-style: none;
+.rich-text-content ul {
+  list-style-type: disc;
+  list-style-position: inside;
   padding-left: 0;
   margin: 0.5em 0;
 }
 .rich-text-content ol {
-  counter-reset: list-counter;
+  list-style-type: decimal;
+  list-style-position: inside;
+  padding-left: 0;
+  margin: 0.5em 0;
 }
 .rich-text-content li {
   margin: 0.2em 0;
 }
-.rich-text-content ul li::before {
-  content: "•";
-  margin-right: 0.4em;
-}
-.rich-text-content ol li {
-  counter-increment: list-counter;
-}
-.rich-text-content ol li::before {
-  content: counter(list-counter) ".";
-  margin-right: 0.4em;
-}
-/* Tiptap wraps li content in <p>; make it inline so marker + text stay on one line */
-.rich-text-content li > p {
-  display: inline;
+/* Marker (bullet/number) matches the block-level font/weight/color */
+.rich-text-shell .ProseMirror li::marker {
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  font-family: inherit;
 }
 .rich-text-content a {
   color: #2563eb;

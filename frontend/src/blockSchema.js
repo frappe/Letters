@@ -680,7 +680,7 @@ export const BLOCK_SCHEMA = {
   },
 
   header: {
-    label: "Header",
+    label: "Logo",
     icon: "award",
     defaults: {
       logo_url: "",

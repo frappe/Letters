@@ -182,6 +182,8 @@
     v-model:preview-text="previewText"
     v-model:recipient-config="recipientConfig"
     :campaign-doc="editorStore.campaignDoc"
+    :canvas-bg="editorStore.canvasBg"
+    @update:canvas-bg="(v) => { editorStore.canvasBg = v; saveNow(); }"
   />
 
   <TemplatePicker

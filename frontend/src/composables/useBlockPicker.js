@@ -23,9 +23,7 @@ export function useBlockPicker(editorStore) {
   provide("openPicker", openPicker);
 
   const availableBlocks = [
-    { type: "text",          label: "Text",         icon: "type" },
-    { type: "image",         label: "Image",        icon: "image" },
-    { type: "header",        label: "Header",       icon: "award" },
+    { type: "header",        label: "Logo",         icon: "award" },
     { type: "hero",          label: "Hero",         icon: "layout" },
     { type: "image_text",    label: "Image + Text", icon: "sidebar" },
     { type: "button",        label: "Button",       icon: "square" },

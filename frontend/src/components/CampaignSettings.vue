@@ -76,6 +76,13 @@
                     @update:model-value="(v) => emit('update:previewText', v)"
                   />
                 </label>
+                <label class="block">
+                  <span class="block text-xs font-semibold text-ink-gray-6 uppercase tracking-wide mb-1.5">Editor Background</span>
+                  <ColorPicker
+                    :model-value="canvasBg"
+                    @update:model-value="(v) => emit('update:canvasBg', v)"
+                  />
+                </label>
               </div>
 
               <!-- ── Recipients ── -->
@@ -194,6 +201,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { TextInput, FeatherIcon, Button } from "frappe-ui";
 import RecipientsPicker from "./RecipientsPicker.vue";
+import ColorPicker from "./ColorPicker.vue";
 
 const props = defineProps({
   modelValue:      { type: Boolean, default: false },
@@ -202,10 +210,11 @@ const props = defineProps({
   previewText:     { type: String, default: "" },
   recipientConfig: { type: Object, default: null },
   campaignDoc:     { type: Object, default: null },
+  canvasBg: { type: String, default: "#f3f4f6" },
 });
 const emit = defineEmits([
   "update:modelValue", "update:campaignName", "update:subject",
-  "update:previewText", "update:recipientConfig",
+  "update:previewText", "update:recipientConfig", "update:canvasBg",
 ]);
 
 const sections = [
