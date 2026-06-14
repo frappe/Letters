@@ -29,6 +29,15 @@ const fontWeightField = (label = "Weight") => ({
 // resolved from it at render time. See fonts.js / fonts.py.
 const fontField = { key: "font_family", label: "Font", type: "select", options: FONT_OPTIONS, hint: "Web-safe font for this block" };
 
+const letterSpacingField = { key: "letter_spacing", label: "Letter spacing", type: "select", options: [
+  { label: "Normal",          value: "normal"  },
+  { label: "Tight (−0.02em)", value: "-0.02em" },
+  { label: "Snug (−0.01em)",  value: "-0.01em" },
+  { label: "Wide (0.05em)",   value: "0.05em"  },
+  { label: "Wider (0.1em)",   value: "0.1em"   },
+  { label: "Widest (0.2em)",  value: "0.2em"   },
+]};
+
 // Shared block-level border + rounding fields (applied by BlockWrapper)
 const borderFields = [
   { key: "block_border_color",  label: "Border color", type: "color" },
@@ -78,6 +87,7 @@ export const BLOCK_SCHEMA = {
           { key: "heading_size", label: "Heading size", type: "text", placeholder: "30px" },
           { key: "heading_color", label: "Heading color", type: "color" },
           { key: "subheading_color", label: "Subheading color", type: "color" },
+          letterSpacingField,
         ],
       },
     ],
@@ -94,6 +104,7 @@ export const BLOCK_SCHEMA = {
       font_weight: "400",
       text_color: "#374151",
       line_height: "1.6",
+      background_color: "transparent",
       padding_top: 20, padding_right: 16, padding_bottom: 20, padding_left: 16,
       ...borderDefaults,
     },
@@ -108,14 +119,8 @@ export const BLOCK_SCHEMA = {
           fontWeightField(),
           { key: "text_color", label: "Text color", type: "color" },
           { key: "line_height", label: "Line height", type: "text", placeholder: "1.6", hint: "Vertical space between lines, e.g. 1.5 or 160%" },
-          { key: "letter_spacing", label: "Letter spacing", type: "select", options: [
-            { label: "Normal", value: "normal" },
-            { label: "Tight (−0.02em)", value: "-0.02em" },
-            { label: "Snug (−0.01em)", value: "-0.01em" },
-            { label: "Wide (0.05em)", value: "0.05em" },
-            { label: "Wider (0.1em)", value: "0.1em" },
-            { label: "Widest (0.2em)", value: "0.2em" },
-          ]},
+          letterSpacingField,
+          { key: "background_color", label: "Background", type: "color" },
           ...borderFields,
         ],
       },
@@ -195,6 +200,7 @@ export const BLOCK_SCHEMA = {
             ],
           },
           { key: "align", label: "Alignment", type: "align" },
+          letterSpacingField,
           ...borderFields,
         ],
       },
@@ -247,6 +253,7 @@ export const BLOCK_SCHEMA = {
         title: "Style",
         fields: [
           fontField,
+          letterSpacingField,
           { key: "background_color", label: "Background", type: "color" },
           ...borderFields,
         ],
@@ -297,6 +304,7 @@ export const BLOCK_SCHEMA = {
             ],
           },
           { key: "border_radius", label: "Corners", type: "text", placeholder: "8px" },
+          letterSpacingField,
           ...borderFields,
         ],
       },
@@ -443,6 +451,7 @@ export const BLOCK_SCHEMA = {
           { key: "link_color",       label: "Link color",   type: "color" },
           { key: "text_color",       label: "Description",  type: "color" },
           { key: "accent_color",     label: "Marker color", type: "color" },
+          letterSpacingField,
           ...borderFields,
         ],
       },
@@ -510,6 +519,7 @@ export const BLOCK_SCHEMA = {
         title: "Style",
         fields: [
           fontField,
+          letterSpacingField,
           { key: "background_color", label: "Background", type: "color" },
           { key: "text_color", label: "Text color", type: "color" },
           ...borderFields,
@@ -574,6 +584,7 @@ export const BLOCK_SCHEMA = {
           { key: "border_color",     label: "Accent color", type: "color" },
           { key: "quote_color",      label: "Quote color", type: "color" },
           { key: "author_color",     label: "Author color", type: "color" },
+          letterSpacingField,
           ...borderFields,
         ],
       },
@@ -710,6 +721,7 @@ export const BLOCK_SCHEMA = {
               { label: "Hide", value: false },
             ],
           },
+          letterSpacingField,
           ...borderFields,
         ],
       },

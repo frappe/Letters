@@ -7,7 +7,8 @@ export const useEditorStore = defineStore("editor", () => {
   const renderedHtml   = ref("");
   const campaignName   = ref("");
   const campaignDoc    = ref(null);
-  const emailWidth     = ref(600);
+  const emailWidth       = ref(600);
+  const canvasBg         = ref("#f3f4f6");
   const selectedBlockId = ref(null);
   const isDirty        = ref(false);
   const clipboard       = ref(null); // holds a deep-cloned block for copy/paste
@@ -450,6 +451,7 @@ export const useEditorStore = defineStore("editor", () => {
     campaignDoc.value  = doc;
     campaignName.value = doc.title;
     emailWidth.value   = doc.email_width || 600;
+    canvasBg.value     = doc.canvas_background || "#f3f4f6";
     _idCounter.value   = 0;
     selectedBlockId.value = null;
     blocks.value = _assignIds((doc.blocks || []).map(_migrateBlock));
@@ -487,6 +489,7 @@ export const useEditorStore = defineStore("editor", () => {
     campaignName,
     campaignDoc,
     emailWidth,
+    canvasBg,
     selectedBlockId,
     selectedBlock,
     isDirty,

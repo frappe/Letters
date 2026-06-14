@@ -51,6 +51,13 @@
       "hidden": 1
     },
     {
+      "fieldname": "canvas_background",
+      "fieldtype": "Data",
+      "label": "Canvas Background Color",
+      "default": "#f3f4f6",
+      "hidden": 1
+    },
+    {
       "fieldname": "blocks_json",
       "fieldtype": "Code",
       "label": "Blocks JSON",

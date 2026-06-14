@@ -156,27 +156,30 @@ function onChange(html) {
   margin: 0 !important;
 }
 
-.rich-text-content ul {
-  list-style-type: disc;
-  list-style-position: inside;
+/* ::before markers keep alignment consistent (inside behaviour) while
+   preventing the cursor from landing before the marker in contenteditable. */
+.rich-text-content ul,
+.rich-text-content ol {
+  list-style: none;
   padding-left: 0;
   margin: 0.5em 0;
 }
 .rich-text-content ol {
-  list-style-type: decimal;
-  list-style-position: inside;
-  padding-left: 0;
-  margin: 0.5em 0;
+  counter-reset: list-counter;
 }
 .rich-text-content li {
   margin: 0.2em 0;
 }
-/* Marker (bullet/number) matches the block-level font/weight/color */
-.rich-text-shell .ProseMirror li::marker {
-  font-size: inherit;
-  font-weight: inherit;
-  color: inherit;
-  font-family: inherit;
+.rich-text-content ul li::before {
+  content: "•";
+  margin-right: 0.4em;
+}
+.rich-text-content ol li {
+  counter-increment: list-counter;
+}
+.rich-text-content ol li::before {
+  content: counter(list-counter) ".";
+  margin-right: 0.4em;
 }
 .rich-text-content a {
   color: #2563eb;

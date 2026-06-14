@@ -90,7 +90,8 @@
 
       <!-- Canvas -->
       <main
-        class="flex-1 overflow-y-auto p-6 relative bg-gray-100"
+        class="flex-1 overflow-y-auto p-6 relative"
+        :style="{ backgroundColor: editorStore.canvasBg || '#f3f4f6' }"
         @dragover.prevent
         @drop="onCanvasDrop"
         @click="editorStore.selectBlock(null)"
@@ -181,6 +182,8 @@
     v-model:preview-text="previewText"
     v-model:recipient-config="recipientConfig"
     :campaign-doc="editorStore.campaignDoc"
+    :canvas-bg="editorStore.canvasBg"
+    @update:canvas-bg="(v) => { editorStore.canvasBg = v; saveNow(); }"
   />
 
   <TemplatePicker
