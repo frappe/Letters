@@ -5,45 +5,15 @@ import json
 import frappe
 from frappe import _
 
-from .recipients import _load_recipient_config, _normalize_recipient_config
-
-
+from .recipients import _normalize_recipient_config
+from ..doctype.letters_campaign._content import _unique_campaign_title
 
 
 @frappe.whitelist(methods=["GET", "POST"])
 def get_campaign(name: str):
     doc = frappe.get_doc("Letters Campaign", name)
     frappe.has_permission("Letters Campaign", "read", doc=doc, throw=True)
-    return {
-        "name": doc.name,
-        "title": doc.title,
-        "subject": doc.subject,
-        "preview_text": doc.preview_text or "",
-        "status": doc.status,
-        "scheduled_at": str(doc.scheduled_at) if doc.scheduled_at else None,
-        "email_width": getattr(doc, "email_width", None) or 600,
-        "blocks": json.loads(doc.blocks_json) if doc.blocks_json else [],
-        "recipient_config": _load_recipient_config(doc),
-    }
-
-
-
-
-def _unique_campaign_title(base):
-    """Return a campaign title that doesn't collide with an existing record.
-
-    Campaigns are autonamed `field:title`, so two campaigns can't share a title.
-    If ``base`` is taken we append ` - 1`, ` - 2`, … until we find a free slot.
-    """
-    base = (base or "Untitled Campaign").strip() or "Untitled Campaign"
-    if not frappe.db.exists("Letters Campaign", base):
-        return base
-    n = 1
-    while frappe.db.exists("Letters Campaign", f"{base} - {n}"):
-        n += 1
-    return f"{base} - {n}"
-
-
+    return doc.as_builder_dict()
 
 
 @frappe.whitelist(methods=["POST"])
@@ -86,8 +56,6 @@ def save_campaign(name: str | None = None, title: str | None = None, subject: st
     return {"name": doc.name, "title": doc.title, "status": doc.status}
 
 
-
-
 @frappe.whitelist(methods=["GET", "POST"])
 def get_templates():
     """Return all active Letters Templates with rendered preview HTML for the picker."""
@@ -110,8 +78,6 @@ def get_templates():
     return templates
 
 
-
-
 @frappe.whitelist(methods=["GET", "POST"])
 def render_preview(name: str | None = None, blocks: str | None = None, preview_text: str | None = None, email_width: int | None = None):
     """Compile blocks to email-safe HTML."""
@@ -120,23 +86,20 @@ def render_preview(name: str | None = None, blocks: str | None = None, preview_t
     if name and not blocks:
         doc = frappe.get_doc("Letters Campaign", name)
         frappe.has_permission("Letters Campaign", "read", doc=doc, throw=True)
-        blocks_data = doc.blocks_json or "[]"
-        if preview_text is None:
-            preview_text = doc.preview_text
-        if email_width is None:
-            email_width = getattr(doc, "email_width", None) or 600
+        try:
+            html = doc.render_preview_html(preview_text=preview_text, email_width=email_width)
+            return {"html": html}
+        except Exception as e:
+            frappe.log_error(frappe.get_traceback(), "Letters render_preview error")
+            frappe.throw(str(e))
     else:
         blocks_data = blocks if isinstance(blocks, list) else json.loads(blocks or "[]")
-
-    try:
-        compiler = EmailCompiler(blocks_data, preview_text=preview_text or "", email_width=email_width or 600)
-        html = compiler.compile()
-        return {"html": html}
-    except Exception as e:
-        frappe.log_error(frappe.get_traceback(), "Letters render_preview error")
-        frappe.throw(str(e))
-
-
+        try:
+            compiler = EmailCompiler(blocks_data, preview_text=preview_text or "", email_width=email_width or 600)
+            return {"html": compiler.compile()}
+        except Exception as e:
+            frappe.log_error(frappe.get_traceback(), "Letters render_preview error")
+            frappe.throw(str(e))
 
 
 @frappe.whitelist(methods=["POST"])
@@ -144,19 +107,4 @@ def duplicate_campaign(name: str):
     """Create an exact copy of a campaign as a new Draft."""
     original = frappe.get_doc("Letters Campaign", name)
     frappe.has_permission("Letters Campaign", "read", doc=original, throw=True)
-    frappe.has_permission("Letters Campaign", "create", throw=True)
-
-    new_doc = frappe.get_doc({
-        "doctype": "Letters Campaign",
-        "title": f"Copy of {original.title}",
-        "subject": original.subject or "",
-        "preview_text": original.preview_text or "",
-        "status": "Draft",
-        "email_width": getattr(original, "email_width", None) or 600,
-        "blocks_json": original.blocks_json or "[]",
-        "recipient_config": getattr(original, "recipient_config", None) or "",
-    })
-    new_doc.insert()
-    # No explicit commit: this is a POST endpoint, so Frappe auto-commits on
-    # success. (Manual commits in request handlers are discouraged.)
-    return {"name": new_doc.name, "title": new_doc.title}
+    return original.duplicate()

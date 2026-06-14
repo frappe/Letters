@@ -78,6 +78,13 @@ import letters.letters.api as api_module
 # Convenient reference (same object as sys.modules["frappe"])
 import frappe  # noqa
 
+# Import mixin classes so we can bind real business-logic methods onto mock docs.
+# Frappe is already stubbed above so module-level `import frappe` in each mixin works.
+import types as _types
+from letters.letters.doctype.letters_campaign._content import ContentMixin
+from letters.letters.doctype.letters_campaign._sending import SendingMixin
+from letters.letters.doctype.letters_campaign._analytics import AnalyticsMixin
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -90,9 +97,24 @@ def _campaign_doc(name="CAMP-001", status="Draft", blocks_json=None, subject="He
     doc.subject = subject
     doc.preview_text = ""
     doc.status = status
+    doc.scheduled_at = None
+    doc.email_width = 600
+    doc.recipient_config = ""
     doc.blocks_json = blocks_json if blocks_json is not None else json.dumps(
         [{"type": "text", "props": {"content": "Hi"}}]
     )
+    # Bind real mixin implementations so that API-wrapper tests exercise
+    # the actual business logic rather than returning plain MagicMocks.
+    doc.as_builder_dict     = _types.MethodType(ContentMixin.as_builder_dict,     doc)
+    doc.render_preview_html = _types.MethodType(ContentMixin.render_preview_html, doc)
+    doc.duplicate           = _types.MethodType(ContentMixin.duplicate,           doc)
+    doc.send                = _types.MethodType(SendingMixin.send,                doc)
+    doc.schedule            = _types.MethodType(SendingMixin.schedule,            doc)
+    doc.send_test_email     = _types.MethodType(SendingMixin.send_test_email,     doc)
+    doc.get_analytics       = _types.MethodType(AnalyticsMixin.get_analytics,     doc)
+    doc.get_recipients      = _types.MethodType(AnalyticsMixin.get_recipients,    doc)
+    doc.get_send_progress   = _types.MethodType(AnalyticsMixin.get_send_progress, doc)
+    doc.record_open         = _types.MethodType(AnalyticsMixin.record_open,       doc)
     return doc
 
 
