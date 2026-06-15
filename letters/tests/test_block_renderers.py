@@ -378,6 +378,21 @@ class TestVideoThumbRenderer:
         })
         assert "Watch the demo" in html
 
+    def test_thumbnail_link_opens_in_new_tab(self):
+        html = self._r({
+            "thumbnail_url": "https://img.yt/thumb.jpg",
+            "video_url": "https://youtube.com/watch?v=abc",
+        })
+        assert 'target="_blank"' in html
+
+    def test_caption_link_opens_in_new_tab(self):
+        html = self._r({
+            "thumbnail_url": "https://img.yt/thumb.jpg",
+            "video_url": "https://yt.com/v",
+            "caption": "Watch the demo",
+        })
+        assert html.count('target="_blank"') == 2
+
 
 # ── SpacerRenderer ────────────────────────────────────────────────────────────
 

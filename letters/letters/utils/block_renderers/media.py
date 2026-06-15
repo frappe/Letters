@@ -218,7 +218,7 @@ class VideoThumbRenderer(BlockRenderer):
         html = (
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
             f'<tr><td style="padding:{padding};">'
-            f'<a href="{video_url}" style="display:block;text-decoration:none;">'
+            f'<a href="{video_url}" target="_blank" style="display:block;text-decoration:none;">'
             f'<img src="{thumbnail_url}" width="100%" alt="Watch video"'
             f' style="display:block;max-width:100%;height:auto;border:0;'
             f'border-radius:{border_radius};" />'
@@ -228,7 +228,7 @@ class VideoThumbRenderer(BlockRenderer):
             html += (
                 f'<p style="margin:8px 0 0;font-family:Arial,sans-serif;font-size:13px;'
                 f'color:#6b7280;text-align:center;">'
-                f'<a href="{video_url}" style="color:#111827;font-weight:600;text-decoration:none;">'
+                f'<a href="{video_url}" target="_blank" style="color:#111827;font-weight:600;text-decoration:none;">'
                 f'&#9654; {caption}</a></p>'
             )
         html += f'</td></tr></table>'
