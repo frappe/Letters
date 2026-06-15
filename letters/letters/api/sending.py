@@ -118,6 +118,10 @@ def send_campaign(name: str, recipients: str | None = None, email_group: str | N
     """
     doc = frappe.get_doc("Letter", name)
     frappe.has_permission("Letter", "write", doc=doc, throw=True)
+    if doc.status == "Sent":
+        frappe.throw(_("This letter has already been sent."), exc=frappe.ValidationError)
+    if doc.status == "Sending":
+        frappe.throw(_("This letter is currently sending."), exc=frappe.ValidationError)
     return doc.send(email_group=email_group, recipients=recipients, doctype_config=doctype_config)
 
 
