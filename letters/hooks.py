@@ -26,10 +26,9 @@ scheduler_events = {
 
 # The Vite IIFE bundle inlines its CSS (injects a <style> tag at runtime),
 # so there is no separate .css file to register via page_css.
-page_js = {
-    "letter-builder": "public/js/letter-builder.js",
-    "letters": "public/js/letters-workspace.js",
-}
+app_include_js = ["letters/public/js/letters-desk.js"]
+
+page_js = {"letter-builder": "public/js/letter-builder.js"}
 
 doctype_js = {"Letter": "public/frappe_customizations/email_campaign.js"}
 
