@@ -1,6 +1,6 @@
 <template>
   <FrappeUIProvider>
-    <LettersDashboard v-if="!activeLetter" @open-letter="openLetter" />
+    <LettersDashboard v-if="!activeLetter" :is-dark="isDark" :toggle-dark="toggleDark" @open-letter="openLetter" @new-letter="createAndOpen" />
     <BuilderPage v-else :initial-name="activeLetter" :is-dark="isDark" :toggle-dark="toggleDark" @close="closeLetter" />
   </FrappeUIProvider>
 </template>
@@ -38,6 +38,12 @@ function openLetter(name) {
   if (typeof frappe !== "undefined" && frappe.set_route) {
     frappe.set_route("letter-builder", name);
   }
+}
+
+// Called from dashboard's "New Letter" logo-dropdown shortcut
+async function createAndOpen() {
+  const res = await frappe.call({ method: "letters.letters.api.save_campaign", args: {} });
+  if (res.message?.name) openLetter(res.message.name);
 }
 
 function closeLetter() {

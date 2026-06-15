@@ -311,8 +311,8 @@ const menuOptions = computed(() => [
       },
       {
         label: "Toggle theme",
-        icon: isDark.value ? "sun" : "moon",
-        onClick: () => toggleDark(),
+        icon: props.isDark ? "sun" : "moon",
+        onClick: () => props.toggleDark(),
       },
     ],
   },

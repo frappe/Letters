@@ -5,39 +5,42 @@
     @click="$emit('open', letter.name)"
   >
     <!-- Thumbnail area -->
-    <div class="bg-surface-gray-2 h-40 flex items-center justify-center border-b border-outline-gray-1 relative overflow-hidden">
-      <div class="flex flex-col items-center gap-2 text-ink-gray-4 select-none">
-        <FeatherIcon name="mail" class="w-8 h-8" />
-        <span class="text-xs font-medium truncate max-w-[140px] text-center px-2">{{ letter.subject || letter.title }}</span>
-      </div>
+    <div class="h-40 border-b border-outline-gray-1 relative overflow-hidden">
+      <LetterThumbnail :name="letter.name" icon-class="w-8 h-8" />
       <!-- Status badge -->
       <span
-        class="absolute top-2.5 right-2.5 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+        class="absolute top-2.5 left-2.5 text-[10px] font-semibold px-2 py-0.5 rounded-full z-10"
         :class="statusClass"
       >{{ letter.status }}</span>
     </div>
 
     <!-- Card footer -->
-    <div class="px-3.5 py-3">
-      <p class="text-sm font-medium text-ink-gray-9 truncate leading-snug">{{ letter.title }}</p>
-      <p class="text-xs text-ink-gray-5 mt-0.5">{{ relativeTime }}</p>
+    <div class="px-3.5 py-3 flex items-start justify-between gap-2">
+      <div class="min-w-0">
+        <p class="text-sm font-medium text-ink-gray-9 truncate leading-snug">{{ letter.title }}</p>
+        <p class="text-xs text-ink-gray-5 mt-0.5">{{ relativeTime }}</p>
+      </div>
+      <!-- Always-visible menu button -->
+      <button
+        class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-md
+               text-ink-gray-4 hover:text-ink-gray-7 hover:bg-surface-gray-2 transition-colors mt-0.5"
+        @click.stop="$emit('menu', $event)"
+      >
+        <FeatherIcon name="more-horizontal" class="w-4 h-4" />
+      </button>
     </div>
-
-    <!-- Hover actions -->
-    <div
-      class="absolute inset-0 bg-black/0 group-hover:bg-black/[0.02] transition-colors pointer-events-none"
-    />
   </div>
 </template>
 
 <script setup>
 import { computed } from "vue";
 import { FeatherIcon } from "frappe-ui";
+import LetterThumbnail from "./LetterThumbnail.vue";
 
 const props = defineProps({
   letter: { type: Object, required: true },
 });
-defineEmits(["open"]);
+defineEmits(["open", "menu"]);
 
 const statusClass = computed(() => {
   const map = {
@@ -56,11 +59,13 @@ const relativeTime = computed(() => {
   try {
     const d = new Date(props.letter.modified.replace(" ", "T"));
     const diff = (Date.now() - d.getTime()) / 1000;
-    if (diff < 60) return "Just now";
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    if (diff < 86400 * 7) return `${Math.floor(diff / 86400)}d ago`;
-    return d.toLocaleDateString();
+    if (diff < 60)          return "Edited just now";
+    if (diff < 3600)        return `Edited ${Math.floor(diff / 60)} mins ago`;
+    if (diff < 86400)       return `Edited ${Math.floor(diff / 3600)} hours ago`;
+    if (diff < 86400 * 14)  return `Edited ${Math.floor(diff / 86400)} days ago`;
+    if (diff < 86400 * 60)  return `Edited ${Math.floor(diff / (86400 * 7))} weeks ago`;
+    if (diff < 86400 * 365) return `Edited ${Math.floor(diff / (86400 * 30))} months ago`;
+    return `Edited ${Math.floor(diff / (86400 * 365))} years ago`;
   } catch {
     return "";
   }
