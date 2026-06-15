@@ -131,7 +131,7 @@ export function useCampaign(editorStore) {
         subject: "",
         preview_text: "",
         email_width: 600,
-        canvas_background: "#f3f4f6",
+        canvas_background: "#ffffff",
         blocks: JSON.stringify(blocks),
         recipient_config: null,
       },

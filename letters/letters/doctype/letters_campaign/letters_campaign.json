@@ -54,7 +54,7 @@
       "fieldname": "canvas_background",
       "fieldtype": "Data",
       "label": "Canvas Background Color",
-      "default": "#f3f4f6",
+      "default": "#ffffff",
       "hidden": 1
     },
     {

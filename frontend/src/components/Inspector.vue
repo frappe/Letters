@@ -47,7 +47,7 @@
             </div>
           </div>
           <div class="flex items-center gap-2 py-1">
-            <span class="w-24 shrink-0 text-xs text-ink-gray-5">Editor BG</span>
+            <span class="w-24 shrink-0 text-xs text-ink-gray-5">Canvas BG</span>
             <div class="flex-1 min-w-0">
               <ColorPicker
                 :model-value="store.canvasBg"

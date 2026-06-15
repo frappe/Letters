@@ -90,15 +90,14 @@
 
       <!-- Canvas -->
       <main
-        class="flex-1 overflow-y-auto p-6 relative"
-        :style="{ backgroundColor: editorStore.canvasBg || '#f3f4f6' }"
+        class="flex-1 overflow-y-auto p-6 relative bg-surface-gray-2"
         @dragover.prevent
         @drop="onCanvasDrop"
         @click="editorStore.selectBlock(null)"
       >
         <div
-          class="mx-auto bg-white origin-top transition-transform shadow-sm letters-email-canvas"
-          :style="{ maxWidth: editorStore.emailWidth + 'px', minHeight: '200px', transform: `scale(${canvasZoom})`, transformOrigin: 'top center', marginBottom: canvasZoom < 1 ? `calc((${canvasZoom} - 1) * 100%)` : undefined, color: '#374151', colorScheme: 'light' }"
+          class="mx-auto origin-top transition-transform shadow-sm letters-email-canvas"
+          :style="{ backgroundColor: editorStore.canvasBg || '#ffffff', maxWidth: editorStore.emailWidth + 'px', minHeight: '200px', transform: `scale(${canvasZoom})`, transformOrigin: 'top center', marginBottom: canvasZoom < 1 ? `calc((${canvasZoom} - 1) * 100%)` : undefined, color: '#374151', colorScheme: 'light' }"
         >
 
           <!-- Loading skeleton (while fetching a saved campaign) -->
@@ -109,7 +108,7 @@
           <!-- Empty state (not loading, no blocks) -->
           <div
             v-else-if="!editorStore.blocks.length"
-            class="border-2 border-dashed border-outline-gray-2 rounded-xl p-16 text-center bg-surface-base/50 select-none"
+            class="border-2 border-dashed border-outline-gray-2 rounded-xl p-16 text-center select-none"
           >
             <div class="mb-3 opacity-40"><FeatherIcon name="inbox" class="w-10 h-10 mx-auto text-ink-gray-4" /></div>
             <p class="text-sm font-medium mb-1">Your canvas is empty</p>
