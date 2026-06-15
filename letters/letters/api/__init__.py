@@ -20,6 +20,7 @@ from .recipients import (
 from .campaigns import (
     get_campaign,
     save_campaign,
+    get_letters,
     get_templates,
     render_preview,
     duplicate_campaign,
