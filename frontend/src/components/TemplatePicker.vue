@@ -98,7 +98,7 @@ const creating = ref(false);
 const loadError = ref(false);
 const templates = ref([]);
 
-const blankBlocks = [{ type: "header" }, { type: "footer" }];
+const blankBlocks = [];
 
 async function loadTemplates() {
   loading.value = true;
