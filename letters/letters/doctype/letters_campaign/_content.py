@@ -19,6 +19,7 @@ class ContentMixin:
             "status": self.status,
             "scheduled_at": str(self.scheduled_at) if self.scheduled_at else None,
             "email_width": getattr(self, "email_width", None) or 600,
+            "canvas_background": getattr(self, "canvas_background", None) or "#ffffff",
             "blocks": json.loads(self.blocks_json) if self.blocks_json else [],
             "recipient_config": _load_recipient_config(self),
         }
@@ -48,11 +49,12 @@ class ContentMixin:
 
 
 def _unique_campaign_title(base):
-    """Return a title that doesn't collide with an existing Letters Campaign name."""
+    """Return a title that doesn't collide with an existing Letters Campaign title."""
     base = (base or "Untitled Campaign").strip() or "Untitled Campaign"
-    if not frappe.db.exists("Letters Campaign", base):
+    existing = frappe.db.get_all("Letters Campaign", filters={"title": ["like", f"{base}%"]}, pluck="title")
+    if base not in existing:
         return base
     n = 1
-    while frappe.db.exists("Letters Campaign", f"{base} - {n}"):
+    while f"{base} - {n}" in existing:
         n += 1
     return f"{base} - {n}"

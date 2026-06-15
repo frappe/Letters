@@ -73,12 +73,32 @@ export function useCampaign(editorStore) {
   });
 
   // ── Load ────────────────────────────────────────────────────────────────────
-  const urlParams   = new URLSearchParams(window.location.search);
-  const initialName = urlParams.get("name");
+  // Read campaign name from the Frappe route: /app/letters-builder/<name>
+  // Fall back to legacy ?name= query param so old bookmarks still work.
+  function getRouteParam() {
+    if (window.frappe?.get_route) {
+      const route = frappe.get_route();
+      if (route && route[1]) return route[1];
+    }
+    return new URLSearchParams(window.location.search).get("name");
+  }
+
+  function setRouteParam(name) {
+    if (window.frappe?.set_route) {
+      frappe.set_route("letters-builder", name);
+    } else {
+      const url = new URL(window.location.href);
+      url.searchParams.set("name", name);
+      window.history.replaceState({}, "", url.toString());
+    }
+  }
 
   onMounted(async () => {
+    const initialName = getRouteParam();
     if (initialName) {
       await loadCampaign(initialName);
+      // Normalize legacy ?name= URLs to the path-based format on load.
+      setRouteParam(initialName);
       // A freshly created campaign (e.g. from the Desk form) has no blocks yet —
       // greet the user with the template picker instead of an empty canvas.
       if (!editorStore.blocks.length) showTemplatePicker.value = true;
@@ -138,14 +158,16 @@ export function useCampaign(editorStore) {
     });
     showTemplatePicker.value = false;
     await loadCampaign(res.message.name);
-    const url = new URL(window.location.href);
-    url.searchParams.set("name", res.message.name);
-    window.history.replaceState({}, "", url.toString());
+    setRouteParam(res.message.name);
   }
 
   // ── Save ──────────────────────────────────────────────────────────────────────
   async function saveCampaign() {
     if (editorStore.isReadOnly) return;
+    // Never create a campaign from autosave — initial creation is handled by
+    // onTemplateSubmit. Without this guard, null name → HTTP '' → backend creates
+    // a phantom campaign and the original is never updated.
+    if (!editorStore.campaignDoc?.name) return;
     saving.value = true;
     try {
       const res = await frappe.call({
@@ -162,14 +184,9 @@ export function useCampaign(editorStore) {
         },
       });
       const saved = res.message;
-      const isNew = !editorStore.campaignDoc;
       // Always replace the full doc object so status/title stay consistent
       editorStore.campaignDoc = saved;
-      if (isNew) {
-        const url = new URL(window.location.href);
-        url.searchParams.set("name", saved.name);
-        window.history.replaceState({}, "", url.toString());
-      }
+      setRouteParam(saved.name);
       editorStore.clearDirty();
       // Keep browser tab title in sync with the campaign name
       document.title = (editorStore.campaignName || "Untitled Campaign") + " · Letters";
@@ -343,7 +360,7 @@ export function useCampaign(editorStore) {
       const newName = res.message.name;
       toast.success(`Duplicated as "${res.message.title}". Opening it now.`);
       // Navigate to the new campaign in the same tab
-      window.location.href = `/app/letters-builder?name=${encodeURIComponent(newName)}`;
+      setRouteParam(newName);
     } catch (e) {
       toast.error("Duplicate failed: " + describeError(e));
       duplicating.value = false;

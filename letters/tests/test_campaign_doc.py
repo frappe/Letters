@@ -14,6 +14,8 @@ from unittest.mock import patch
 import frappe
 from frappe.tests import IntegrationTestCase
 
+from letters.letters.doctype.letters_campaign._content import _unique_campaign_title
+
 
 # ---------------------------------------------------------------------------
 # Shared fixtures
@@ -529,3 +531,72 @@ class TestRecordOpen(LettersTestCase):
     def test_noop_when_no_sends(self):
         doc = self.new_campaign()
         doc.record_open("nobody@example.com")
+
+
+# ---------------------------------------------------------------------------
+# _unique_campaign_title — regression for hash-named DocType bug
+# ---------------------------------------------------------------------------
+
+class TestUniqueCampaignTitle(LettersTestCase):
+    """_unique_campaign_title must check the title field, not the name (hash) field."""
+
+    def test_returns_base_when_no_collision(self):
+        base = f"Unique Title {frappe.generate_hash(length=8)}"
+        self.assertEqual(_unique_campaign_title(base), base)
+
+    def test_appends_1_when_title_already_exists(self):
+        base = f"Duplicate Title {frappe.generate_hash(length=8)}"
+        doc = self.new_campaign(title=base)
+        result = _unique_campaign_title(base)
+        self.assertEqual(result, f"{base} - 1")
+
+    def test_increments_past_existing_suffixes(self):
+        base = f"Multi Title {frappe.generate_hash(length=8)}"
+        doc1 = self.new_campaign(title=base)
+        doc2 = self.new_campaign(title=f"{base} - 1")
+        result = _unique_campaign_title(base)
+        self.assertEqual(result, f"{base} - 2")
+
+    def test_defaults_to_untitled_campaign_on_empty_input(self):
+        # Should not raise; just return some valid non-empty title
+        result = _unique_campaign_title("")
+        self.assertTrue(result.startswith("Untitled Campaign"))
+
+    def test_copy_of_prefix_gets_unique_title(self):
+        base = f"Copy Title {frappe.generate_hash(length=8)}"
+        self.new_campaign(title=f"Copy of {base}")
+        result = _unique_campaign_title(f"Copy of {base}")
+        self.assertEqual(result, f"Copy of {base} - 1")
+
+
+# ---------------------------------------------------------------------------
+# Rename validation — block title change only while Sending
+# ---------------------------------------------------------------------------
+
+class TestRenameValidation(LettersTestCase):
+    def test_rename_allowed_on_draft(self):
+        doc = self.new_campaign()
+        doc.title = f"Renamed {frappe.generate_hash(length=6)}"
+        doc.save()  # must not raise
+
+    def test_rename_allowed_on_sent(self):
+        doc = self.new_campaign()
+        frappe.db.set_value("Letters Campaign", doc.name, "status", "Sent")
+        doc.reload()
+        doc.title = f"Renamed Sent {frappe.generate_hash(length=6)}"
+        doc.save()  # must not raise
+
+    def test_rename_allowed_on_scheduled(self):
+        doc = self.new_campaign()
+        frappe.db.set_value("Letters Campaign", doc.name, "status", "Scheduled")
+        doc.reload()
+        doc.title = f"Renamed Scheduled {frappe.generate_hash(length=6)}"
+        doc.save()  # must not raise
+
+    def test_rename_blocked_while_sending(self):
+        doc = self.new_campaign()
+        frappe.db.set_value("Letters Campaign", doc.name, "status", "Sending")
+        doc.reload()
+        doc.title = f"Renamed Sending {frappe.generate_hash(length=6)}"
+        with self.assertRaises(frappe.ValidationError):
+            doc.save()

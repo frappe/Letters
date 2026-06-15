@@ -39,6 +39,8 @@ if (typeof window !== "undefined" && window.frappe && window.frappe.pages) {
     }
     mountApp(el);
   };
+
+
 } else {
   // Standalone dev (vite dev server / index.html)
   mountApp("#letters-builder");

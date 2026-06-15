@@ -2,11 +2,13 @@
   "name": "Letters Campaign",
   "module": "Letters",
   "doctype": "DocType",
-  "autoname": "field:title",
-  "naming_rule": "By fieldname",
+  "autoname": "hash",
+  "naming_rule": "Random",
+  "title_field": "title",
   "issingle": 0,
   "istable": 0,
   "is_submittable": 0,
+  "allow_rename": 1,
   "track_changes": 1,
   "fields": [
     {

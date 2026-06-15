@@ -22,7 +22,7 @@ frappe.listview_settings["Letters Campaign"] = {
     get_label() { return __("Open"); },
     get_description(doc) { return __("Open in Letters builder"); },
     action(doc) {
-      window.open(`/app/letters-builder?name=${encodeURIComponent(doc.name)}`, "_self");
+      frappe.set_route("letters-builder", doc.name);
     },
   },
 

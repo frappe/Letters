@@ -263,6 +263,10 @@ const { openPreview } = usePreview(editorStore, previewText);
 const { showLinkChecker, linkResults, checkingLinks, openLinkChecker, applyLinkFix } = useLinkChecker(editorStore, { flushSave: saveCampaign });
 const { showTestModal, testSending, testRecipient, openTestModal, sendTest } = useTestEmail(editorStore, { subject, previewText, flushSave: saveCampaign });
 
+// Flush save when settings modal closes so title/subject changes are never lost
+// even if the user refreshes faster than the 800ms autosave debounce.
+watch(showSettings, (open) => { if (!open && editorStore.isDirty) saveNow(); });
+
 const { canvasZoom, zoomVisible, resetZoom, stepZoom } = useZoom();
 
 useKeyboardShortcuts({ editorStore, saveNow, openPreview, stepZoom, canvasZoom });

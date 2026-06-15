@@ -244,7 +244,7 @@ const LayerNode = defineComponent({
               onClick:    (e) => e.stopPropagation(),
               onDblclick: (e) => e.stopPropagation(),
               onDragstart:(e) => { e.stopPropagation(); e.preventDefault(); },
-              ref: (el) => el?.focus(),
+              onVnodeMounted: ({ el }) => { el?.focus(); el?.select(); },
             })
           : h("span", { class: "flex-1 text-sm text-ink-gray-6 truncate" }, b.label || blockLabel(b.type)),
 
