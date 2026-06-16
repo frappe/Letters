@@ -5,9 +5,13 @@
   >
     <!-- Header -->
     <div class="px-3 py-3 border-b border-outline-gray-1 flex items-center gap-2 min-h-[44px]">
-      <template v-if="block">
-        <FeatherIcon :name="schema.icon" class="w-3.5 h-3.5 text-ink-gray-5 flex-shrink-0" />
-        <span class="text-sm font-medium text-ink-gray-8">{{ schema.label }}</span>
+      <template v-if="isMultiSelect">
+        <FeatherIcon name="layers" class="w-3.5 h-3.5 text-ink-gray-5 flex-shrink-0" />
+        <span class="text-sm font-medium text-ink-gray-8">{{ store.selectedBlockIds.size }} selected</span>
+      </template>
+      <template v-else-if="block">
+        <FeatherIcon :name="schema?.icon || 'box'" class="w-3.5 h-3.5 text-ink-gray-5 flex-shrink-0" />
+        <span class="text-sm font-medium text-ink-gray-8">{{ schema?.label || block.label || block.type }}</span>
       </template>
       <template v-else>
         <FeatherIcon name="mail" class="w-3.5 h-3.5 text-ink-gray-5 flex-shrink-0" />
@@ -15,8 +19,23 @@
       </template>
     </div>
 
+    <!-- Multi-select state -->
+    <div v-if="isMultiSelect" class="flex-1 flex flex-col">
+      <div class="flex-1 flex flex-col items-center justify-center px-4 gap-2 text-center">
+        <FeatherIcon name="layers" class="w-8 h-8 text-ink-gray-3" />
+        <p class="text-sm text-ink-gray-5">{{ store.selectedBlockIds.size }} blocks selected</p>
+        <p class="text-xs text-ink-gray-4">Cmd+C to copy · Cmd+V to paste</p>
+      </div>
+      <div class="px-3 py-4 border-t border-outline-gray-1 flex gap-2">
+        <Button class="flex-1" size="sm" theme="red" variant="outline" @click="deleteSelected">
+          <template #prefix><FeatherIcon name="trash-2" class="w-3.5 h-3.5" /></template>
+          Delete all
+        </Button>
+      </div>
+    </div>
+
     <!-- Canvas (body) properties — shown when nothing is selected -->
-    <div v-if="!block" class="flex-1 overflow-y-auto">
+    <div v-else-if="!block" class="flex-1 overflow-y-auto">
       <div class="border-b border-outline-gray-1">
         <button
           type="button"
@@ -60,11 +79,11 @@
     </div>
 
     <!-- Block sections -->
-    <div v-else class="flex-1 overflow-y-auto">
+    <div v-else-if="block" class="flex-1 overflow-y-auto">
 
       <!-- Schema-defined sections -->
       <div
-        v-for="section in schema.sections"
+        v-for="section in (schema?.sections ?? [])"
         :key="section.id"
         class="border-b border-outline-gray-1"
       >
@@ -89,6 +108,38 @@
           >
             <FieldControl :field="field" :value="value(field.key)" :block-props="block?.props" @change="set(field.key, $event)" />
           </PropRow>
+        </div>
+      </div>
+
+      <!-- Size — pin width/height of this block when it lives inside a container -->
+      <div v-if="block.type !== 'container'" class="border-b border-outline-gray-1">
+        <button
+          type="button"
+          class="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-surface-gray-2 transition-colors"
+          @click="toggleSection('__size')"
+        >
+          <span class="text-xs font-semibold text-ink-gray-9">Size</span>
+          <FeatherIcon
+            name="chevron-down"
+            class="w-3.5 h-3.5 text-ink-gray-4 transition-transform duration-150"
+            :class="openSections.has('__size') ? '' : '-rotate-90'"
+          />
+        </button>
+        <div v-show="openSections.has('__size')" class="px-3 pb-4">
+          <div class="grid grid-cols-2 gap-x-2 gap-y-1">
+            <PropRow label="Width" compact>
+              <TextInput type="text" size="sm" placeholder="auto"
+                :modelValue="block.props.block_width ?? ''"
+                @update:modelValue="set('block_width', $event || undefined)"
+              />
+            </PropRow>
+            <PropRow label="Height" compact>
+              <TextInput type="text" size="sm" placeholder="auto"
+                :modelValue="block.props.block_height ?? ''"
+                @update:modelValue="set('block_height', $event || undefined)"
+              />
+            </PropRow>
+          </div>
         </div>
       </div>
 
@@ -168,18 +219,6 @@
         </div>
       </div>
 
-      <!-- Actions -->
-      <div class="px-3 py-4 flex gap-2">
-        <Button class="flex-1" size="sm" variant="outline" @click="store.duplicateBlock(block.id)">
-          <template #prefix><FeatherIcon name="copy" class="w-3.5 h-3.5" /></template>
-          Duplicate
-        </Button>
-        <Button class="flex-1" size="sm" theme="red" variant="outline" @click="store.removeBlock(block.id)">
-          <template #prefix><FeatherIcon name="trash-2" class="w-3.5 h-3.5" /></template>
-          Remove
-        </Button>
-      </div>
-
     </div>
   </aside>
 </template>
@@ -200,6 +239,12 @@ const store = useEditorStore();
 const block = computed(() => store.selectedBlock);
 const canvasOpen = ref(true);
 const schema = computed(() => (block.value ? BLOCK_SCHEMA[block.value.type] : null));
+const isMultiSelect = computed(() => store.selectedBlockIds.size > 1);
+
+function deleteSelected() {
+  const ids = [...store.selectedBlockIds];
+  ids.forEach((id) => store.removeBlock(id));
+}
 
 function setEmailWidth(w) {
   if (!isNaN(w) && w >= 320 && w <= 900) {

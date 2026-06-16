@@ -11,6 +11,7 @@
           fontFamily:    fontStack(block.props.font_family, 'Arial, Helvetica, sans-serif'),
           fontSize:      block.props.font_size      || '15px',
           fontWeight:    block.props.font_weight    || '400',
+          fontStyle:     block.props.font_style     || 'normal',
           color:         block.props.text_color     || '#374151',
           lineHeight:    block.props.line_height    || '1.6',
           textAlign:     block.props.align          || 'left',

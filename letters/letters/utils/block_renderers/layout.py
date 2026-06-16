@@ -159,21 +159,36 @@ class ContainerRenderer(BlockRenderer):
 class DividerRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
         p = block.get("props", {})
-        color     = escape(p.get("border_color", "#e0e0e0"))
-        thickness = int(p.get("thickness", 1))
-        style     = escape(p.get("style", "solid"))
-        width     = escape(p.get("width", "100%"))
-        align     = p.get("align", "center")
-        text_align = "left" if align == "left" else "right" if align == "right" else "center"
+        color       = escape(p.get("border_color", "#e0e0e0"))
+        thickness   = int(p.get("thickness", 1))
+        style       = escape(p.get("style", "solid"))
+        orientation = p.get("orientation", "horizontal")
+        padding     = _padding(p, 16, 16, 16, 16)
 
-        padding = _padding(p, 16, 16, 16, 16)
-        html = (
-            f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
-            f'<tr><td style="padding:{padding};" align="{text_align}">'
-            f'<hr style="border:0;border-top:{thickness}px {style} {color};'
-            f'width:{width};margin:0 auto;" />'
-            f'</td></tr></table>'
-        )
+        if orientation == "vertical":
+            height = int(p.get("height", 80))
+            border_style = (
+                f"border-left:{thickness}px {style} {color};"
+                if style != "solid"
+                else f"background-color:{color};"
+            )
+            html = (
+                f'<table cellpadding="0" cellspacing="0" border="0">'
+                f'<tr><td style="padding:{padding};text-align:center;">'
+                f'<div style="display:inline-block;width:{thickness}px;height:{height}px;{border_style}"></div>'
+                f'</td></tr></table>'
+            )
+        else:
+            width      = escape(p.get("width", "100%"))
+            align      = p.get("align", "center")
+            text_align = "left" if align == "left" else "right" if align == "right" else "center"
+            html = (
+                f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
+                f'<tr><td style="padding:{padding};" align="{text_align}">'
+                f'<hr style="border:0;border-top:{thickness}px {style} {color};'
+                f'width:{width};margin:0 auto;" />'
+                f'</td></tr></table>'
+            )
         return _spacing_wrapper(html, p)
 
 

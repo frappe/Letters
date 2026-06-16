@@ -49,6 +49,10 @@ export const BLOCK_SCHEMA = {
   hero: {
     label: "Hero",
     icon: "layout",
+    sub_layers: [
+      { label: "Heading", icon: "type" },
+      { label: "Subheading", icon: "type" },
+    ],
     defaults: {
       heading: "",
       subheading: "",
@@ -102,6 +106,7 @@ export const BLOCK_SCHEMA = {
       font_family: "Arial",
       font_size: "15px",
       font_weight: "400",
+      font_style: "normal",
       text_color: "#374151",
       line_height: "1.6",
       background_color: "transparent",
@@ -117,6 +122,10 @@ export const BLOCK_SCHEMA = {
           { key: "align", label: "Alignment", type: "align" },
           { key: "font_size", label: "Font size", type: "text", placeholder: "15px" },
           fontWeightField(),
+          { key: "font_style", label: "Italic", type: "select", options: [
+            { label: "Normal", value: "normal" },
+            { label: "Italic", value: "italic" },
+          ]},
           { key: "text_color", label: "Text color", type: "color" },
           { key: "line_height", label: "Line height", type: "text", placeholder: "1.6", hint: "Vertical space between lines, e.g. 1.5 or 160%" },
           letterSpacingField,
@@ -132,7 +141,6 @@ export const BLOCK_SCHEMA = {
     icon: "image",
     defaults: {
       image_url: "",
-      caption: "",
       alt: "",
       background_color: "#ffffff",
       border: "none",
@@ -148,7 +156,6 @@ export const BLOCK_SCHEMA = {
         fields: [
           { key: "image_url", label: "Image URL", type: "text", placeholder: "https://example.com" },
           { key: "link_url", label: "Link URL", type: "text", placeholder: "https://example.com" },
-          { key: "caption", label: "Caption", type: "text", placeholder: "Optional caption" },
           { key: "alt", label: "Alt text", type: "text", placeholder: "Describe the image" },
         ],
       },
@@ -159,7 +166,6 @@ export const BLOCK_SCHEMA = {
           { key: "background_color", label: "Background", type: "color" },
           { key: "border", label: "Image border", type: "text", placeholder: "1px solid #e5e7eb" },
           { key: "border_radius", label: "Image corners", type: "text", placeholder: "8px" },
-          { key: "caption_color", label: "Caption color", type: "color" },
           ...borderFields,
         ],
       },
@@ -169,6 +175,10 @@ export const BLOCK_SCHEMA = {
   section_label: {
     label: "Section Label",
     icon: "tag",
+    sub_layers: [
+      { label: "Label text", icon: "type" },
+      { label: "Divider line", icon: "minus" },
+    ],
     defaults: {
       label: "SECTION TITLE",
       text_color: "#383838",
@@ -210,6 +220,10 @@ export const BLOCK_SCHEMA = {
   image_text: {
     label: "Image + Text",
     icon: "sidebar",
+    sub_layers: [
+      { label: "Image", icon: "image" },
+      { label: "Text", icon: "type" },
+    ],
     defaults: {
       image_url: "",
       text: "Describe the image here. Keep it short and compelling.",
@@ -325,7 +339,9 @@ export const BLOCK_SCHEMA = {
       border_color: "#e5e7eb",
       thickness: 1,
       style: "solid",
+      orientation: "horizontal",
       width: "100%",
+      height: 80,
       align: "center",
       padding_top: 16, padding_right: 16, padding_bottom: 16, padding_left: 16,
       ...borderDefaults,
@@ -335,6 +351,15 @@ export const BLOCK_SCHEMA = {
         id: "style",
         title: "Style",
         fields: [
+          {
+            key: "orientation",
+            label: "Orientation",
+            type: "select",
+            options: [
+              { label: "Horizontal", value: "horizontal" },
+              { label: "Vertical",   value: "vertical" },
+            ],
+          },
           { key: "border_color", label: "Color", type: "color" },
           {
             key: "style",
@@ -347,7 +372,8 @@ export const BLOCK_SCHEMA = {
             ],
           },
           { key: "thickness", label: "Thickness", type: "number", min: 1, max: 10, unit: "px" },
-          { key: "width", label: "Length", type: "text", placeholder: "100%" },
+          { key: "width", label: "H Length", type: "text", placeholder: "100%" },
+          { key: "height", label: "V Height", type: "number", min: 8, max: 600, unit: "px" },
           { key: "align", label: "Alignment", type: "align" },
           ...borderFields,
         ],
@@ -416,6 +442,10 @@ export const BLOCK_SCHEMA = {
   link_list: {
     label: "Link List",
     icon: "list",
+    sub_layers: [
+      { label: "Heading", icon: "type" },
+      { label: "Links", icon: "list" },
+    ],
     defaults: {
       heading: "",
       items: [
@@ -478,7 +508,7 @@ export const BLOCK_SCHEMA = {
         fields: [
           { key: "layout", label: "Direction", type: "direction" },
           { key: "gap", label: "Gap", type: "number", min: 0, max: 64, unit: "px", hint: "Space between child blocks" },
-          { key: "width", label: "Width", type: "dimension", hint: "Use % for fluid, px for fixed, auto to fit content" },
+          { key: "width", label: "Width", type: "dimension", hint: "Sets the column width when inside a row container — use % for fluid, px for fixed" },
           { key: "height", label: "Min height", type: "dimension", hint: "Minimum height: block grows taller if content overflows" },
           { key: "align", label: "H Align", type: "align" },
           { key: "vertical_align", label: "V Align", type: "valign" },
@@ -552,6 +582,10 @@ export const BLOCK_SCHEMA = {
   quote: {
     label: "Quote",
     icon: "message-square",
+    sub_layers: [
+      { label: "Quote text", icon: "message-square" },
+      { label: "Author", icon: "user" },
+    ],
     defaults: {
       quote: "This is a wonderful product that changed how we work.",
       author: "Jane Doe",
@@ -640,6 +674,11 @@ export const BLOCK_SCHEMA = {
   product_card: {
     label: "Product",
     icon: "shopping-bag",
+    sub_layers: [
+      { label: "Image", icon: "image" },
+      { label: "Title & text", icon: "type" },
+      { label: "Button", icon: "square" },
+    ],
     defaults: {
       image_url: "",
       title: "Product Name",
@@ -682,6 +721,10 @@ export const BLOCK_SCHEMA = {
   header: {
     label: "Logo",
     icon: "award",
+    sub_layers: [
+      { label: "Logo image", icon: "image" },
+      { label: "Tagline", icon: "type" },
+    ],
     defaults: {
       logo_url: "",
       logo_height: "40px",
@@ -735,7 +778,11 @@ export const BLOCK_SCHEMA = {
       thumbnail_url: "",
       video_url: "#",
       caption: "Watch the video",
-      border_radius: "0",
+      border_radius: "8px",
+      overlay_color: "rgba(0,0,0,0.3)",
+      play_button_color: "#ffffff",
+      play_icon_color: "#111827",
+      background_color: "#000000",
       padding_top: 16, padding_right: 16, padding_bottom: 16, padding_left: 16,
       ...borderDefaults,
     },
@@ -745,7 +792,7 @@ export const BLOCK_SCHEMA = {
         title: "Content",
         fields: [
           { key: "thumbnail_url", label: "Thumbnail URL", type: "text", placeholder: "https://example.com" },
-          { key: "video_url",     label: "Video link URL", type: "text", placeholder: "https://youtube.com/yourchannel" },
+          { key: "video_url",     label: "Video URL",      type: "text", placeholder: "https://youtube.com/watch?v=…" },
           { key: "caption",       label: "Caption",        type: "text", placeholder: "Watch the video" },
         ],
       },
@@ -753,7 +800,11 @@ export const BLOCK_SCHEMA = {
         id: "style",
         title: "Style",
         fields: [
-          { key: "border_radius", label: "Thumbnail corners", type: "text", placeholder: "8px" },
+          { key: "border_radius",     label: "Corner radius",    type: "text", placeholder: "8px" },
+          { key: "background_color",  label: "Background",       type: "color" },
+          { key: "overlay_color",     label: "Overlay tint",     type: "color", hint: "Semi-transparent overlay on the thumbnail — use rgba() for opacity" },
+          { key: "play_button_color", label: "Play button",      type: "color" },
+          { key: "play_icon_color",   label: "Play icon",        type: "color" },
           ...borderFields,
         ],
       },

@@ -28,7 +28,10 @@ export function useKeyboardShortcuts({ editorStore, saveNow, openPreview, stepZo
         }
         if ((e.key === "Delete" || e.key === "Backspace") && editorStore.selectedBlockId) {
           e.preventDefault();
-          editorStore.removeBlock(editorStore.selectedBlockId);
+          const ids = editorStore.selectedBlockIds.size > 1
+            ? [...editorStore.selectedBlockIds]
+            : [editorStore.selectedBlockId];
+          ids.forEach((id) => editorStore.removeBlock(id));
           return;
         }
       }
@@ -54,14 +57,16 @@ export function useKeyboardShortcuts({ editorStore, saveNow, openPreview, stepZo
       saveNow();
       return;
     }
-    // Copy selected block: Cmd/Ctrl + C (only when not in a text field)
-    if (e.key === "c") {
+    // Copy block(s): Cmd/Ctrl + C
+    if (e.key === "c" && !e.shiftKey) {
       if (inTextField()) return;
-      if (editorStore.selectedBlockId) editorStore.copyBlock(editorStore.selectedBlockId);
+      const ids = [...editorStore.selectedBlockIds];
+      if (ids.length > 1) editorStore.copyBlocks(ids);
+      else if (editorStore.selectedBlockId) editorStore.copyBlock(editorStore.selectedBlockId);
       return;
     }
-    // Paste block: Cmd/Ctrl + V (only when not in a text field)
-    if (e.key === "v") {
+    // Paste block(s): Cmd/Ctrl + V
+    if (e.key === "v" && !e.shiftKey) {
       if (inTextField()) return;
       editorStore.pasteBlock();
       return;

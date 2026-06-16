@@ -9,9 +9,11 @@ export const useEditorStore = defineStore("editor", () => {
   const campaignDoc    = ref(null);
   const emailWidth       = ref(600);
   const canvasBg         = ref("#ffffff");
-  const selectedBlockId = ref(null);
-  const isDirty        = ref(false);
-  const clipboard       = ref(null); // holds a deep-cloned block for copy/paste
+  const selectedBlockId  = ref(null);
+  const selectedBlockIds = ref(new Set()); // all selected block ids (for multi-select)
+  const isDirty          = ref(false);
+  const clipboard        = ref(null); // array of deep-cloned blocks, or null
+  const styleClipboard   = ref(null); // copied style props object
 
   const SENT_STATUSES = ["Sent", "Sending", "Partial", "Failed"];
   const isReadOnly = computed(() => SENT_STATUSES.includes(campaignDoc.value?.status));
@@ -140,6 +142,31 @@ export const useEditorStore = defineStore("editor", () => {
   function selectBlock(id) {
     if (isReadOnly.value) return;
     selectedBlockId.value = id;
+    selectedBlockIds.value = id ? new Set([id]) : new Set();
+  }
+
+  function toggleInSelection(id) {
+    if (isReadOnly.value) return;
+    const next = new Set(selectedBlockIds.value);
+    if (next.has(id)) {
+      next.delete(id);
+      if (selectedBlockId.value === id) {
+        const remaining = [...next];
+        selectedBlockId.value = remaining.length ? remaining[remaining.length - 1] : null;
+      }
+    } else {
+      next.add(id);
+      selectedBlockId.value = id;
+    }
+    selectedBlockIds.value = next;
+  }
+
+  function addRangeToSelection(ids) {
+    if (isReadOnly.value) return;
+    const next = new Set(selectedBlockIds.value);
+    ids.forEach((id) => next.add(id));
+    selectedBlockIds.value = next;
+    if (ids.length) selectedBlockId.value = ids[ids.length - 1];
   }
 
   function updateBlockProps(id, props) {
@@ -360,13 +387,60 @@ export const useEditorStore = defineStore("editor", () => {
     duplicateIn(blocks.value);
   }
 
+  // Props that belong to content, not style — excluded from copyStyle / pasteStyle.
+  const STYLE_EXCLUDED = new Set([
+    "html_content", "heading", "subheading", "text", "image_url", "thumbnail_url",
+    "video_url", "logo_url", "caption", "alt", "tagline", "logo_height",
+    "url", "link_url", "button_url", "label", "title", "description", "price",
+    "quote", "author", "role", "button_label", "items",
+    "x_url", "linkedin_url", "instagram_url", "facebook_url",
+    "youtube_url", "github_url", "website_url",
+  ]);
+
+  function copyStyle(id) {
+    const block = findBlock(id);
+    if (!block) return;
+    const styleProps = {};
+    for (const [k, v] of Object.entries(block.props)) {
+      if (!STYLE_EXCLUDED.has(k)) styleProps[k] = v;
+    }
+    styleClipboard.value = styleProps;
+  }
+
+  function pasteStyle(id) {
+    const block = findBlock(id);
+    if (!block || !styleClipboard.value) return;
+    const validKeys = new Set(Object.keys(BLOCK_SCHEMA[block.type]?.defaults ?? {}));
+    const updates = {};
+    for (const [k, v] of Object.entries(styleClipboard.value)) {
+      if (validKeys.has(k) && !STYLE_EXCLUDED.has(k)) updates[k] = v;
+    }
+    if (Object.keys(updates).length) updateBlockProps(id, updates);
+  }
+
   function copyBlock(id) {
     const block = findBlock(id);
-    if (block) clipboard.value = JSON.parse(JSON.stringify(block));
+    if (!block) return;
+    clipboard.value = [JSON.parse(JSON.stringify(block))];
+    try { localStorage.setItem("letters_clipboard", JSON.stringify(clipboard.value)); } catch {}
+  }
+
+  function copyBlocks(ids) {
+    const list = ids.map((id) => findBlock(id)).filter(Boolean);
+    if (!list.length) return;
+    clipboard.value = list.map((b) => JSON.parse(JSON.stringify(b)));
+    try { localStorage.setItem("letters_clipboard", JSON.stringify(clipboard.value)); } catch {}
   }
 
   function pasteBlock() {
-    if (!clipboard.value) return;
+    let data = clipboard.value;
+    if (!data?.length) {
+      try {
+        const stored = localStorage.getItem("letters_clipboard");
+        if (stored) data = JSON.parse(stored);
+      } catch {}
+    }
+    if (!data?.length) return;
     _pushHistory(true);
     function cloneWithNewIds(b) {
       const clone = JSON.parse(JSON.stringify(b));
@@ -380,15 +454,58 @@ export const useEditorStore = defineStore("editor", () => {
       }
       return clone;
     }
-    const clone = cloneWithNewIds(clipboard.value);
-    // Paste after selected block, or at end
+    const clones = data.map(cloneWithNewIds);
     const selIdx = blocks.value.findIndex((b) => b.id === selectedBlockId.value);
     if (selIdx !== -1) {
-      blocks.value.splice(selIdx + 1, 0, clone);
+      blocks.value.splice(selIdx + 1, 0, ...clones);
     } else {
-      blocks.value.push(clone);
+      blocks.value.push(...clones);
     }
-    selectedBlockId.value = clone.id;
+    selectedBlockId.value = clones[clones.length - 1].id;
+    selectedBlockIds.value = new Set(clones.map((c) => c.id));
+    markDirty();
+  }
+
+  // Insert a pre-built block tree (from BLOCK_PRESET_DEFS) with fresh IDs.
+  // mode: "top" | "child" | "column"
+  function insertBuiltBlock(def, options = {}) {
+    _pushHistory(true);
+    const { mode = "top", afterIndex = null, parentId = null, colIndex = null } = options;
+
+    function buildBlock(d) {
+      const b = _createBlock(d.type, nextId());
+      if (d.label) b.label = d.label;
+      if (d.props) Object.assign(b.props, d.props);
+      if (d.children?.length) b.children = d.children.map(buildBlock);
+      return b;
+    }
+    const block = buildBlock(def);
+
+    if (mode === "child" && parentId !== null) {
+      const parent = findBlock(parentId);
+      if (!parent) return;
+      if (!parent.children) parent.children = [];
+      const idx = afterIndex === null ? parent.children.length : afterIndex + 1;
+      parent.children.splice(idx, 0, block);
+    } else if (mode === "column" && parentId !== null && colIndex !== null) {
+      const parent = findBlock(parentId);
+      const col = parent?.columns?.[colIndex];
+      if (!col) return;
+      if (!col.blocks) col.blocks = [];
+      const idx = afterIndex === null ? col.blocks.length : afterIndex + 1;
+      col.blocks.splice(idx, 0, block);
+    } else {
+      if (afterIndex === null || afterIndex === undefined) {
+        blocks.value.push(block);
+      } else if (afterIndex < 0) {
+        blocks.value.unshift(block);
+      } else {
+        blocks.value.splice(afterIndex + 1, 0, block);
+      }
+    }
+
+    selectedBlockId.value = block.id;
+    selectedBlockIds.value = new Set([block.id]);
     markDirty();
   }
 
@@ -491,6 +608,7 @@ export const useEditorStore = defineStore("editor", () => {
     emailWidth,
     canvasBg,
     selectedBlockId,
+    selectedBlockIds,
     selectedBlock,
     isDirty,
     canUndo,
@@ -501,6 +619,8 @@ export const useEditorStore = defineStore("editor", () => {
     removeBlock,
     moveBlock,
     selectBlock,
+    toggleInSelection,
+    addRangeToSelection,
     updateBlockProps,
     updateBlockPropsLive,
     addChildBlock,
@@ -509,10 +629,15 @@ export const useEditorStore = defineStore("editor", () => {
     moveBlockInColumn,
     setColumnCount,
     moveBlockTo,
+    insertBuiltBlock,
     duplicateBlock,
     copyBlock,
+    copyBlocks,
     pasteBlock,
     clipboard,
+    styleClipboard,
+    copyStyle,
+    pasteStyle,
     setBlockLabel,
     setRenderedHtml,
     loadFromDoc,

@@ -66,20 +66,23 @@
       <!-- Empty state -->
       <div
         v-else
-        class="flex flex-col items-center justify-center gap-2 py-8 select-none pointer-events-none"
+        class="flex items-center justify-center py-6 select-none"
       >
-        <FeatherIcon name="box" class="w-5 h-5 text-ink-gray-3" />
-        <p class="text-xs text-ink-gray-4 text-center leading-relaxed">
-          Empty. Use the <strong>Layers</strong> panel<br/>
-          <span class="text-ink-gray-3">to add blocks inside.</span>
-        </p>
+        <button
+          type="button"
+          class="w-7 h-7 flex items-center justify-center text-ink-gray-3 hover:text-ink-gray-6 transition-colors"
+          title="Add block inside"
+          @click.stop="openPicker({ mode: 'child', parentId: block.id, afterIndex: -1 })"
+        >
+          <FeatherIcon name="plus" class="w-4 h-4" />
+        </button>
       </div>
     </div>
   </BlockWrapper>
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, inject } from "vue";
 import BlockWrapper from "../BlockWrapper.vue";
 import BlockRenderer from "../BlockRenderer.vue";
 import { FeatherIcon } from "frappe-ui";
@@ -88,6 +91,7 @@ import { usePadding } from "../../composables/usePadding";
 
 const props = defineProps({ block: Object, index: Number });
 const store = useEditorStore();
+const openPicker = inject("openPicker", () => {});
 
 const blockProps = computed(() => props.block.props);
 const paddingStyle = usePadding(blockProps, { top: 16, right: 16, bottom: 16, left: 16 });
@@ -96,27 +100,46 @@ const paddingStyle = usePadding(blockProps, { top: 16, right: 16, bottom: 16, le
 // (the parent's childFlexStyle also reads width, so the inner div must NOT repeat it)
 // Width is NOT set here — it's applied by the parent's childFlexStyle on the
 // child-wrapper div. Setting it here too would cause double-application (% of %).
-// Only minHeight lives here since it doesn't affect the parent's sizing.
+// backgroundColor is duplicated here so the area between content-bottom and
+// minHeight shows the container color instead of the canvas/parent background.
 const wrapperStyle = computed(() => {
-  const h = props.block.props.height;
+  const h  = props.block.props.height;
+  const bg = props.block.props.background_color;
   return {
     ...(h && h !== "auto" && h !== "0px" ? { minHeight: h } : {}),
+    ...(bg && bg !== "transparent" ? { backgroundColor: bg } : {}),
   };
 });
 
 // ── Child sizing (row flex + column width) ───────────────────────────────────
 // Width is always applied HERE on the child-wrapper div, never on BlockWrapper,
 // to avoid double-application (% of % bug).
+// block_width / block_height are Inspector-settable overrides for a child's
+// slot size inside this container (independent of the block's own content props).
 function childFlexStyle(child) {
-  const w = child.props?.width;
-  const hasWidth = w && w !== "auto" && w !== "100%" && w !== "0px";
+  const bw = child.props?.block_width;
+  const bh = child.props?.block_height;
+  const heightStyle = bh && bh !== "auto" ? { minHeight: bh } : {};
+
   if (props.block.props.layout === "row") {
-    if (hasWidth) return { flex: `0 0 ${w}`, minWidth: 0, alignSelf: alignSelfMap[child.props?.align] || "stretch" };
-    return { flex: "1 1 0", minWidth: 0 };
+    if (bw && bw !== "auto") return { flex: `0 0 ${bw}`, minWidth: 0, alignSelf: "stretch", ...heightStyle };
+    // flex_width: legacy prop kept for presets that still use it
+    const fw = child.props?.flex_width;
+    if (fw && fw !== "auto") return { flex: `0 0 ${fw}`, minWidth: 0, alignSelf: "stretch", ...heightStyle };
+    if (fw === "auto")       return { flex: "0 0 auto",  minWidth: 0, alignSelf: "stretch", ...heightStyle };
+    // Vertical dividers shrink to padding width rather than sharing equal flex space
+    if (child.type === "divider" && child.props?.orientation === "vertical") {
+      return { flex: "0 0 auto", minWidth: 0, alignSelf: "stretch", ...heightStyle };
+    }
+    const w = child.props?.width;
+    const hasWidth = w && w !== "auto" && w !== "100%" && w !== "0px";
+    if (hasWidth) return { flex: `0 0 ${w}`, minWidth: 0, alignSelf: alignSelfMap[child.props?.align] || "stretch", ...heightStyle };
+    return { flex: "1 1 0", minWidth: 0, ...heightStyle };
   } else {
-    // column layout: explicit width shrinks the block; default fills container
-    if (hasWidth) return { width: w, alignSelf: alignSelfMap[child.props?.align] || "stretch" };
-    return {};
+    const w = bw || child.props?.width;
+    const hasWidth = w && w !== "auto" && w !== "100%" && w !== "0px";
+    if (hasWidth) return { width: w, alignSelf: alignSelfMap[child.props?.align] || "stretch", ...heightStyle };
+    return { ...heightStyle };
   }
 }
 

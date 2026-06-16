@@ -9,12 +9,10 @@ class ImageRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
         p = block.get("props", {})
         image_url     = _abs_image_src(p.get("image_url", ""))
-        caption       = escape(p.get("caption", ""))
         alt           = escape(p.get("alt", ""))
         bg            = escape(p.get("background_color", "#ffffff"))
         border        = escape(p.get("border", "0.5px solid #383838"))
         border_radius = escape(p.get("border_radius", "0"))
-        caption_color = escape(p.get("caption_color", "#9ca3af"))
 
         border_style = f"border:{border};" if border and border != "none" else ""
         radius_style = f"border-radius:{border_radius};" if border_radius and border_radius != "0" else ""
@@ -28,19 +26,11 @@ class ImageRenderer(BlockRenderer):
             f'<img src="{image_url}" width="100%" alt="{alt}"'
             f' style="display:block;max-width:100%;height:auto;{border_style}{radius_style}" />'
         )
-        # Wrap image in a clickable link when link_url is set
         img_content = (
             f'<a href="{link_url}" style="display:block;text-decoration:none;">{img_tag}</a>'
             if link_url and link_url != "#"
             else img_tag
         )
-
-        caption_html = ""
-        if caption:
-            caption_html = (
-                f'<tr><td style="padding:6px 32px 0;font-family:Arial,sans-serif;'
-                f'font-size:12px;color:{caption_color};line-height:1.4;">{caption}</td></tr>'
-            )
 
         padding = _padding(p, 16, 16, 16, 16)
         html = (
@@ -49,7 +39,6 @@ class ImageRenderer(BlockRenderer):
             f'<tr><td style="padding:{padding};">'
             f'{img_content}'
             f'</td></tr>'
-            f'{caption_html}'
             f'</table>'
         )
         return _spacing_wrapper(html, p)

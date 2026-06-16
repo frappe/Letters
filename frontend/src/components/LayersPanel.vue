@@ -1,5 +1,45 @@
 <template>
   <div class="flex flex-col h-full">
+    <!-- Right-click context menu -->
+    <Teleport to="body">
+      <div
+        v-if="contextMenu"
+        class="fixed inset-0 z-[100]"
+        @click="closeContextMenu"
+        @contextmenu.prevent="closeContextMenu"
+      >
+        <div
+          class="fixed z-[101] bg-surface-base border border-outline-gray-2 rounded-lg shadow-xl py-1 w-44"
+          :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
+          @click.stop
+        >
+          <button class="w-full text-left px-3 py-1.5 text-sm text-ink-gray-7 hover:bg-surface-gray-1 flex items-center gap-2 transition-colors" @click="menuRename">
+            <FeatherIcon name="edit-2" class="w-3.5 h-3.5 shrink-0" /> Rename
+          </button>
+          <button class="w-full text-left px-3 py-1.5 text-sm text-ink-gray-7 hover:bg-surface-gray-1 flex items-center gap-2 transition-colors" @click="menuDuplicate">
+            <FeatherIcon name="copy" class="w-3.5 h-3.5 shrink-0" /> Duplicate
+          </button>
+          <template v-if="store.selectedBlock?.type !== 'container'">
+            <div class="h-px bg-outline-gray-1 my-0.5 mx-2" />
+            <button class="w-full text-left px-3 py-1.5 text-sm text-ink-gray-7 hover:bg-surface-gray-1 flex items-center gap-2 transition-colors" @click="menuCopyStyle">
+              <FeatherIcon name="droplet" class="w-3.5 h-3.5 shrink-0" /> Copy style
+            </button>
+            <button
+              class="w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 transition-colors"
+              :class="store.styleClipboard ? 'text-ink-gray-7 hover:bg-surface-gray-1 cursor-pointer' : 'text-ink-gray-3 cursor-not-allowed'"
+              @click="menuPasteStyle"
+            >
+              <FeatherIcon name="clipboard" class="w-3.5 h-3.5 shrink-0" /> Paste style
+            </button>
+          </template>
+          <div class="h-px bg-outline-gray-1 my-0.5 mx-2" />
+          <button class="w-full text-left px-3 py-1.5 text-sm text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors" @click="menuRemove">
+            <FeatherIcon name="trash-2" class="w-3.5 h-3.5 shrink-0" /> Remove
+          </button>
+        </div>
+      </div>
+    </Teleport>
+
     <div
       v-if="!store.blocks.length"
       class="flex-1 flex flex-col items-center justify-center px-4 text-center gap-2"
@@ -30,13 +70,31 @@
 </template>
 
 <script setup>
-import { ref, computed, inject, onMounted, onUnmounted, defineComponent, h } from "vue";
+import { ref, computed, inject, defineComponent, h } from "vue";
 import { FeatherIcon } from "frappe-ui";
 import { useEditorStore } from "../stores/editor";
 import { BLOCK_SCHEMA } from "../blockSchema";
 
-const store    = useEditorStore();
+const store      = useEditorStore();
 const openPicker = inject("openPicker", () => {});
+
+// ── Right-click context menu ──────────────────────────────────────────────────
+const contextMenu = ref(null);
+
+function openContextMenu(blockId, e) {
+  e.preventDefault();
+  e.stopPropagation();
+  store.selectBlock(blockId);
+  const x = Math.min(e.clientX, window.innerWidth  - 184);
+  const y = Math.min(e.clientY, window.innerHeight - 224);
+  contextMenu.value = { x, y, blockId };
+}
+function closeContextMenu() { contextMenu.value = null; }
+function menuRename()     { startRename(contextMenu.value.blockId); closeContextMenu(); }
+function menuDuplicate()  { store.duplicateBlock(contextMenu.value.blockId); closeContextMenu(); }
+function menuCopyStyle()  { store.copyStyle(contextMenu.value.blockId); closeContextMenu(); }
+function menuPasteStyle() { if (store.styleClipboard) store.pasteStyle(contextMenu.value.blockId); closeContextMenu(); }
+function menuRemove()     { store.removeBlock(contextMenu.value.blockId); closeContextMenu(); }
 
 // INDENT_W: px per depth level. Chevron is 16px wide, so line sits at depth*INDENT_W + 8 + INDENT_W/2
 const INDENT_W = 16;
@@ -46,9 +104,12 @@ const blockIcon  = (type) => BLOCK_SCHEMA[type]?.icon  || "box";
 const blockLabel = (type) => BLOCK_SCHEMA[type]?.label || type;
 
 function rowClass(node) {
-  return store.selectedBlockId === node.id
-    ? "ring-1 ring-blue-400"
-    : "hover:ring-1 hover:ring-blue-100";
+  if (store.selectedBlockIds.has(node.id)) {
+    return store.selectedBlockId === node.id
+      ? "ring-1 ring-blue-400 bg-surface-gray-1"
+      : "ring-1 ring-blue-200 bg-surface-gray-1";
+  }
+  return "hover:ring-1 hover:ring-blue-100";
 }
 
 function getChildren(block) {
@@ -161,18 +222,42 @@ function onDropAtEnd() {
 
 function clearDrag() { dragId.value = null; dropState.value = null; }
 
-// ── Keyboard ──────────────────────────────────────────────────────────────────
-function onKeyDown(e) {
-  const tag = document.activeElement?.tagName;
-  if (tag === "INPUT" || tag === "TEXTAREA" || document.activeElement?.isContentEditable) return;
-  const mod = navigator.platform.startsWith("Mac") ? e.metaKey : e.ctrlKey;
-  if (!store.selectedBlockId) return;
-  if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); store.removeBlock(store.selectedBlockId); return; }
-  if (mod && e.key === "c") { e.preventDefault(); store.copyBlock(store.selectedBlockId); return; }
-  if (mod && e.key === "v") { e.preventDefault(); store.pasteBlock(); return; }
+// ── Flat ordered block IDs for Shift+Click range-select ───────────────────────
+const flatBlockIds = computed(() => {
+  const ids = [];
+  function walk(list) {
+    list.forEach((block) => {
+      ids.push(block.id);
+      if (!collapsed.value.has(block.id)) {
+        const children = getChildren(block);
+        if (children.length) walk(children);
+      }
+    });
+  }
+  walk(store.blocks);
+  return ids;
+});
+
+// ── Multi-select click handler ────────────────────────────────────────────────
+function handleLayerClick(id, e) {
+  e.stopPropagation();
+  const mod = e.metaKey || e.ctrlKey;
+  if (e.shiftKey && store.selectedBlockId != null) {
+    const from = flatBlockIds.value.indexOf(store.selectedBlockId);
+    const to   = flatBlockIds.value.indexOf(id);
+    if (from !== -1 && to !== -1) {
+      store.addRangeToSelection(
+        flatBlockIds.value.slice(Math.min(from, to), Math.max(from, to) + 1)
+      );
+      return;
+    }
+  }
+  if (mod) {
+    store.toggleInSelection(id);
+    return;
+  }
+  store.selectBlock(id);
 }
-onMounted(()  => window.addEventListener("keydown", onKeyDown));
-onUnmounted(() => window.removeEventListener("keydown", onKeyDown));
 
 // ── Collapse state ────────────────────────────────────────────────────────────
 const collapsed = ref(new Set());
@@ -194,10 +279,12 @@ const LayerNode = defineComponent({
   },
   setup(props) {
     return () => {
-      const b        = props.block;
-      const children = getChildren(b);
-      const hasKids  = children.length > 0;
-      const isOpen   = !collapsed.value.has(b.id);
+      const b          = props.block;
+      const children   = getChildren(b);
+      const schema     = BLOCK_SCHEMA[b.type];
+      const subLayers  = (!children.length && schema?.sub_layers) ? schema.sub_layers : [];
+      const hasKids    = children.length > 0 || subLayers.length > 0;
+      const isOpen     = !collapsed.value.has(b.id);
       const dState   = dropState.value;
       const idx      = topLevelIndex(b.id);
 
@@ -208,12 +295,13 @@ const LayerNode = defineComponent({
         class: "group relative flex items-center gap-1.5 pr-2 py-1.5 mx-1 rounded cursor-pointer select-none transition-colors " + rowClass(b),
         style: { paddingLeft: rowPaddingLeft + "px" },
         draggable: true,
-        onClick:    (e) => { e.stopPropagation(); store.selectBlock(b.id); },
-        onDblclick: (e) => { e.stopPropagation(); startRename(b.id); },
-        onDragstart:(e) => { e.stopPropagation(); onDragStart(b.id, e); },
-        onDragover: (e) => { e.stopPropagation(); e.preventDefault(); onDragOver(b.id, e); },
-        onDrop:     (e) => { e.stopPropagation(); e.preventDefault(); onDrop(b.id); },
-        onDragend:  ()  => clearDrag(),
+        onClick:        (e) => handleLayerClick(b.id, e),
+        onDblclick:     (e) => { e.stopPropagation(); startRename(b.id); },
+        onContextmenu:  (e) => openContextMenu(b.id, e),
+        onDragstart:    (e) => { e.stopPropagation(); onDragStart(b.id, e); },
+        onDragover:     (e) => { e.stopPropagation(); e.preventDefault(); onDragOver(b.id, e); },
+        onDrop:         (e) => { e.stopPropagation(); e.preventDefault(); onDrop(b.id); },
+        onDragend:      ()  => clearDrag(),
       }, [
         dState?.targetId === b.id && dState.zone === "before"
           ? h("div", { class: "absolute inset-x-1 -top-px h-0.5 bg-blue-500 rounded-full pointer-events-none z-10" }) : null,
@@ -276,6 +364,19 @@ const LayerNode = defineComponent({
 
       // Guide line: absolute, left = mx-1(4px) + paddingLeft + half chevron(8px)
       const lineLeft = 4 + rowPaddingLeft + 8;
+      const subLayerPad = rowPaddingLeft + INDENT_W;
+
+      const subLayerRows = subLayers.map((sl) =>
+        h("div", {
+          class: "flex items-center gap-1.5 pr-2 py-1 mx-1 rounded cursor-pointer transition-colors hover:bg-surface-gray-1",
+          style: { paddingLeft: subLayerPad + "px" },
+          onClick: (e) => { e.stopPropagation(); store.selectBlock(b.id); },
+        }, [
+          h("span", { class: "flex-shrink-0 w-4" }),
+          h(FeatherIcon, { name: sl.icon, class: "w-3 h-3 flex-shrink-0 text-ink-gray-3" }),
+          h("span", { class: "text-xs text-ink-gray-3 truncate" }, sl.label),
+        ])
+      );
 
       const childrenSection = h("div", { class: "relative" }, [
         h("div", {
@@ -285,6 +386,7 @@ const LayerNode = defineComponent({
         ...children.map((child) =>
           h(LayerNode, { key: child.id, block: child, depth: props.depth + 1 })
         ),
+        ...subLayerRows,
       ]);
 
       return h("div", [row, childrenSection]);

@@ -29,15 +29,6 @@
         </template>
       </ImageUploader>
 
-      <!-- Caption — always visible in editor; hidden in email output when empty -->
-      <EditableDiv
-        class="mt-2 text-xs outline-none editable-placeholder"
-        data-placeholder="Caption"
-        :style="{ color: block.props.caption_color || '#9ca3af' }"
-        :model-value="block.props.caption"
-        @update:model-value="update('caption', $event)"
-        @click.stop="store.selectBlock(block.id)"
-      />
     </div>
   </BlockWrapper>
 </template>
@@ -46,7 +37,6 @@
 import { computed } from "vue";
 import BlockWrapper from "../BlockWrapper.vue";
 import ImageUploader from "../ImageUploader.vue";
-import EditableDiv from "../EditableDiv.vue";
 import { useEditorStore } from "../../stores/editor";
 import { usePadding } from "../../composables/usePadding";
 

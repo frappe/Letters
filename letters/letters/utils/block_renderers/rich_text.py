@@ -106,6 +106,7 @@ class RichTextRenderer(BlockRenderer):
         align          = escape(p.get("align", "left"))
         size           = escape(p.get("font_size", "15px"))
         weight         = escape(str(p.get("font_weight", "400")))
+        font_style     = escape(p.get("font_style", "normal"))
         color          = escape(p.get("text_color", "#374151"))
         line_height    = escape(str(p.get("line_height", "1.6")))
         letter_spacing = escape(str(p.get("letter_spacing", "")))
@@ -145,7 +146,7 @@ class RichTextRenderer(BlockRenderer):
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
             f'<tr><td align="{align}" style="padding:{padding};'
             f'font-family:{font};font-size:{size};color:{color};'
-            f'line-height:{line_height};font-weight:{weight};{ls_style}">'
+            f'line-height:{line_height};font-weight:{weight};font-style:{font_style};{ls_style}">'
             f'{html_content}'
             f'</td></tr></table>'
         )

@@ -172,12 +172,17 @@ const topLevelContainerStyle = computed(() => {
 });
 
 // ── Spacing wrapper style ────────────────────────────────────────────────────
+// Use padding (not margin) so the gap inherits the block's own background color
+// instead of exposing the canvas surface color.
 const spacingStyle = computed(() => {
-  const t = props.block.props?.spacing_top;
-  const b = props.block.props?.spacing_bottom;
+  const t  = props.block.props?.spacing_top  ?? 0;
+  const b  = props.block.props?.spacing_bottom ?? 0;
+  const bg = props.block.props?.background_color;
+  const hasBg = bg && bg !== "transparent";
   return {
-    marginTop:    t != null ? `${t}px` : "0",
-    marginBottom: b != null ? `${b}px` : "0",
+    paddingTop:      t > 0 ? `${t}px` : undefined,
+    paddingBottom:   b > 0 ? `${b}px` : undefined,
+    backgroundColor: (t > 0 || b > 0) && hasBg ? bg : undefined,
   };
 });
 
