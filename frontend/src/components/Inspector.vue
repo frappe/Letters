@@ -115,8 +115,9 @@
         </div>
       </div>
 
-      <!-- Size — pin width/height of this block when it lives inside a container -->
-      <div v-if="block.type !== 'container'" class="border-b border-outline-gray-1">
+      <!-- Size — shown only for blocks that don't have dedicated size controls in their schema sections.
+           container uses its own Layout section; image uses its Layout section; spacer/divider have their own height/width fields. -->
+      <div v-if="!['container', 'image', 'spacer', 'divider'].includes(block.type)" class="border-b border-outline-gray-1">
         <Button
           variant="ghost"
           class="w-full justify-between px-3 py-2.5"

@@ -110,6 +110,23 @@
       </svg>
     </div>
 
+    <!-- ── Height resize handle (bottom edge, top-level blocks) ──────────── -->
+    <div
+      v-if="selected && isTopLevel"
+      title="Drag to resize height"
+      class="absolute left-1/2 -translate-x-1/2 -bottom-7 h-6 w-8 flex items-center justify-center
+             cursor-ns-resize select-none rounded
+             text-ink-gray-3 hover:text-ink-gray-7 hover:bg-surface-gray-3 transition-all z-10"
+      @pointerdown.prevent.stop="startHeightDrag($event)"
+      @click.stop
+    >
+      <svg width="14" height="6" viewBox="0 0 14 6" fill="currentColor">
+        <circle cx="2"  cy="3" r="1.4"/>
+        <circle cx="7"  cy="3" r="1.4"/>
+        <circle cx="12" cy="3" r="1.4"/>
+      </svg>
+    </div>
+
     <!-- ── Padding tooltip ────────────────────────────────────────────────── -->
     <Transition
       enter-active-class="transition-opacity duration-100"
@@ -352,9 +369,50 @@ function startWidthDrag(e) {
 
   function onMove(ev) {
     const delta = ev.clientX - startX;
-    const clamped = Math.max(60, Math.round(startW + delta));
+    const clamped = Math.max(60, Math.min(store.emailWidth, Math.round(startW + delta)));
     store.updateBlockPropsLive(props.block.id, { [widthKey]: `${clamped}px` });
     showTip(`↔ ${clamped}px`);
+  }
+
+  function onUp() {
+    e.target.removeEventListener("pointermove", onMove);
+    e.target.removeEventListener("pointerup",   onUp);
+  }
+
+  e.target.addEventListener("pointermove", onMove);
+  e.target.addEventListener("pointerup",   onUp);
+}
+
+// ── Canvas height resize ─────────────────────────────────────────────────────
+function startHeightDrag(e) {
+  store.selectBlock(props.block.id);
+  e.target.setPointerCapture(e.pointerId);
+
+  const blockEl = e.currentTarget.parentElement;
+  const startY = e.clientY;
+  const startH = blockEl ? blockEl.offsetHeight : 100;
+
+  // Which prop controls height for this block type:
+  // - spacer   → "height" (number, in px)
+  // - container → "height" (string like "200px")
+  // - image    → "image_height" (string like "200px")
+  // - others   → "block_height" (string like "200px")
+  const heightKey = props.block.type === "spacer" || props.block.type === "container"
+    ? "height"
+    : props.block.type === "image"
+    ? "image_height"
+    : "block_height";
+
+  // Snapshot for undo
+  const snapVal = props.block.type === "spacer" ? startH : `${startH}px`;
+  store.updateBlockProps(props.block.id, { [heightKey]: snapVal });
+
+  function onMove(ev) {
+    const delta = ev.clientY - startY;
+    const clamped = Math.max(8, Math.round(startH + delta));
+    const val = props.block.type === "spacer" ? clamped : `${clamped}px`;
+    store.updateBlockPropsLive(props.block.id, { [heightKey]: val });
+    showTip(`↕ ${clamped}px`);
   }
 
   function onUp() {

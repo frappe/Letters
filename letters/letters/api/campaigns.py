@@ -52,7 +52,7 @@ def save_campaign(name: str | None = None, title: str | None = None, subject: st
             "preview_text": preview_text or "",
             "status": "Draft",
             "email_width": int(email_width) if email_width else 600,
-            "canvas_background": canvas_background or "#f3f4f6",
+            "canvas_background": canvas_background or "#ffffff",
             "blocks_json": blocks_json,
             "recipient_config": normalized_config or "",
             "folder": folder or "",
