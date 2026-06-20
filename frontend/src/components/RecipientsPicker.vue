@@ -48,11 +48,11 @@
       <div v-if="parsedPasted.length > 0" class="text-xs text-ink-gray-5 font-medium">
         {{ parsedPasted.length }} valid email{{ parsedPasted.length === 1 ? "" : "s" }} detected
       </div>
-      <div v-if="invalidPasted.length > 0" class="rounded-md bg-red-50 border border-red-200 px-3 py-2 space-y-1">
-        <p class="text-xs font-medium text-red-700">
+      <div v-if="invalidPasted.length > 0" class="rounded-md bg-surface-red-1 border border-outline-red-2 px-3 py-2 space-y-1">
+        <p class="text-xs font-medium text-ink-red-6">
           {{ invalidPasted.length }} invalid address{{ invalidPasted.length === 1 ? "" : "es" }} will be ignored:
         </p>
-        <ul class="text-xs text-red-600 space-y-0.5">
+        <ul class="text-xs text-ink-red-5 space-y-0.5">
           <li v-for="e in invalidPasted" :key="e" class="font-mono">{{ e }}</li>
         </ul>
       </div>

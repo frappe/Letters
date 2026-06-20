@@ -34,15 +34,15 @@
                 : 'group-hover/colchild:ring-1 group-hover/colchild:ring-blue-200'"
             />
             <!-- Remove child button -->
-            <button
-              type="button"
-              class="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-surface-base border border-outline-gray-2
-                     shadow-sm text-ink-gray-4 hover:text-red-500 hover:border-red-200 text-xs
-                     leading-none z-20 opacity-0 group-hover/colchild:opacity-100 transition-opacity
-                     flex items-center justify-center"
+            <Button
+              variant="ghost"
+              icon="lucide-x"
+              size="sm"
               title="Remove block"
+              class="absolute -top-2 -right-2 !w-5 !h-5 !rounded-full border border-outline-gray-2
+                     shadow-sm z-20 opacity-0 group-hover/colchild:opacity-100 transition-opacity"
               @click.stop="store.removeBlock(child.id)"
-            ><FeatherIcon name="x" class="w-3 h-3" /></button>
+            />
             <!-- Actual block -->
             <BlockRenderer :block="child" :index="childIdx" />
           </div>
@@ -54,16 +54,17 @@
           >Empty column</div>
 
           <!-- Add block to this column -->
-          <button
+          <Button
             v-if="store.selectedBlockId === block.id || isChildSelected(col)"
-            type="button"
-            class="mt-2 w-full flex items-center justify-center gap-1 py-1.5 rounded-lg
-                   border border-dashed border-outline-gray-2 text-xs text-ink-gray-4
-                   hover:border-outline-gray-4 hover:text-ink-gray-6 transition-colors"
+            variant="ghost"
+            size="sm"
+            class="mt-2 w-full py-1.5 rounded-lg border border-dashed border-outline-gray-2
+                   text-ink-gray-4 hover:border-outline-gray-4 hover:text-ink-gray-6 transition-colors"
+            iconLeft="lucide-plus"
             @click.stop="addToColumn(colIdx)"
           >
-            <FeatherIcon name="plus" class="w-3 h-3" /> Add block
-          </button>
+            Add block
+          </Button>
         </div>
       </div>
     </div>
@@ -72,7 +73,7 @@
 
 <script setup>
 import { computed, ref, watch, inject } from "vue";
-import { FeatherIcon } from "frappe-ui";
+import { Button } from "frappe-ui";
 import BlockWrapper from "../BlockWrapper.vue";
 import BlockRenderer from "../BlockRenderer.vue";
 import { useEditorStore } from "../../stores/editor";
@@ -85,7 +86,6 @@ const openPicker = inject("openPicker");
 const blockProps   = computed(() => props.block.props);
 const paddingStyle = usePadding(blockProps, { top: 20, right: 24, bottom: 20, left: 24 });
 
-// ── Sync column_count → columns array ────────────────────────────────────────
 watch(
   () => props.block.props.column_count,
   (val, oldVal) => {
@@ -93,7 +93,6 @@ watch(
     const oldCount = parseInt(oldVal) || 2;
     if (count >= oldCount) { store.setColumnCount(props.block.id, count); return; }
 
-    // Reducing: check if any columns being removed have content.
     const cols = props.block.columns || [];
     const hasContent = cols.slice(count).some((col) => col.blocks?.length > 0);
     if (hasContent) {
@@ -101,7 +100,6 @@ watch(
         `Reducing to ${count} column${count === 1 ? "" : "s"} will delete the content in the removed column${count === oldCount - 1 ? "" : "s"}. Continue?`
       );
       if (!ok) {
-        // Revert the prop change in the store without triggering the watcher again.
         store.updateBlockPropsLive(props.block.id, { column_count: oldCount });
         return;
       }
@@ -110,7 +108,6 @@ watch(
   },
 );
 
-// ── Column divider border ─────────────────────────────────────────────────────
 function colBorderStyle(colIdx) {
   const last = (props.block.columns?.length ?? 1) - 1;
   if (!props.block.props.show_dividers || colIdx === last) return {};
@@ -121,12 +118,10 @@ function colBorderStyle(colIdx) {
   };
 }
 
-// ── Check if any child in a column is selected (to show add button) ──────────
 function isChildSelected(col) {
   return (col.blocks || []).some(b => store.selectedBlockId === b.id);
 }
 
-// ── Add block to specific column via the block picker ────────────────────────
 function addToColumn(colIdx) {
   openPicker({
     mode: "column",
@@ -136,9 +131,8 @@ function addToColumn(colIdx) {
   });
 }
 
-// ── Drag-to-reorder within a column ──────────────────────────────────────────
-const dragFrom = ref(null); // { col, idx }
-const dragOver  = ref(null); // { col, idx }
+const dragFrom = ref(null);
+const dragOver  = ref(null);
 
 function onDragStart(colIdx, childIdx, e) {
   dragFrom.value = { col: colIdx, idx: childIdx };

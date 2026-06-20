@@ -6,7 +6,7 @@
 
 export const BLOCK_PRESET_TYPES = new Set([
   "header", "hero", "image_text", "product_card", "quote", "link_list", "footer",
-  "two_col", "three_col", "text_cols",
+  "two_col", "three_col", "text_cols", "video_thumb",
 ]);
 
 // Shared zero-padding helper (inner containers that let children handle their own spacing)
@@ -19,27 +19,11 @@ export const BLOCK_PRESET_DEFS = {
   header: {
     type: "container", label: "Logo",
     props: { layout: "column", background_color: "#ffffff", align: "center", gap: 0,
-             padding_top: 0, padding_right: 0, padding_bottom: 0, padding_left: 0 },
+             padding_top: 20, padding_right: 0, padding_bottom: 20, padding_left: 0 },
     children: [
-      {
-        type: "container", label: "Logo area",
-        props: { layout: "column", background_color: "transparent", align: "center", gap: 0,
-                 padding_top: 20, padding_right: 24, padding_bottom: 8, padding_left: 24 },
-        children: [
-          { type: "image", label: "Logo",
-            props: { alt: "Logo", background_color: "transparent", ...noPad } },
-        ],
-      },
-      {
-        type: "container", label: "Tagline area",
-        props: { layout: "column", background_color: "transparent", align: "center", gap: 0,
-                 padding_top: 0, padding_right: 24, padding_bottom: 20, padding_left: 24 },
-        children: [
-          { type: "text", label: "Tagline",
-            props: { html_content: "<p>Monthly newsletter</p>", align: "center", font_size: "12px",
-                     text_color: "#6b7280", background_color: "transparent", ...noPad } },
-        ],
-      },
+      { type: "image", label: "Logo",
+        props: { alt: "Logo", background_color: "transparent", height_class: "h-10", compact: true,
+                 padding_top: 0, padding_right: 200, padding_bottom: 0, padding_left: 200 } },
     ],
   },
 
@@ -79,7 +63,7 @@ export const BLOCK_PRESET_DEFS = {
   // Outer row container → left container (image) + right container (text)
   image_text: {
     type: "container", label: "Image + Text",
-    props: { layout: "row", background_color: "#ffffff", vertical_align: "flex-start", gap: 0,
+    props: { layout: "row", background_color: "#ffffff", vertical_align: "center", gap: 0,
              padding_top: 0, padding_right: 0, padding_bottom: 0, padding_left: 0 },
     children: [
       {
@@ -149,7 +133,8 @@ export const BLOCK_PRESET_DEFS = {
                          background_color: "transparent", ...noPad } },
               { type: "button", label: "CTA Button",
                 props: { label: "Click here", url: "#", align: "right",
-                         padding_right: 0 } },
+                         color: "#111827", text_color: "#ffffff",
+                         border_radius: "8px", padding_right: 0 } },
             ],
           },
         ],
@@ -319,6 +304,25 @@ export const BLOCK_PRESET_DEFS = {
                  padding_top: 16, padding_right: 16, padding_bottom: 16, padding_left: 8 },
         children: [],
       },
+    ],
+  },
+
+  // ── Video Thumbnail ────────────────────────────────────────────────────────
+  // Container → image block (thumbnail, links to video) + text block (caption)
+  video_thumb: {
+    type: "container", label: "Video",
+    props: { layout: "column", background_color: "#ffffff", gap: 0,
+             padding_top: 16, padding_right: 16, padding_bottom: 16, padding_left: 16 },
+    children: [
+      { type: "video_thumb", label: "Thumbnail",
+        props: { thumbnail_url: "", video_url: "#", caption: "",
+                 border_radius: "8px", background_color: "transparent",
+                 ...noPad } },
+      { type: "text", label: "Caption",
+        props: { html_content: "<p>Watch the video</p>",
+                 align: "center", font_size: "13px", text_color: "#374151",
+                 background_color: "transparent",
+                 padding_top: 8, padding_right: 0, padding_bottom: 0, padding_left: 0 } },
     ],
   },
 

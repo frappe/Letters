@@ -36,9 +36,7 @@
         <div class="flex items-center justify-between px-4 py-3.5 border-b border-outline-gray-1 flex-shrink-0">
           <template v-if="pickerTarget !== null">
             <span class="text-xs font-semibold text-ink-gray-4 uppercase tracking-widest">Add Block</span>
-            <button type="button" class="text-ink-gray-4 hover:text-ink-gray-7 transition-colors" @click="closePicker">
-              <FeatherIcon name="x" class="w-3.5 h-3.5" />
-            </button>
+            <Button variant="ghost" size="sm" icon="lucide-x" aria-label="Close picker" @click="closePicker" />
           </template>
           <template v-else>
             <span class="text-xs font-semibold text-ink-gray-4 uppercase tracking-widest">Layers</span>
@@ -53,17 +51,17 @@
               v-if="b.section"
               class="px-4 pt-3 pb-1 text-xs font-semibold text-ink-gray-4 uppercase tracking-widest select-none"
             >{{ b.section }}</div>
-            <button
+            <Button
               v-else
-              type="button"
-              class="flex items-center gap-2.5 w-full px-4 py-1.5 text-left text-ink-gray-7 hover:bg-surface-gray-2 transition-colors"
+              variant="ghost"
+              class="w-full px-4 py-1.5 text-ink-gray-7 !justify-start"
+              :iconLeft="`lucide-${b.icon}`"
               @mouseenter="(e) => showBlockPreview(b.type, e)"
               @mouseleave="hideBlockPreview"
               @click="insertBlock(b.type)"
             >
-              <FeatherIcon :name="b.icon" class="w-3.5 h-3.5 text-ink-gray-5 flex-shrink-0" />
-              <span class="text-sm">{{ b.label }}</span>
-            </button>
+              {{ b.label }}
+            </Button>
           </template>
         </div>
 
@@ -84,8 +82,8 @@
             <div class="px-3 py-2 border-b border-outline-gray-1 bg-surface-gray-1">
               <span class="text-xs font-semibold text-ink-gray-5 uppercase tracking-widest">{{ blockPreview.label }}</span>
             </div>
-            <div style="overflow:hidden;height:200px;display:flex;align-items:center;justify-content:center;">
-              <div style="transform:scale(0.6);transform-origin:center center;width:600px;flex-shrink:0;">
+            <div style="overflow:hidden;height:240px;position:relative;background:#1a1a1a;">
+              <div class="letters-email-canvas" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.6);transform-origin:center center;width:600px;background:#ffffff;">
                 <BlockRenderer :block="blockPreview.block" :index="0" />
               </div>
             </div>
@@ -115,7 +113,7 @@
             v-else-if="!editorStore.blocks.length"
             class="border-2 border-dashed border-outline-gray-2 rounded-xl p-16 text-center select-none"
           >
-            <div class="mb-3 opacity-40"><FeatherIcon name="inbox" class="w-10 h-10 mx-auto text-ink-gray-4" /></div>
+            <div class="mb-3 opacity-40"><span class="lucide-inbox size-10 mx-auto text-ink-gray-4 block" aria-hidden="true" /></div>
             <p class="text-sm font-medium mb-1">Your canvas is empty</p>
             <p class="text-xs opacity-60">Click <strong>+</strong> in the toolbar to add your first block</p>
           </div>
@@ -127,7 +125,7 @@
               v-if="editorStore.isReadOnly"
               class="flex items-center gap-2 px-4 py-2.5 bg-surface-gray-2 border-b border-outline-gray-1 text-xs text-ink-gray-5 select-none"
             >
-              <FeatherIcon name="lock" class="w-3.5 h-3.5 flex-shrink-0" />
+              <span class="lucide-lock size-3.5 flex-shrink-0" aria-hidden="true" />
               This campaign has been sent and is read-only.
             </div>
 
@@ -142,25 +140,23 @@
           </template>
         </div>
 
-        <!-- Zoom indicator — sticky to the viewport bottom, only visible briefly
-             after a zoom change. Frappe Builder style: % on the left, a reset
-             button on the right. -->
+        <!-- Zoom indicator — sticky to the viewport bottom -->
         <div class="sticky bottom-0 z-20 flex justify-center pointer-events-none pb-4 pt-4">
           <Transition name="fade">
             <div
               v-show="zoomVisible"
-              class="pointer-events-auto flex items-center gap-2 bg-gray-900 text-white rounded-full shadow-lg pl-3.5 pr-1.5 py-1"
+              class="pointer-events-auto flex items-center gap-2 bg-ink-gray-9 text-ink-white rounded-full shadow-lg pl-3.5 pr-1.5 py-1"
               @mouseenter="zoomVisible = true"
             >
               <span class="text-xs font-medium tabular-nums select-none">{{ Math.round(canvasZoom * 100) }}%</span>
-              <button
-                type="button"
-                class="w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/15 transition-colors"
+              <Button
+                variant="ghost"
+                icon="lucide-maximize-2"
+                size="sm"
+                class="!w-6 !h-6 !rounded-full !text-ink-white hover:!bg-ink-white/15"
                 title="Reset to 100%"
                 @click.stop="resetZoom"
-              >
-                <FeatherIcon name="maximize-2" class="w-3.5 h-3.5" />
-              </button>
+              />
             </div>
           </Transition>
         </div>
@@ -223,7 +219,7 @@
 
 <script setup>
 import { ref, computed, watch } from "vue";
-import { FeatherIcon } from "frappe-ui";
+import { Button } from "frappe-ui";
 import { useEditorStore } from "../stores/editor";
 import { injectGoogleFonts } from "../fonts";
 import Inspector from "../components/Inspector.vue";
@@ -257,7 +253,6 @@ const emit = defineEmits(["close"]);
 const editorStore = useEditorStore();
 const showShortcuts = ref(false);
 
-// ── Campaign document lifecycle (fields, save/send/schedule/duplicate) ─────────
 const {
   subject, previewText, recipientConfig,
   showSettings, showTemplatePicker, showScheduleModal,
@@ -272,16 +267,12 @@ const { openPreview } = usePreview(editorStore, previewText);
 const { showLinkChecker, linkResults, checkingLinks, openLinkChecker, applyLinkFix } = useLinkChecker(editorStore, { flushSave: saveCampaign });
 const { showTestModal, testSending, testRecipient, openTestModal, sendTest } = useTestEmail(editorStore, { subject, previewText, flushSave: saveCampaign });
 
-// Flush save when settings modal closes so title/subject changes are never lost
-// even if the user refreshes faster than the 800ms autosave debounce.
 watch(showSettings, (open) => { if (!open && editorStore.isDirty) saveNow(); });
 
 const { canvasZoom, zoomVisible, resetZoom, stepZoom } = useZoom();
 
 useKeyboardShortcuts({ editorStore, saveNow, openPreview, stepZoom, canvasZoom });
 
-// Left brand dropdown (Frappe Builder-style): navigation + page-level actions
-// that don't belong in the always-visible toolbar.
 const menuOptions = computed(() => [
   {
     group: "navigate",
@@ -289,7 +280,7 @@ const menuOptions = computed(() => [
     items: [
       {
         label: "Back to Letters",
-        icon: "arrow-left",
+        icon: "lucide-arrow-left",
         onClick: () => emit("close"),
       },
     ],
@@ -298,72 +289,64 @@ const menuOptions = computed(() => [
     group: "campaign",
     hideLabel: true,
     items: [
-{
+      {
         label: "Duplicate Letter",
-        icon: "copy",
+        icon: "lucide-copy",
         onClick: duplicateCampaign,
         disabled: !editorStore.campaignDoc || duplicating.value,
       },
       {
         label: "Settings",
-        icon: "settings",
+        icon: "lucide-settings",
         onClick: () => (showSettings.value = true),
       },
       {
         label: "Shortcuts",
-        icon: "command",
+        icon: "lucide-command",
         onClick: () => (showShortcuts.value = true),
       },
       {
         label: "Toggle theme",
-        icon: props.isDark ? "sun" : "moon",
+        icon: props.isDark ? "lucide-sun" : "lucide-moon",
         onClick: () => props.toggleDark(),
       },
     ],
   },
 ]);
 const previewOptions = computed(() => [
-  { label: "Preview", icon: "external-link", onClick: openPreview },
-  { label: "Send test email", icon: "send", onClick: openTestModal },
-  { label: "Check links", icon: "link", onClick: openLinkChecker },
+  { label: "Preview", icon: "lucide-external-link", onClick: openPreview },
+  { label: "Send test email", icon: "lucide-send", onClick: openTestModal },
+  { label: "Check links", icon: "lucide-link", onClick: openLinkChecker },
 ]);
 
 const sendOptions = computed(() => [
   {
     label: "Send now",
-    icon: "send",
+    icon: "lucide-send",
     onClick: sendCampaign,
     disabled: !editorStore.campaignDoc,
   },
   {
     label: "Schedule sending",
-    icon: "clock",
+    icon: "lucide-clock",
     onClick: openScheduleModal,
     disabled: !editorStore.campaignDoc,
   },
 ]);
 
-// ── Panel resize ──────────────────────────────────────────────────────────────
 const { leftPanelWidth, rightPanelWidth, startLeftResize, startRightResize } = usePanelResize();
 
-// ── Block picker (sidebar add-block list + hover preview + drop) ───────────────
 const {
   pickerTarget, openPicker, availableBlocks,
   onAddBlock, addContainer, closePicker, insertBlock,
   blockPreview, showBlockPreview, hideBlockPreview, onCanvasDrop,
 } = useBlockPicker(editorStore);
 
-// ── Google Fonts injection ───────────────────────────────────────────────────
-// Watch the block tree for web-font usage and inject <link> tags so the editor
-// preview renders the correct weights. Runs immediately on mount (immediate:true)
-// and again whenever any font_family prop changes.
 watch(
   () => collectFontFamilies(editorStore.blocks),
   (names) => injectGoogleFonts(names),
   { immediate: true, deep: false }
 );
-
-
 </script>
 
 <style>

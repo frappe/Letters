@@ -44,14 +44,14 @@
               />
               <!-- URL input (only when selected) -->
               <div v-if="isSelected" class="flex items-center gap-1 min-w-0">
-                <FeatherIcon name="link" class="w-3 h-3 text-ink-gray-3 flex-shrink-0" />
-                <input
+                <span class="lucide-link size-3 text-ink-gray-3 flex-shrink-0" aria-hidden="true" />
+                <TextInput
                   type="text"
-                  :value="item.url || ''"
+                  size="sm"
+                  class="w-44 min-w-0"
+                  :modelValue="item.url || ''"
                   placeholder="https://example.com"
-                  class="text-xs text-ink-gray-4 bg-transparent border-0 border-b border-dashed
-                         border-outline-gray-2 outline-none w-44 focus:border-outline-gray-4 focus:text-ink-gray-6"
-                  @input="updateItem(i, 'url', $event.target.value)"
+                  @update:modelValue="updateItem(i, 'url', $event)"
                   @click.stop
                 />
               </div>
@@ -70,35 +70,36 @@
           </div>
 
           <!-- Remove item (when block selected) -->
-          <button
+          <Button
             v-if="isSelected"
-            type="button"
+            variant="ghost"
+            icon="lucide-x"
+            size="sm"
             title="Remove item"
-            class="flex-shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity
-                   text-ink-gray-3 hover:text-red-400"
+            class="flex-shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity"
             @click.stop="removeItem(i)"
-          >
-            <FeatherIcon name="x" class="w-3.5 h-3.5" />
-          </button>
+          />
         </div>
       </div>
 
       <!-- Add item button (when selected) -->
-      <button
+      <Button
         v-if="isSelected"
-        type="button"
-        class="mt-3 flex items-center gap-1 text-xs text-ink-gray-4 hover:text-ink-gray-7 transition-colors"
+        variant="ghost"
+        size="sm"
+        class="mt-3 text-ink-gray-4 hover:text-ink-gray-7"
+        iconLeft="lucide-plus"
         @click.stop="addItem"
       >
-        <FeatherIcon name="plus" class="w-3 h-3" /> Add item
-      </button>
+        Add item
+      </Button>
     </div>
   </BlockWrapper>
 </template>
 
 <script setup>
 import { computed } from "vue";
-import { FeatherIcon } from "frappe-ui";
+import { Button, TextInput } from "frappe-ui";
 import BlockWrapper from "../BlockWrapper.vue";
 import EditableDiv from "../EditableDiv.vue";
 import { useEditorStore } from "../../stores/editor";
@@ -114,7 +115,6 @@ const paddingStyle = usePadding(blockProps, { top: 20, right: 16, bottom: 20, le
 
 const isSelected = computed(() => store.selectedBlockId === props.block.id);
 
-// Items as a computed copy (never mutate props directly)
 const items = computed(() => props.block.props.items || []);
 
 function updateItem(index, key, value) {

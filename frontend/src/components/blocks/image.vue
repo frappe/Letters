@@ -5,7 +5,8 @@
       <ImageUploader
         :url="block.props.image_url"
         :alt="block.props.alt || ''"
-        height-class="h-44"
+        :height-class="block.props.height_class || 'h-44'"
+        :compact="!!block.props.compact"
         @uploaded="update('image_url', $event)"
       >
         <!-- Wrap in a div so border-radius + overflow:hidden clips the image correctly -->

@@ -20,13 +20,13 @@
               <img :src="url" class="w-full block" :alt="alt" />
             </slot>
             <!-- Replace overlay — appears on hover -->
-            <button
-              type="button"
-              class="absolute top-1.5 right-1.5 px-2 py-0.5 rounded text-xs font-medium
-                     bg-black/60 text-white opacity-0 group-hover/img:opacity-100
-                     transition-opacity backdrop-blur-sm"
+            <Button
+              variant="ghost"
+              size="sm"
+              class="absolute top-1.5 right-1.5 opacity-0 group-hover/img:opacity-100
+                     transition-opacity !bg-ink-gray-9/60 !text-ink-white backdrop-blur-sm"
               @click.stop="openFileSelector"
-            >Replace</button>
+            >Replace</Button>
           </div>
           <template v-else>
             <slot :url="url">
@@ -35,24 +35,23 @@
           </template>
         </template>
 
-        <!-- Empty state dropzone — compact variant (logos) drops the description
-             line and shrinks padding so it never overflows a short header. -->
+        <!-- Empty state dropzone -->
         <div
           v-else
           class="w-full border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-center cursor-pointer transition-colors select-none px-3"
           :class="[compact ? 'gap-0.5 py-2' : 'gap-1.5 py-6', !compact && heightClass, isDragging
-            ? 'border-gray-500 bg-gray-100'
-            : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100']"
+            ? 'border-outline-gray-4 bg-surface-gray-2'
+            : 'border-outline-gray-2 bg-surface-gray-1 hover:border-outline-gray-3 hover:bg-surface-gray-2']"
           @click.stop="openFileSelector"
           @dragover.prevent.stop="isDragging = true"
           @dragleave.stop="isDragging = false"
           @drop.prevent.stop="onDrop"
         >
-          <span v-if="uploading" class="text-xs text-gray-400">Uploading {{ progress }}%…</span>
+          <span v-if="uploading" class="text-xs text-ink-gray-4">Uploading {{ progress }}%…</span>
           <template v-else>
-            <FeatherIcon name="image" :class="compact ? 'w-4 h-4' : 'w-6 h-6'" class="text-gray-400" />
-            <span class="text-xs text-gray-600 font-medium text-center leading-tight">{{ compact ? 'Add logo' : 'Click or drop image' }}</span>
-            <span v-if="!compact" class="text-xs text-gray-400 text-center leading-tight">PNG, JPG or WebP · max 5 MB</span>
+            <span :class="compact ? 'lucide-image size-4' : 'lucide-image size-6'" class="text-ink-gray-4" aria-hidden="true" />
+            <span class="text-xs text-ink-gray-6 font-medium text-center leading-tight">{{ compact ? 'Add logo' : 'Click or drop image' }}</span>
+            <span v-if="!compact" class="text-xs text-ink-gray-4 text-center leading-tight">PNG, JPG or WebP · max 5 MB</span>
           </template>
         </div>
 
@@ -64,15 +63,15 @@
 
 <script setup>
 import { ref } from "vue";
-import { FileUploader, FeatherIcon } from "frappe-ui";
+import { FileUploader, Button } from "frappe-ui";
 
 const props = defineProps({
   url:         { type: String, default: "" },
   alt:         { type: String, default: "" },
-  heightClass: { type: String, default: "h-44" },   // dropzone height
-  replaceClass:{ type: String, default: "" },        // extra classes for replace btn
+  heightClass: { type: String, default: "h-44" },
+  replaceClass:{ type: String, default: "" },
   hideReplace: { type: Boolean, default: false },
-  compact:     { type: Boolean, default: false },     // small empty state (e.g. header logo)
+  compact:     { type: Boolean, default: false },
 });
 
 const emit = defineEmits(["uploaded"]);
@@ -81,15 +80,13 @@ const uploader    = ref(null);
 const isDragging  = ref(false);
 const uploadError = ref("");
 
-// Reject non-images / oversized files before they hit the network.
 function validateImage(file) {
   if (!file.type?.startsWith("image/")) return "Please choose an image file.";
   if (file.size > 5 * 1024 * 1024) return "Image must be under 5 MB. Please resize or compress before uploading.";
   uploadError.value = "";
-  return null; // valid
+  return null;
 }
 
-// FileUploader emits `success` with the created File doc → grab its file_url.
 function onSuccess(fileDoc) {
   const fileUrl = fileDoc?.file_url || fileDoc?.message?.file_url;
   if (fileUrl) emit("uploaded", fileUrl);
@@ -99,8 +96,6 @@ function onFailure(err) {
   uploadError.value = err?.message || "Upload failed";
 }
 
-// Drag-and-drop: forward the dropped file into FileUploader's hidden <input>
-// so it runs through the exact same validate + upload pipeline as click-to-select.
 function onDrop(e) {
   isDragging.value = false;
   const file = e.dataTransfer?.files?.[0];

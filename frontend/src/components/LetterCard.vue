@@ -1,57 +1,62 @@
 <template>
   <div
-    class="group relative bg-surface-base border border-outline-gray-1 rounded-xl overflow-hidden cursor-pointer
-           hover:border-outline-gray-3 hover:shadow-md transition-all duration-150"
+    class="group relative rounded-xl cursor-pointer transition-all duration-150 pt-3 px-3 pb-1"
+    :class="props.isDark ? 'hover:bg-white/10' : 'hover:bg-surface-gray-2'"
     @click="$emit('open', letter.name)"
   >
     <!-- Thumbnail area -->
-    <div class="h-40 border-b border-outline-gray-1 relative overflow-hidden">
+    <div class="h-32 relative overflow-hidden rounded-lg" :class="props.isDark ? '' : 'border border-outline-gray-2 shadow-sm'">
       <LetterThumbnail :name="letter.name" icon-class="w-8 h-8" />
       <!-- Status badge -->
-      <span
-        class="absolute top-2.5 left-2.5 text-[10px] font-semibold px-2 py-0.5 rounded-full z-10"
-        :class="statusClass"
-      >{{ letter.status }}</span>
+      <Badge
+        :theme="statusTheme"
+        variant="subtle"
+        size="sm"
+        :label="letter.status"
+        class="absolute top-2.5 left-2.5 z-10"
+      />
     </div>
 
     <!-- Card footer -->
-    <div class="px-3.5 py-3 flex items-start justify-between gap-2">
+    <div class="px-1 py-2.5 flex items-start justify-between gap-2">
       <div class="min-w-0">
-        <p class="text-sm font-medium text-ink-gray-9 truncate leading-snug">{{ letter.title }}</p>
-        <p class="text-xs text-ink-gray-5 mt-0.5">{{ relativeTime }}</p>
+        <p class="text-sm font-medium truncate leading-snug" :class="props.isDark ? 'text-ink-gray-7' : 'text-ink-gray-8'">{{ letter.title }}</p>
+        <p class="text-xs mt-0.5" :class="props.isDark ? 'text-ink-gray-5' : 'text-ink-gray-5'">{{ relativeTime }}</p>
       </div>
       <!-- Always-visible menu button -->
-      <button
-        class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-md
-               text-ink-gray-4 hover:text-ink-gray-7 hover:bg-surface-gray-2 transition-colors mt-0.5"
+      <Button
+        variant="ghost"
+        icon="lucide-ellipsis"
+        size="sm"
+        class="flex-shrink-0 mt-0.5"
+        aria-label="More options"
         @click.stop="$emit('menu', $event)"
-      >
-        <FeatherIcon name="more-horizontal" class="w-4 h-4" />
-      </button>
+      />
     </div>
   </div>
 </template>
 
 <script setup>
 import { computed } from "vue";
-import { FeatherIcon } from "frappe-ui";
+import { Badge, Button } from "frappe-ui";
 import LetterThumbnail from "./LetterThumbnail.vue";
 
 const props = defineProps({
   letter: { type: Object, required: true },
+  isDark: { type: Boolean, default: false },
 });
 defineEmits(["open", "menu"]);
 
-const statusClass = computed(() => {
+const statusTheme = computed(() => {
   const map = {
-    Draft:     "bg-surface-gray-3 text-ink-gray-6",
-    Scheduled: "bg-surface-amber-1 text-amber-700",
-    Sending:   "bg-surface-blue-1 text-blue-700",
-    Sent:      "bg-surface-green-1 text-green-700",
-    Partial:   "bg-surface-amber-1 text-amber-700",
-    Failed:    "bg-surface-red-1 text-red-700",
+    Draft:     "gray",
+    Scheduled: "orange",
+    Sending:   "blue",
+    Sent:      "green",
+    Partial:   "orange",
+    Failed:    "red",
   };
-  return map[props.letter.status] || map.Draft;
+  return map[props.letter.status] || "gray";
 });
 
 const relativeTime = computed(() => {

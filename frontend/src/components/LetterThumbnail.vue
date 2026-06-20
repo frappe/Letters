@@ -8,19 +8,17 @@
       :style="iframeStyle"
     />
     <div v-else class="absolute inset-0 flex items-center justify-center bg-surface-gray-3">
-      <FeatherIcon v-if="loading" name="loader" class="w-4 h-4 animate-spin text-ink-gray-4" />
-      <FeatherIcon v-else name="mail" class="text-ink-gray-3" :class="iconClass" />
+      <span v-if="loading" class="lucide-loader size-4 animate-spin text-ink-gray-4" aria-hidden="true" />
+      <span v-else class="lucide-mail text-ink-gray-3" :class="iconClass" aria-hidden="true" />
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { FeatherIcon } from "frappe-ui";
 
 const props = defineProps({
   name: { type: String, required: true },
-  // icon size class for the fallback, e.g. "w-5 h-5" or "w-8 h-8"
   iconClass: { type: String, default: "w-5 h-5" },
 });
 
@@ -48,7 +46,16 @@ async function fetchPreview() {
       method: "letters.letters.api.render_preview",
       args: { name: props.name },
     });
-    previewHtml.value = res.message?.html || null;
+    let html = res.message?.html || null;
+    if (html) {
+      const reset = `<style>
+html,body{margin:0!important;padding:0!important;background:transparent!important;}
+table.body-wrap{background:transparent!important;}
+table.body-wrap>tbody>tr>td{padding:0!important;background:transparent!important;}
+</style>`;
+      html = html.includes("</head>") ? html.replace("</head>", `${reset}</head>`) : reset + html;
+    }
+    previewHtml.value = html;
   } catch {
     // leave null, fallback icon shows
   } finally {

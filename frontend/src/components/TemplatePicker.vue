@@ -43,7 +43,6 @@
             </div>
             <div class="border-outline-gray-2 px-4 py-3 border-t">
               <p class="text-ink-gray-9 text-sm font-semibold">Blank</p>
-              <p class="text-ink-gray-5 text-xs mt-0.5">Header and footer only</p>
             </div>
           </div>
 
@@ -78,7 +77,7 @@
 
       <!-- Footer -->
       <div v-if="creating" class="border-outline-gray-2 flex-shrink-0 px-8 py-4 border-t flex items-center gap-3">
-        <div class="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+        <div class="w-4 h-4 border-2 border-outline-gray-3 border-t-blue-500 rounded-full animate-spin" />
         <span class="text-ink-gray-5 text-sm">Setting up your campaign…</span>
       </div>
     </div>

@@ -8,13 +8,13 @@
     <template #default>
       <!-- Loading state -->
       <div v-if="checking" class="py-8 flex flex-col items-center gap-3">
-        <FeatherIcon name="loader" class="w-6 h-6 text-ink-gray-4 animate-spin" />
+        <span class="lucide-loader size-6 text-ink-gray-4 animate-spin" aria-hidden="true" />
         <span class="text-sm text-ink-gray-5">Checking all links…</span>
       </div>
 
       <!-- Empty state -->
       <div v-else-if="!results.length" class="py-8 flex flex-col items-center gap-2">
-        <FeatherIcon name="link" class="w-6 h-6 text-ink-gray-3" />
+        <span class="lucide-link size-6 text-ink-gray-3" aria-hidden="true" />
         <p class="text-sm text-ink-gray-5">No links found in this email.</p>
       </div>
 
@@ -22,24 +22,21 @@
       <div v-else class="flex flex-col gap-1">
         <!-- Summary row -->
         <div class="flex items-center gap-2 pb-2 mb-1 border-b border-outline-gray-1">
-          <Badge v-if="results.filter(r => r.status === 'ok').length" theme="green" variant="subtle" size="sm">
-            <template #prefix><FeatherIcon name="check" class="w-3 h-3" /></template>
+          <Badge v-if="results.filter(r => r.status === 'ok').length" theme="green" variant="subtle" size="sm" icon="lucide-check">
             {{ results.filter(r => r.status === 'ok').length }} working
           </Badge>
-          <Badge v-if="results.filter(r => r.status === 'error').length" theme="red" variant="subtle" size="sm">
-            <template #prefix><FeatherIcon name="alert-circle" class="w-3 h-3" /></template>
+          <Badge v-if="results.filter(r => r.status === 'error').length" theme="red" variant="subtle" size="sm" icon="lucide-circle-alert">
             {{ results.filter(r => r.status === 'error').length }} broken
           </Badge>
           <Badge v-if="results.filter(r => r.status === 'skipped').length" theme="gray" variant="subtle" size="sm">
             {{ results.filter(r => r.status === 'skipped').length }} skipped
           </Badge>
           <Tooltip v-if="results.filter(r => r.status === 'blocked').length" text="Could not verify from this server (DNS or network unreachable). Links likely work fine for recipients.">
-            <Badge theme="orange" variant="subtle" size="sm">
-              <template #prefix><FeatherIcon name="shield-off" class="w-3 h-3" /></template>
+            <Badge theme="orange" variant="subtle" size="sm" icon="lucide-shield-off">
               {{ results.filter(r => r.status === 'blocked').length }} blocked
             </Badge>
           </Tooltip>
-          <Button class="ml-auto" size="xs" variant="ghost" icon-left="refresh-cw" :loading="checking" @click="emit('recheck')">Re-check</Button>
+          <Button class="ml-auto" size="xs" variant="ghost" icon-left="lucide-refresh-cw" :loading="checking" @click="emit('recheck')">Re-check</Button>
         </div>
 
         <!-- Link rows -->
@@ -56,10 +53,15 @@
           >
             <!-- Top row: url + badge -->
             <div class="flex items-center gap-2 min-w-0">
-              <FeatherIcon
-                :name="r.status === 'ok' ? 'check-circle' : r.status === 'skipped' ? 'minus' : r.status === 'blocked' ? 'shield-off' : 'alert-circle'"
-                class="w-3.5 h-3.5 flex-shrink-0"
-                :class="r.status === 'ok' ? 'text-green-500' : r.status === 'skipped' ? 'text-ink-gray-3' : r.status === 'blocked' ? 'text-orange-500' : 'text-red-500'"
+              <span
+                :class="[
+                  r.status === 'ok' ? 'lucide-circle-check text-green-500' :
+                  r.status === 'skipped' ? 'lucide-minus text-ink-gray-3' :
+                  r.status === 'blocked' ? 'lucide-shield-off text-orange-500' :
+                  'lucide-circle-alert text-red-500',
+                  'size-3.5 flex-shrink-0'
+                ]"
+                aria-hidden="true"
               />
               <span class="text-xs font-mono text-ink-gray-7 truncate flex-1 min-w-0">{{ r.url }}</span>
               <Tooltip v-if="r.status === 'blocked'" text="Server blocked automated requests. Link likely works for real recipients.">
@@ -94,7 +96,7 @@
 </template>
 
 <script setup>
-import { Dialog, Button, TextInput, FeatherIcon, Tooltip, Badge } from "frappe-ui";
+import { Dialog, Button, TextInput, Tooltip, Badge } from "frappe-ui";
 
 defineProps({
   modelValue: Boolean,

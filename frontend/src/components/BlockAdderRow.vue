@@ -14,22 +14,23 @@
                 opacity-0 group-hover:opacity-100 transition-opacity" />
 
     <!-- + button -->
-    <button
-      type="button"
+    <Button
+      variant="ghost"
+      icon="lucide-plus"
+      size="sm"
+      aria-label="Add block here"
       title="Add block here"
-      class="relative z-10 w-6 h-6 rounded-full flex items-center justify-center text-sm font-semibold leading-none
-             opacity-0 group-hover:opacity-100 transition-all
+      class="relative z-10 !w-6 !h-6 !rounded-full opacity-0 group-hover:opacity-100 transition-all
              bg-surface-base border border-outline-gray-3 text-ink-gray-4
              hover:bg-surface-gray-7 hover:text-ink-white hover:border-surface-gray-7 hover:scale-110
              shadow-sm"
-      aria-label="Add block here"
       @click.stop="$emit('open', afterIndex)"
-    ><FeatherIcon name="plus" class="w-3.5 h-3.5" /></button>
+    />
   </div>
 </template>
 
 <script setup>
-import { FeatherIcon } from "frappe-ui";
+import { Button } from "frappe-ui";
 defineProps({ afterIndex: { type: Number, required: true } });
 defineEmits(["open"]);
 </script>

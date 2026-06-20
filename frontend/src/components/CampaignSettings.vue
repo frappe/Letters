@@ -13,7 +13,7 @@
         <!-- Overlay -->
         <div class="absolute inset-0 bg-black/60" @click="close" />
 
-        <!-- Panel: left nav + right content, mirroring Frappe Builder's settings -->
+        <!-- Panel: left nav + right content -->
         <div class="bg-surface-base relative flex w-full max-w-3xl h-[560px] max-h-[90vh] rounded-xl shadow-2xl overflow-hidden">
 
           <!-- Left nav -->
@@ -21,18 +21,19 @@
             <p class="text-ink-gray-9 px-2.5 py-2 text-base font-semibold">Settings</p>
             <p class="text-ink-gray-5 px-2.5 pt-2 pb-1 text-xs font-medium uppercase tracking-wide">Campaign</p>
             <nav class="space-y-0.5">
-              <button
+              <Button
                 v-for="s in sections"
                 :key="s.id"
-                class="flex items-center gap-2 w-full px-2.5 py-1.5 rounded text-sm transition-colors"
+                variant="ghost"
+                class="w-full justify-start px-2.5 py-1.5 text-sm"
                 :class="activeTab === s.id
                   ? 'bg-surface-base text-ink-gray-9 shadow-sm font-medium'
                   : 'text-ink-gray-5 hover:bg-surface-gray-3'"
+                :iconLeft="`lucide-${s.icon}`"
                 @click="activeTab = s.id"
               >
-                <FeatherIcon :name="s.icon" class="w-4 h-4 flex-shrink-0" />
                 {{ s.label }}
-              </button>
+              </Button>
             </nav>
           </aside>
 
@@ -40,7 +41,7 @@
           <div class="bg-surface-base flex-1 flex flex-col min-w-0">
             <div class="border-outline-gray-2 flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
               <h2 class="text-ink-gray-9 text-base font-semibold">{{ activeSection.label }}</h2>
-              <Button variant="ghost" icon="x" size="sm" aria-label="Close settings" @click="close" />
+              <Button variant="ghost" icon="lucide-x" size="sm" aria-label="Close settings" @click="close" />
             </div>
 
             <div class="flex-1 overflow-y-auto px-6 py-5">
@@ -93,7 +94,7 @@
                         <span class="text-ink-gray-7 truncate mr-3">{{ r.email }}</span>
                         <div class="flex items-center gap-2 flex-shrink-0">
                           <span v-if="r.opened" class="flex items-center gap-0.5 text-green-600">
-                            <FeatherIcon name="eye" class="w-3 h-3" /> Opened
+                            <span class="lucide-eye size-3" aria-hidden="true" /> Opened
                           </span>
                           <span :class="r.status === 'Sent' ? 'text-ink-gray-4' : r.status === 'Failed' ? 'text-red-500' : 'text-yellow-600'">
                             {{ r.status }}
@@ -120,7 +121,7 @@
                 <div v-if="loadingAnalytics" class="text-xs text-ink-gray-5 py-6 text-center">Loading analytics…</div>
 
                 <div v-else-if="!analytics || !analytics.sent_status" class="rounded border border-dashed border-outline-gray-2 px-4 py-10 text-center">
-                  <FeatherIcon name="bar-chart-2" class="w-6 h-6 text-ink-gray-4 mx-auto mb-2" />
+                  <span class="lucide-chart-bar size-6 text-ink-gray-4 mx-auto mb-2 block" aria-hidden="true" />
                   <p class="text-sm text-ink-gray-6 font-medium">No sends yet</p>
                   <p class="text-xs text-ink-gray-5 mt-1">Analytics appear here once this campaign has been sent.</p>
                 </div>
@@ -128,7 +129,7 @@
                 <div v-else class="space-y-4">
                   <!-- Sending-in-progress notice -->
                   <div v-if="analytics.sent_status === 'Sending'" class="flex items-start gap-2 rounded border border-outline-blue-2 bg-surface-blue-1 px-3 py-2.5 text-xs text-ink-gray-7">
-                    <FeatherIcon name="loader" class="w-3.5 h-3.5 mt-0.5 flex-shrink-0 animate-spin text-blue-500" />
+                    <span class="lucide-loader size-3.5 mt-0.5 flex-shrink-0 animate-spin text-blue-500" aria-hidden="true" />
                     <span>Send in progress. Stats update once the batch completes.</span>
                   </div>
 
@@ -192,7 +193,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
-import { TextInput, FeatherIcon, Button } from "frappe-ui";
+import { TextInput, Button } from "frappe-ui";
 import RecipientsPicker from "./RecipientsPicker.vue";
 
 const props = defineProps({
@@ -211,7 +212,7 @@ const emit = defineEmits([
 const sections = [
   { id: "details",    label: "Details",    icon: "settings" },
   { id: "recipients", label: "Recipients", icon: "users" },
-  { id: "analytics",  label: "Analytics",  icon: "bar-chart-2" },
+  { id: "analytics",  label: "Analytics",  icon: "chart-bar" },
 ];
 const activeTab = ref("details");
 const activeSection = computed(() => sections.find(s => s.id === activeTab.value) || sections[0]);
@@ -221,7 +222,6 @@ function close() {
   emit("update:modelValue", false);
 }
 
-// ── Analytics (lazy: load when the tab is opened) ─────────────────────────────
 const analytics        = ref(null);
 const loadingAnalytics = ref(false);
 const recipients       = ref([]);

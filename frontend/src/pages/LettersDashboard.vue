@@ -1,51 +1,82 @@
 <template>
-  <div class="flex h-screen bg-surface-gray-1 font-sans overflow-hidden" @click="closeAll">
+  <div class="flex h-screen bg-surface-base font-sans overflow-hidden" @click="closeAll">
 
     <!-- Sidebar -->
-    <aside class="w-52 flex-shrink-0 bg-surface-base border-r border-outline-gray-1 flex flex-col">
+    <aside
+      class="w-52 flex-shrink-0 border-r border-outline-gray-1 flex flex-col"
+      :class="props.isDark ? '' : 'bg-surface-gray-1'"
+      :style="props.isDark ? { background: '#111111' } : {}"
+    >
       <!-- App header -->
-      <div class="flex items-center gap-2.5 px-4 py-3.5 border-b border-outline-gray-1">
-        <div class="w-7 h-7 rounded-lg bg-surface-gray-4 flex items-center justify-center flex-shrink-0 text-sm font-bold text-ink-gray-7">
+      <div class="flex items-center gap-2.5 px-4 py-3.5 border-b border-outline-gray-1 h-[53px]">
+        <div
+          class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-sm font-bold"
+          :class="props.isDark ? '' : 'bg-surface-gray-3 text-ink-gray-6'"
+          :style="props.isDark ? 'background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.55)' : ''"
+        >
           L
         </div>
-        <span class="text-sm font-semibold text-ink-gray-9 flex-1">Letters</span>
-        <button
-          class="w-6 h-6 flex items-center justify-center rounded-md text-ink-gray-4 hover:text-ink-gray-7 hover:bg-surface-gray-2 transition-colors"
+        <span
+          class="text-sm font-semibold flex-1"
+          :class="props.isDark ? '' : 'text-ink-gray-7'"
+          :style="props.isDark ? 'color:rgba(255,255,255,0.65)' : ''"
+        >Letters</span>
+        <Button
+          variant="ghost"
+          :icon="props.isDark ? 'lucide-sun' : 'lucide-moon'"
+          size="sm"
           :title="props.isDark ? 'Switch to light' : 'Switch to dark'"
+          aria-label="Toggle theme"
           @click.stop="props.toggleDark()"
-        >
-          <FeatherIcon :name="props.isDark ? 'sun' : 'moon'" class="w-3.5 h-3.5" />
-        </button>
+        />
       </div>
 
       <!-- Nav -->
       <div class="px-3 py-3 flex flex-col gap-0.5">
-        <button
-          class="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors w-full text-left"
-          :class="activeFolder === null ? 'bg-surface-gray-3 text-ink-gray-9 font-medium' : 'text-ink-gray-6 hover:bg-surface-gray-2'"
+        <Button
+          variant="ghost"
+          class="w-full !justify-start px-2 py-1.5 text-sm"
+          :class="activeFolder === null
+            ? (props.isDark ? '!bg-white/10 !text-white/70 font-medium' : '!bg-surface-base !text-ink-gray-8 font-medium')
+            : (props.isDark ? '!text-white/55' : 'text-ink-gray-6')"
           @click="activeFolder = null"
         >
-          <FeatherIcon name="inbox" class="w-3.5 h-3.5 flex-shrink-0" />
+          <template #prefix>
+            <span class="lucide-inbox size-3.5 flex-shrink-0" aria-hidden="true" />
+          </template>
           All Letters
-          <span class="ml-auto text-xs text-ink-gray-4 tabular-nums">{{ letters.length }}</span>
-        </button>
+          <template #suffix>
+            <span class="ml-auto text-xs tabular-nums" :class="props.isDark ? 'text-ink-gray-3' : 'text-ink-gray-4'">{{ letters.length }}</span>
+          </template>
+        </Button>
       </div>
 
       <!-- Folders -->
       <div class="px-3 flex-1 overflow-y-auto">
         <div class="flex items-center justify-between px-2 mb-1">
-          <p class="text-[10px] font-semibold text-ink-gray-3 uppercase tracking-wide">Folders</p>
-          <button class="text-ink-gray-3 hover:text-ink-gray-6 transition-colors" title="New folder" @click.stop="startNewFolder">
-            <FeatherIcon name="plus" class="w-3 h-3" />
-          </button>
+          <p
+            class="text-[10px] font-semibold uppercase tracking-wide"
+            :class="props.isDark ? '' : 'text-ink-gray-4'"
+            :style="props.isDark ? 'color:rgba(255,255,255,0.38)' : ''"
+          >Folders</p>
+          <Button
+            variant="ghost"
+            icon="lucide-plus"
+            size="sm"
+            title="New folder"
+            aria-label="New folder"
+            class="!w-5 !h-5"
+            @click.stop="startNewFolder"
+          />
         </div>
 
         <div v-if="creatingFolder" class="flex items-center gap-1.5 px-2 py-1 mb-0.5">
-          <FeatherIcon name="folder" class="w-3.5 h-3.5 text-ink-gray-4 flex-shrink-0" />
-          <input
+          <span class="lucide-folder size-3.5 text-ink-gray-4 flex-shrink-0" aria-hidden="true" />
+          <TextInput
             ref="folderInput"
             v-model="newFolderName"
-            class="flex-1 min-w-0 text-sm bg-transparent border-b border-outline-gray-3 outline-none text-ink-gray-9 py-0.5"
+            size="sm"
+            class="flex-1 min-w-0"
             placeholder="Folder name"
             @keydown.enter="saveNewFolder"
             @keydown.escape="cancelNewFolder"
@@ -53,19 +84,26 @@
           />
         </div>
 
-        <button
+        <Button
           v-for="f in allFolders"
           :key="f.name"
-          class="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors w-full text-left"
-          :class="activeFolder === f.name ? 'bg-surface-gray-3 text-ink-gray-9 font-medium' : 'text-ink-gray-6 hover:bg-surface-gray-2'"
+          variant="ghost"
+          class="w-full !justify-start px-2 py-1.5 text-sm"
+          :class="activeFolder === f.name
+            ? (props.isDark ? '!bg-white/10 !text-white/70 font-medium' : '!bg-surface-base !text-ink-gray-8 font-medium')
+            : (props.isDark ? '!text-white/55' : 'text-ink-gray-6')"
           @click="activeFolder = f.name"
         >
-          <FeatherIcon name="folder" class="w-3.5 h-3.5 flex-shrink-0" />
-          <span class="truncate flex-1">{{ f.name }}</span>
-          <span class="text-[10px] text-ink-gray-3 tabular-nums">{{ folderCount(f.name) }}</span>
-        </button>
+          <template #prefix>
+            <span class="lucide-folder size-3.5 flex-shrink-0" aria-hidden="true" />
+          </template>
+          {{ f.name }}
+          <template #suffix>
+            <span class="ml-auto text-[10px] tabular-nums" :class="props.isDark ? 'text-ink-gray-3' : 'text-ink-gray-4'">{{ folderCount(f.name) }}</span>
+          </template>
+        </Button>
 
-        <p v-if="!allFolders.length && !creatingFolder" class="px-2 text-xs text-ink-gray-3 mt-1">No folders yet</p>
+        <p v-if="!allFolders.length && !creatingFolder" class="px-2 text-xs mt-1" :class="props.isDark ? 'text-ink-gray-3' : 'text-ink-gray-4'">No folders yet</p>
       </div>
     </aside>
 
@@ -73,82 +111,106 @@
     <div class="flex-1 flex flex-col min-w-0">
 
       <!-- Header -->
-      <header class="flex items-center justify-between px-6 py-3.5 border-b border-outline-gray-1 bg-surface-base flex-shrink-0 gap-3">
-        <h1 class="text-base font-semibold text-ink-gray-9 flex-shrink-0">{{ activeFolder || "All Letters" }}</h1>
+      <header
+        class="flex items-center justify-between px-6 border-b border-outline-gray-1 flex-shrink-0 gap-3 h-[53px]"
+        :class="props.isDark ? 'bg-black' : 'bg-surface-base'"
+      >
+        <h1 class="text-base font-semibold flex-shrink-0" :class="props.isDark ? 'text-ink-gray-7' : 'text-ink-gray-8'">{{ activeFolder || "All Letters" }}</h1>
 
         <div class="flex items-center gap-2 flex-1 justify-end">
-          <div class="relative">
-            <FeatherIcon name="search" class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-gray-4 pointer-events-none" />
-            <input
-              v-model="search"
-              placeholder="Filter by title…"
-              class="pl-8 pr-3 py-1.5 text-sm bg-surface-gray-2 border border-outline-gray-1 rounded-md outline-none focus:border-outline-gray-4 text-ink-gray-8 placeholder:text-ink-gray-3 w-48 transition-colors"
-            />
-          </div>
+          <TextInput
+            v-model="search"
+            placeholder="Filter by title…"
+            size="sm"
+            class="w-48"
+          >
+            <template #prefix>
+              <span class="lucide-search size-3.5 text-ink-gray-4" aria-hidden="true" />
+            </template>
+          </TextInput>
 
           <Dropdown :options="statusOptions">
-            <template #default>
-              <button
-                class="flex items-center gap-1.5 px-3 py-1.5 text-sm border rounded-md transition-colors"
-                :class="activeStatus ? 'border-outline-gray-4 bg-surface-gray-3 text-ink-gray-9 font-medium' : 'border-outline-gray-1 bg-surface-base text-ink-gray-6 hover:bg-surface-gray-2'"
-              >
-                {{ activeStatus || "Status" }}
-                <FeatherIcon v-if="activeStatus" name="x" class="w-3 h-3 opacity-60" @click.stop="activeStatus = null" />
-                <FeatherIcon v-else name="chevron-down" class="w-3 h-3" />
-              </button>
-            </template>
+            <Button
+              size="sm"
+              :variant="activeStatus ? 'outline' : 'ghost'"
+              class="gap-1.5"
+              :class="props.isDark ? '!text-ink-gray-6' : '!text-ink-gray-7'"
+            >
+              {{ activeStatus || "Status" }}
+              <template #suffix>
+                <span
+                  v-if="activeStatus"
+                  class="lucide-x size-3 opacity-60"
+                  aria-hidden="true"
+                  @click.stop="activeStatus = null"
+                />
+                <span v-else class="lucide-chevron-down size-3" aria-hidden="true" />
+              </template>
+            </Button>
           </Dropdown>
 
           <Dropdown :options="sortOptions">
-            <template #default>
-              <button class="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-outline-gray-1 bg-surface-base text-ink-gray-6 hover:bg-surface-gray-2 rounded-md transition-colors">
-                {{ sortOptions.find(s => s.value === sortBy)?.label || 'Last Modified' }}
-                <FeatherIcon name="chevron-down" class="w-3 h-3" />
-              </button>
-            </template>
+            <Button variant="ghost" size="sm" class="gap-1.5" :class="props.isDark ? '!text-ink-gray-6' : '!text-ink-gray-7'">
+              {{ sortOptions.find(s => s.value === sortBy)?.label || 'Last Modified' }}
+              <template #suffix>
+                <span class="lucide-chevron-down size-3" aria-hidden="true" />
+              </template>
+            </Button>
           </Dropdown>
 
-          <div class="flex border border-outline-gray-1 rounded-md overflow-hidden">
-            <button
-              class="px-2 py-1.5 transition-colors"
-              :class="viewMode === 'grid' ? 'bg-surface-gray-3 text-ink-gray-9' : 'bg-surface-base text-ink-gray-4 hover:bg-surface-gray-2'"
+          <div class="flex border border-outline-gray-1 rounded-md overflow-hidden" :class="props.isDark ? '' : 'bg-surface-gray-2'">
+            <Button
+              variant="ghost"
+              icon="lucide-layout-grid"
+              size="sm"
+              class="!rounded-none"
+              :class="viewMode === 'grid'
+                ? (props.isDark ? '!bg-white/25 !text-white/70' : '!bg-surface-base !text-ink-gray-8')
+                : (props.isDark ? '!text-white/40' : 'text-ink-gray-4')"
+              aria-label="Grid view"
               @click="viewMode = 'grid'"
-            ><FeatherIcon name="grid" class="w-3.5 h-3.5" /></button>
-            <button
-              class="px-2 py-1.5 border-l border-outline-gray-1 transition-colors"
-              :class="viewMode === 'list' ? 'bg-surface-gray-3 text-ink-gray-9' : 'bg-surface-base text-ink-gray-4 hover:bg-surface-gray-2'"
+            />
+            <Button
+              variant="ghost"
+              icon="lucide-list"
+              size="sm"
+              class="!rounded-none border-l border-outline-gray-1"
+              :class="viewMode === 'list'
+                ? (props.isDark ? '!bg-white/25 !text-white/70' : '!bg-surface-base !text-ink-gray-8')
+                : (props.isDark ? '!text-white/40' : 'text-ink-gray-4')"
+              aria-label="List view"
               @click="viewMode = 'list'"
-            ><FeatherIcon name="list" class="w-3.5 h-3.5" /></button>
+            />
           </div>
 
-          <Button variant="solid" :loading="creating" @click="createNew">
-            <template #prefix><FeatherIcon name="plus" class="w-4 h-4" /></template>
+          <Button variant="solid" :loading="creating" icon-left="lucide-plus" @click="createNew">
             New Letter
           </Button>
         </div>
       </header>
 
       <!-- Content -->
-      <div class="flex-1 overflow-y-auto px-6 py-5">
+      <div class="flex-1 overflow-y-auto pt-12 pb-6" :class="props.isDark ? 'bg-black' : 'bg-surface-base'">
+        <div class="max-w-[1000px] mx-auto px-6">
         <div v-if="loading" class="flex items-center justify-center h-48 text-ink-gray-4 text-sm gap-2">
-          <FeatherIcon name="loader" class="w-4 h-4 animate-spin" /> Loading…
+          <span class="lucide-loader size-4 animate-spin" aria-hidden="true" /> Loading…
         </div>
 
         <div v-else-if="!visibleLetters.length" class="flex flex-col items-center justify-center h-48 gap-3">
-          <FeatherIcon name="mail" class="w-10 h-10 text-ink-gray-3" />
+          <span class="lucide-mail size-10 text-ink-gray-3" aria-hidden="true" />
           <p class="text-sm text-ink-gray-5">{{ search || activeStatus ? "No letters match your filters." : "No letters yet." }}</p>
-          <Button v-if="!search && !activeStatus" variant="subtle" :loading="creating" @click="createNew">
-            <template #prefix><FeatherIcon name="plus" class="w-4 h-4" /></template>
+          <Button v-if="!search && !activeStatus" variant="subtle" :loading="creating" icon-left="lucide-plus" @click="createNew">
             Create your first letter
           </Button>
         </div>
 
         <!-- Grid view -->
-        <div v-else-if="viewMode === 'grid'" class="grid gap-4" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr))">
+        <div v-else-if="viewMode === 'grid'" class="grid grid-cols-4 gap-x-4 gap-y-2">
           <LetterCard
             v-for="l in visibleLetters"
             :key="l.name"
             :letter="l"
+            :is-dark="props.isDark"
             @open="openLetter"
             @menu="(e) => openContextMenu(e, l)"
             @contextmenu.prevent="openContextMenu($event, l)"
@@ -156,35 +218,39 @@
         </div>
 
         <!-- List view -->
-        <div v-else class="divide-y divide-outline-gray-1">
+        <div v-else class="flex flex-col">
+          <template v-for="(l, idx) in visibleLetters" :key="l.name">
+          <div v-if="idx > 0" class="mx-4 border-t border-outline-gray-1" />
           <div
-            v-for="l in visibleLetters"
-            :key="l.name"
-            class="flex items-center gap-4 px-4 py-3 hover:bg-surface-gray-1 cursor-pointer transition-colors"
+            class="flex items-center gap-4 px-4 py-3 rounded-xl cursor-pointer transition-colors"
+            :class="props.isDark ? 'hover:bg-white/10' : 'hover:bg-surface-gray-2'"
             @click="openLetter(l.name)"
             @contextmenu.prevent="openContextMenu($event, l)"
           >
-            <div class="w-28 h-20 rounded-md flex-shrink-0 overflow-hidden">
+            <div class="w-36 h-24 rounded-md flex-shrink-0 overflow-hidden" :class="props.isDark ? '' : 'border border-outline-gray-2 shadow-sm'">
               <LetterThumbnail :name="l.name" icon-class="w-5 h-5" />
             </div>
             <div class="flex-1 min-w-0 flex flex-col self-stretch justify-between py-0.5">
               <div class="min-w-0">
-                <p class="text-sm font-medium text-ink-gray-9 truncate">{{ l.title }}</p>
-                <p class="text-xs text-ink-gray-4 truncate mt-0.5">{{ l.subject || "No subject" }}</p>
+                <p class="text-sm font-medium truncate" :class="props.isDark ? 'text-ink-gray-7' : 'text-ink-gray-8'">{{ l.title }}</p>
+                <p class="text-xs truncate mt-0.5" :class="props.isDark ? 'text-ink-gray-5' : 'text-ink-gray-5'">{{ l.subject || "No subject" }}</p>
               </div>
-              <p class="text-xs text-ink-gray-3">{{ relativeTime(l.modified) }}</p>
+              <p class="text-xs" :class="props.isDark ? 'text-ink-gray-4' : 'text-ink-gray-4'">{{ relativeTime(l.modified) }}</p>
             </div>
-            <span
-              class="text-[11px] font-medium px-2 py-0.5 rounded-full flex-shrink-0 w-20 text-center"
-              :class="statusClass(l.status)"
-            >{{ l.status }}</span>
-            <button
-              class="p-1 rounded text-ink-gray-4 hover:text-ink-gray-7 hover:bg-surface-gray-3 transition-colors flex-shrink-0"
+            <div class="flex-shrink-0 w-20 flex justify-center">
+              <Badge :theme="badgeTheme(l.status)" :label="l.status" size="sm" variant="subtle" class="!px-2.5 !py-1" />
+            </div>
+            <Button
+              variant="ghost"
+              icon="lucide-ellipsis"
+              size="sm"
+              class="flex-shrink-0"
+              aria-label="More options"
               @click.stop="openContextMenu($event, l)"
-            >
-              <FeatherIcon name="more-horizontal" class="w-4 h-4" />
-            </button>
+            />
           </div>
+          </template>
+        </div>
         </div>
       </div>
     </div>
@@ -197,58 +263,73 @@
         :style="contextMenuStyle"
         @click.stop
       >
-        <button
-          class="flex items-center gap-2 px-3 py-1.5 w-full text-left text-ink-gray-7 hover:bg-surface-gray-2 transition-colors"
+        <Button
+          variant="ghost"
+          class="w-full !justify-start px-3 py-1.5 text-ink-gray-7"
+          iconLeft="lucide-copy"
           @click="duplicateLetter(contextMenu.letter); closeAll()"
         >
-          <FeatherIcon name="copy" class="w-3.5 h-3.5" /> Duplicate
-        </button>
-        <button
-          class="flex items-center gap-2 px-3 py-1.5 w-full text-left text-ink-gray-7 hover:bg-surface-gray-2 transition-colors"
+          Duplicate
+        </Button>
+        <Button
+          variant="ghost"
+          class="w-full !justify-start px-3 py-1.5 text-ink-gray-7"
+          iconLeft="lucide-external-link"
           @click="viewInDesk(contextMenu.letter)"
         >
-          <FeatherIcon name="external-link" class="w-3.5 h-3.5" /> View in Desk
-        </button>
+          View in Desk
+        </Button>
 
         <!-- Move to folder — inline toggle -->
-        <button
-          class="flex items-center gap-2 px-3 py-1.5 w-full text-left text-ink-gray-7 hover:bg-surface-gray-2 transition-colors"
+        <Button
+          variant="ghost"
+          class="w-full !justify-start px-3 py-1.5 text-ink-gray-7"
+          iconLeft="lucide-folder"
           @click.stop="folderMenuOpen = !folderMenuOpen"
         >
-          <FeatherIcon name="folder" class="w-3.5 h-3.5" /> Move to folder
-          <FeatherIcon :name="folderMenuOpen ? 'chevron-up' : 'chevron-down'" class="w-3 h-3 ml-auto text-ink-gray-4" />
-        </button>
+          Move to folder
+          <template #suffix>
+            <span :class="`lucide-${folderMenuOpen ? 'chevron-up' : 'chevron-down'} size-3 ml-auto text-ink-gray-4`" aria-hidden="true" />
+          </template>
+        </Button>
 
         <!-- Inline folder list -->
         <div v-if="folderMenuOpen" class="border-t border-outline-gray-1 mx-1 mt-0.5">
           <div class="px-2 py-1.5">
-            <input
+            <TextInput
               v-model="folderSearch"
               placeholder="Search…"
-              class="w-full px-2 py-1 text-xs bg-surface-gray-1 border border-outline-gray-2 rounded-md outline-none text-ink-gray-8 placeholder:text-ink-gray-3"
+              size="sm"
               @click.stop
             />
           </div>
           <div class="max-h-40 overflow-y-auto pb-1">
-            <button
+            <Button
               v-if="contextMenu.letter?.folder"
-              class="flex items-center gap-2 px-3 py-1.5 w-full text-left text-ink-gray-6 hover:bg-surface-gray-2 transition-colors text-xs"
+              variant="ghost"
+              class="w-full !justify-start px-3 py-1.5 text-ink-gray-6 text-xs"
+              iconLeft="lucide-x"
               @click="moveToFolder(contextMenu.letter, null)"
             >
-              <FeatherIcon name="x" class="w-3 h-3" /> Remove from folder
-            </button>
-            <button
+              Remove from folder
+            </Button>
+            <Button
               v-for="f in filteredFolders"
               :key="f.name"
-              class="flex items-center gap-2 px-3 py-1.5 w-full text-left text-xs transition-colors"
-              :class="contextMenu.letter?.folder === f.name ? 'text-ink-gray-4 cursor-default' : 'text-ink-gray-7 hover:bg-surface-gray-2'"
+              variant="ghost"
+              class="w-full !justify-start px-3 py-1.5 text-xs"
+              :class="contextMenu.letter?.folder === f.name ? 'text-ink-gray-4 cursor-default' : 'text-ink-gray-7'"
               :disabled="contextMenu.letter?.folder === f.name"
               @click="contextMenu.letter?.folder !== f.name && moveToFolder(contextMenu.letter, f.name)"
             >
-              <FeatherIcon name="folder" class="w-3 h-3 flex-shrink-0" />
-              <span class="truncate flex-1">{{ f.name }}</span>
-              <FeatherIcon v-if="contextMenu.letter?.folder === f.name" name="check" class="w-3 h-3 ml-auto flex-shrink-0" />
-            </button>
+              <template #prefix>
+                <span class="lucide-folder size-3 flex-shrink-0" aria-hidden="true" />
+              </template>
+              {{ f.name }}
+              <template #suffix>
+                <span v-if="contextMenu.letter?.folder === f.name" class="lucide-check size-3 ml-auto flex-shrink-0" aria-hidden="true" />
+              </template>
+            </Button>
             <p v-if="!filteredFolders.length" class="px-3 py-1.5 text-xs text-ink-gray-4">
               {{ folderSearch ? "No matches" : "No folders yet" }}
             </p>
@@ -256,40 +337,15 @@
         </div>
 
         <div class="border-t border-outline-gray-1 mx-1 my-1" />
-        <button
-          class="flex items-center gap-2 px-3 py-1.5 w-full text-left text-red-500 hover:bg-surface-red-1 transition-colors"
+        <Button
+          variant="ghost"
+          theme="red"
+          class="w-full !justify-start px-3 py-1.5"
+          iconLeft="lucide-trash-2"
           @click="promptDelete(contextMenu.letter)"
         >
-          <FeatherIcon name="trash-2" class="w-3.5 h-3.5" /> Delete
-        </button>
-      </div>
-    </Teleport>
-
-    <!-- Delete confirmation dialog -->
-    <Teleport to="body">
-      <div
-        v-if="deleteDialog.show"
-        class="fixed inset-0 z-[100] flex items-center justify-center"
-        @click.self="deleteDialog.show = false"
-      >
-        <div class="absolute inset-0 bg-black/40" />
-        <div class="relative bg-surface-base rounded-xl shadow-2xl w-96 p-6 border border-outline-gray-2" @click.stop>
-          <div class="flex items-start gap-3 mb-5">
-            <div class="w-9 h-9 rounded-full bg-surface-red-1 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <FeatherIcon name="trash-2" class="w-4 h-4 text-red-500" />
-            </div>
-            <div>
-              <h3 class="text-sm font-semibold text-ink-gray-9 mb-1">Delete letter?</h3>
-              <p class="text-sm text-ink-gray-5">
-                "<span class="font-medium text-ink-gray-7">{{ deleteDialog.letter?.title }}</span>" will be permanently deleted. This cannot be undone.
-              </p>
-            </div>
-          </div>
-          <div class="flex justify-end gap-2">
-            <Button variant="subtle" @click="deleteDialog.show = false">Cancel</Button>
-            <Button variant="solid" theme="red" :loading="deleteDialog.deleting" @click="confirmDelete">Delete</Button>
-          </div>
-        </div>
+          Delete
+        </Button>
       </div>
     </Teleport>
   </div>
@@ -297,7 +353,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from "vue";
-import { FeatherIcon, Button, Dropdown } from "frappe-ui";
+import { Button, Dropdown, TextInput, Badge, dialog } from "frappe-ui";
 import LetterCard from "../components/LetterCard.vue";
 import LetterThumbnail from "../components/LetterThumbnail.vue";
 
@@ -324,7 +380,6 @@ const folderInput = ref(null);
 const contextMenu = ref({ visible: false, x: 0, y: 0, letter: null });
 const folderMenuOpen = ref(false);
 const folderSearch = ref("");
-const deleteDialog = ref({ show: false, letter: null, deleting: false });
 
 const CONTEXT_MENU_W = 208;
 const CONTEXT_MENU_H = 220;
@@ -386,16 +441,16 @@ function folderCount(name) {
   return letters.value.filter((l) => l.folder === name).length;
 }
 
-function statusClass(status) {
+function badgeTheme(status) {
   const map = {
-    Draft:     "bg-surface-gray-3 text-ink-gray-6",
-    Scheduled: "bg-surface-amber-1 text-amber-700",
-    Sending:   "bg-surface-blue-1 text-blue-700",
-    Sent:      "bg-surface-green-1 text-green-700",
-    Partial:   "bg-surface-amber-1 text-amber-700",
-    Failed:    "bg-surface-red-1 text-red-700",
+    Draft:     "gray",
+    Scheduled: "orange",
+    Sending:   "blue",
+    Sent:      "green",
+    Partial:   "orange",
+    Failed:    "red",
   };
-  return map[status] || map.Draft;
+  return map[status] || "gray";
 }
 
 function relativeTime(ts) {
@@ -461,22 +516,23 @@ function viewInDesk(letter) {
 
 function promptDelete(letter) {
   closeAll();
-  deleteDialog.value = { show: true, letter, deleting: false };
-}
-
-async function confirmDelete() {
-  deleteDialog.value.deleting = true;
-  try {
-    await frappe.call({
-      method: "frappe.client.delete",
-      args: { doctype: "Letter", name: deleteDialog.value.letter.name },
-    });
-    letters.value = letters.value.filter((l) => l.name !== deleteDialog.value.letter.name);
-    deleteDialog.value.show = false;
-  } catch (e) {
-    frappe.msgprint(e.message || "Could not delete.");
-    deleteDialog.value.deleting = false;
-  }
+  dialog.confirm({
+    title: "Delete letter?",
+    message: `"${letter.title}" will be permanently deleted. This cannot be undone.`,
+    theme: "red",
+    onConfirm: async ({ close }) => {
+      try {
+        await frappe.call({
+          method: "frappe.client.delete",
+          args: { doctype: "Letter", name: letter.name },
+        });
+        letters.value = letters.value.filter((l) => l.name !== letter.name);
+        close();
+      } catch (e) {
+        frappe.msgprint(e.message || "Could not delete.");
+      }
+    },
+  });
 }
 
 function openLetter(name) { emit("open-letter", name); }

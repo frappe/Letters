@@ -205,6 +205,8 @@ export function useBlockPicker(editorStore) {
         previewBlock.props.x_url = "https://x.com";
         previewBlock.props.linkedin_url = "https://linkedin.com";
         previewBlock.props.github_url = "https://github.com";
+        previewBlock.props.color = "#9ca3af";
+        previewBlock.props.icon_size = 20;
       }
       if (type === "spacer") {
         previewBlock.props.background_color = "#f3f4f6";

@@ -4,45 +4,51 @@
     <!-- Brand + page menu (Frappe Builder-style left dropdown) -->
     <Dropdown :options="menuOptions" placement="bottom-start">
       <template #default="{ open }">
-        <button
-          type="button"
-          class="flex-shrink-0 flex items-center gap-1 h-8 pl-1.5 pr-1 rounded-md hover:bg-surface-gray-2 transition-colors"
+        <Button
+          variant="ghost"
+          size="sm"
           aria-label="Campaign menu"
+          class="flex-shrink-0 gap-1 pl-1.5 pr-1"
         >
-          <span class="w-6 h-6 rounded-md bg-gray-900 text-white flex items-center justify-center text-xs font-bold">L</span>
-          <FeatherIcon :name="open ? 'chevron-up' : 'chevron-down'" class="w-3.5 h-3.5 text-ink-gray-4" />
-        </button>
+          <template #prefix>
+            <span class="w-6 h-6 rounded-md bg-ink-gray-9 text-ink-white flex items-center justify-center text-xs font-bold flex-shrink-0">L</span>
+          </template>
+          <template #suffix>
+            <span :class="`lucide-${open ? 'chevron-up' : 'chevron-down'} size-3.5 text-ink-gray-4`" aria-hidden="true" />
+          </template>
+        </Button>
       </template>
     </Dropdown>
 
     <div class="w-px h-4 bg-outline-gray-2 mx-0.5" />
 
-    <!-- Add block / Add container — icon tools (Frappe Builder-style) -->
+    <!-- Add block / Add container — icon tools -->
     <Tooltip text="Add block">
-      <Button variant="ghost" size="sm" icon="plus" aria-label="Add block" @click.stop="emit('add-block')" />
+      <Button variant="ghost" size="sm" icon="lucide-plus" aria-label="Add block" @click.stop="emit('add-block')" />
     </Tooltip>
     <Tooltip text="Add container">
-      <Button variant="ghost" size="sm" icon="square" aria-label="Add container" @click.stop="emit('add-container')" />
+      <Button variant="ghost" size="sm" icon="lucide-square" aria-label="Add container" @click.stop="emit('add-container')" />
     </Tooltip>
     <Tooltip text="Add text">
-      <Button variant="ghost" size="sm" icon="type" aria-label="Add text" @click.stop="emit('insert', 'text')" />
+      <Button variant="ghost" size="sm" icon="lucide-type" aria-label="Add text" @click.stop="emit('insert', 'text')" />
     </Tooltip>
     <Tooltip text="Add image">
-      <Button variant="ghost" size="sm" icon="image" aria-label="Add image" @click.stop="emit('insert', 'image')" />
+      <Button variant="ghost" size="sm" icon="lucide-image" aria-label="Add image" @click.stop="emit('insert', 'image')" />
     </Tooltip>
 
-    <!-- Centered campaign title — absolute so it's centered to the page, not the remaining flex space -->
+    <!-- Centered campaign title — absolute so it's centered to the page -->
     <div class="absolute inset-x-0 flex items-center justify-center gap-2 pointer-events-none" style="height:48px;">
-      <button
-        type="button"
-        class="pointer-events-auto flex items-center gap-1.5 min-w-0 max-w-sm px-2 py-1 rounded-md hover:bg-surface-gray-2 transition-colors group"
+      <Button
+        variant="ghost"
+        size="sm"
+        class="pointer-events-auto min-w-0 max-w-sm px-2 py-1"
         title="Campaign settings"
         @click="emit('open-settings')"
       >
         <span class="truncate text-sm font-medium text-ink-gray-8">
           {{ campaignName || "Untitled Letter" }}
         </span>
-      </button>
+      </Button>
       <Transition name="fade">
         <span v-if="saving" class="text-xs text-ink-gray-4 flex-shrink-0">Saving…</span>
         <span v-else-if="savedFlash" class="text-xs text-ink-gray-4 flex-shrink-0">Saved</span>
@@ -52,12 +58,11 @@
     <!-- Actions -->
     <div class="flex items-center gap-1.5 flex-shrink-0 ml-auto">
 
-      <!-- Settings (gear) — opens the Campaign Settings dialog -->
       <Tooltip text="Campaign settings">
         <Button
           variant="ghost"
           size="sm"
-          icon="settings"
+          icon="lucide-settings"
           aria-label="Campaign settings"
           @click="emit('open-settings')"
         />
@@ -83,18 +88,15 @@
           :theme="campaignStatus === 'Sent' ? 'green' : campaignStatus === 'Partial' ? 'orange' : 'red'"
           variant="subtle"
           size="md"
+          :icon="campaignStatus === 'Sent' ? 'lucide-circle-check' : 'lucide-circle-alert'"
         >
-          <template #prefix>
-            <FeatherIcon :name="campaignStatus === 'Sent' ? 'check-circle' : 'alert-circle'" class="w-3 h-3" />
-          </template>
           {{ campaignStatus === 'Sent' ? 'Sent' : campaignStatus === 'Partial' ? 'Partially sent' : 'Failed' }}
         </Badge>
       </template>
 
       <!-- Scheduled: status badge with time -->
       <template v-else-if="campaignStatus === 'Scheduled'">
-        <Badge theme="blue" variant="subtle" size="md">
-          <template #prefix><FeatherIcon name="clock" class="w-3 h-3" /></template>
+        <Badge theme="blue" variant="subtle" size="md" icon="lucide-clock">
           Scheduled{{ scheduledAt ? ` · ${formatScheduledAt(scheduledAt)}` : '' }}
         </Badge>
       </template>
@@ -105,7 +107,9 @@
           <template #default="{ open }">
             <Button variant="ghost" size="sm">
               Preview
-              <template #suffix><FeatherIcon :name="open ? 'chevron-up' : 'chevron-down'" class="w-3 h-3" /></template>
+              <template #suffix>
+                <span :class="`lucide-${open ? 'chevron-up' : 'chevron-down'} size-3`" aria-hidden="true" />
+              </template>
             </Button>
           </template>
         </Dropdown>
@@ -113,7 +117,9 @@
           <template #default="{ open }">
             <Button variant="solid" size="sm" :disabled="!canSend">
               Send
-              <template #suffix><FeatherIcon :name="open ? 'chevron-up' : 'chevron-down'" class="w-3 h-3" /></template>
+              <template #suffix>
+                <span :class="`lucide-${open ? 'chevron-up' : 'chevron-down'} size-3`" aria-hidden="true" />
+              </template>
             </Button>
           </template>
         </Dropdown>
@@ -123,7 +129,7 @@
 </template>
 
 <script setup>
-import { Button, FeatherIcon, Dropdown, Tooltip, Progress, Badge } from "frappe-ui";
+import { Button, Dropdown, Tooltip, Progress, Badge } from "frappe-ui";
 import { formatScheduledAt } from "../utils/builderHelpers";
 
 defineProps({

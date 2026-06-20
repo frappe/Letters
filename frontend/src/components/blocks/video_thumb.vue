@@ -1,14 +1,11 @@
 <template>
   <BlockWrapper :block="block" :index="index">
     <div :style="paddingStyle">
-      <a
-        :href="block.props.video_url || '#'"
-        target="_blank"
-        class="block relative overflow-hidden no-underline group"
+      <div
+        class="relative overflow-hidden"
         :style="{ borderRadius: block.props.border_radius || '8px' }"
-        @click.prevent="store.selectBlock(block.id)"
       >
-        <!-- Thumbnail -->
+        <!-- Thumbnail — ImageUploader handles click-to-upload and Replace on hover -->
         <ImageUploader
           :url="block.props.thumbnail_url"
           height-class="h-52"
@@ -21,18 +18,14 @@
               class="w-full object-cover block"
               style="height: 208px"
             />
-            <div v-else class="w-full bg-surface-gray-2 flex items-center justify-center text-ink-gray-4 text-sm" style="height:208px;">
-              Click to upload thumbnail
-            </div>
           </template>
         </ImageUploader>
 
-        <!-- Dark overlay -->
+        <!-- Play button overlay — pointer-events-none so ImageUploader stays clickable -->
         <div
-          class="absolute inset-0 flex items-center justify-center transition-opacity group-hover:opacity-80"
+          class="absolute inset-0 flex items-center justify-center pointer-events-none"
           :style="{ backgroundColor: block.props.overlay_color || 'rgba(0,0,0,0.3)', borderRadius: block.props.border_radius || '8px' }"
         >
-          <!-- Play button circle -->
           <div
             class="w-16 h-16 rounded-full flex items-center justify-center shadow-lg"
             :style="{ backgroundColor: block.props.play_button_color || '#ffffff' }"
@@ -42,7 +35,7 @@
             </svg>
           </div>
         </div>
-      </a>
+      </div>
 
       <!-- Caption -->
       <EditableDiv

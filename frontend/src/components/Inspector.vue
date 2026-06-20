@@ -6,15 +6,15 @@
     <!-- Header -->
     <div class="px-3 py-3 border-b border-outline-gray-1 flex items-center gap-2 min-h-[44px]">
       <template v-if="isMultiSelect">
-        <FeatherIcon name="layers" class="w-3.5 h-3.5 text-ink-gray-5 flex-shrink-0" />
+        <span class="lucide-layers size-3.5 text-ink-gray-5 flex-shrink-0" aria-hidden="true" />
         <span class="text-sm font-medium text-ink-gray-8">{{ store.selectedBlockIds.size }} selected</span>
       </template>
       <template v-else-if="block">
-        <FeatherIcon :name="schema?.icon || 'box'" class="w-3.5 h-3.5 text-ink-gray-5 flex-shrink-0" />
+        <span :class="`lucide-${schema?.icon || 'box'} size-3.5 text-ink-gray-5 flex-shrink-0`" aria-hidden="true" />
         <span class="text-sm font-medium text-ink-gray-8">{{ schema?.label || block.label || block.type }}</span>
       </template>
       <template v-else>
-        <FeatherIcon name="mail" class="w-3.5 h-3.5 text-ink-gray-5 flex-shrink-0" />
+        <span class="lucide-mail size-3.5 text-ink-gray-5 flex-shrink-0" aria-hidden="true" />
         <span class="text-sm font-medium text-ink-gray-8">Body</span>
       </template>
     </div>
@@ -22,13 +22,13 @@
     <!-- Multi-select state -->
     <div v-if="isMultiSelect" class="flex-1 flex flex-col">
       <div class="flex-1 flex flex-col items-center justify-center px-4 gap-2 text-center">
-        <FeatherIcon name="layers" class="w-8 h-8 text-ink-gray-3" />
+        <span class="lucide-layers size-8 text-ink-gray-3" aria-hidden="true" />
         <p class="text-sm text-ink-gray-5">{{ store.selectedBlockIds.size }} blocks selected</p>
         <p class="text-xs text-ink-gray-4">Cmd+C to copy · Cmd+V to paste</p>
       </div>
       <div class="px-3 py-4 border-t border-outline-gray-1 flex gap-2">
         <Button class="flex-1" size="sm" theme="red" variant="outline" @click="deleteSelected">
-          <template #prefix><FeatherIcon name="trash-2" class="w-3.5 h-3.5" /></template>
+          <template #prefix><span class="lucide-trash-2 size-3.5" aria-hidden="true" /></template>
           Delete all
         </Button>
       </div>
@@ -37,18 +37,20 @@
     <!-- Canvas (body) properties — shown when nothing is selected -->
     <div v-else-if="!block" class="flex-1 overflow-y-auto">
       <div class="border-b border-outline-gray-1">
-        <button
-          type="button"
-          class="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-surface-gray-2 transition-colors"
+        <Button
+          variant="ghost"
+          class="w-full justify-between px-3 py-2.5"
           @click="canvasOpen = !canvasOpen"
         >
           <span class="text-xs font-semibold text-ink-gray-9">Canvas</span>
-          <FeatherIcon
-            name="chevron-down"
-            class="w-3.5 h-3.5 text-ink-gray-4 transition-transform duration-150"
-            :class="canvasOpen ? '' : '-rotate-90'"
-          />
-        </button>
+          <template #suffix>
+            <span
+              class="lucide-chevron-down size-3.5 text-ink-gray-4 transition-transform duration-150"
+              :class="canvasOpen ? '' : '-rotate-90'"
+              aria-hidden="true"
+            />
+          </template>
+        </Button>
         <div v-show="canvasOpen" class="px-3 pb-4 flex flex-col gap-2">
           <div class="flex items-center gap-2 py-1">
             <span class="w-24 shrink-0 text-xs text-ink-gray-5">Width</span>
@@ -87,18 +89,20 @@
         :key="section.id"
         class="border-b border-outline-gray-1"
       >
-        <button
-          type="button"
-          class="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-surface-gray-2 transition-colors"
+        <Button
+          variant="ghost"
+          class="w-full justify-between px-3 py-2.5"
           @click="toggleSection(section.id)"
         >
           <span class="text-xs font-semibold text-ink-gray-9">{{ section.title }}</span>
-          <FeatherIcon
-            name="chevron-down"
-            class="w-3.5 h-3.5 text-ink-gray-4 transition-transform duration-150"
-            :class="openSections.has(section.id) ? '' : '-rotate-90'"
-          />
-        </button>
+          <template #suffix>
+            <span
+              class="lucide-chevron-down size-3.5 text-ink-gray-4 transition-transform duration-150"
+              :class="openSections.has(section.id) ? '' : '-rotate-90'"
+              aria-hidden="true"
+            />
+          </template>
+        </Button>
         <div v-show="openSections.has(section.id)" class="px-3 pb-4 flex flex-col gap-2">
           <PropRow
             v-for="field in section.fields"
@@ -113,18 +117,20 @@
 
       <!-- Size — pin width/height of this block when it lives inside a container -->
       <div v-if="block.type !== 'container'" class="border-b border-outline-gray-1">
-        <button
-          type="button"
-          class="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-surface-gray-2 transition-colors"
+        <Button
+          variant="ghost"
+          class="w-full justify-between px-3 py-2.5"
           @click="toggleSection('__size')"
         >
           <span class="text-xs font-semibold text-ink-gray-9">Size</span>
-          <FeatherIcon
-            name="chevron-down"
-            class="w-3.5 h-3.5 text-ink-gray-4 transition-transform duration-150"
-            :class="openSections.has('__size') ? '' : '-rotate-90'"
-          />
-        </button>
+          <template #suffix>
+            <span
+              class="lucide-chevron-down size-3.5 text-ink-gray-4 transition-transform duration-150"
+              :class="openSections.has('__size') ? '' : '-rotate-90'"
+              aria-hidden="true"
+            />
+          </template>
+        </Button>
         <div v-show="openSections.has('__size')" class="px-3 pb-4">
           <div class="grid grid-cols-2 gap-x-2 gap-y-1">
             <PropRow label="Width" compact>
@@ -145,18 +151,20 @@
 
       <!-- Padding -->
       <div class="border-b border-outline-gray-1">
-        <button
-          type="button"
-          class="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-surface-gray-2 transition-colors"
+        <Button
+          variant="ghost"
+          class="w-full justify-between px-3 py-2.5"
           @click="toggleSection('__padding')"
         >
           <span class="text-xs font-semibold text-ink-gray-9">Padding</span>
-          <FeatherIcon
-            name="chevron-down"
-            class="w-3.5 h-3.5 text-ink-gray-4 transition-transform duration-150"
-            :class="openSections.has('__padding') ? '' : '-rotate-90'"
-          />
-        </button>
+          <template #suffix>
+            <span
+              class="lucide-chevron-down size-3.5 text-ink-gray-4 transition-transform duration-150"
+              :class="openSections.has('__padding') ? '' : '-rotate-90'"
+              aria-hidden="true"
+            />
+          </template>
+        </Button>
         <div v-show="openSections.has('__padding')" class="px-3 pb-4">
           <div class="grid grid-cols-2 gap-x-2 gap-y-1">
             <PropRow label="Top" compact>
@@ -189,18 +197,20 @@
 
       <!-- Spacing -->
       <div class="border-b border-outline-gray-1">
-        <button
-          type="button"
-          class="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-surface-gray-2 transition-colors"
+        <Button
+          variant="ghost"
+          class="w-full justify-between px-3 py-2.5"
           @click="toggleSection('__spacing')"
         >
           <span class="text-xs font-semibold text-ink-gray-9">Spacing</span>
-          <FeatherIcon
-            name="chevron-down"
-            class="w-3.5 h-3.5 text-ink-gray-4 transition-transform duration-150"
-            :class="openSections.has('__spacing') ? '' : '-rotate-90'"
-          />
-        </button>
+          <template #suffix>
+            <span
+              class="lucide-chevron-down size-3.5 text-ink-gray-4 transition-transform duration-150"
+              :class="openSections.has('__spacing') ? '' : '-rotate-90'"
+              aria-hidden="true"
+            />
+          </template>
+        </Button>
         <div v-show="openSections.has('__spacing')" class="px-3 pb-4">
           <div class="grid grid-cols-2 gap-x-2 gap-y-1">
             <PropRow label="Top" compact>
@@ -225,7 +235,7 @@
 
 <script setup>
 import { computed, reactive, ref, watch } from "vue";
-import { TextInput, Button, FeatherIcon, Slider } from "frappe-ui";
+import { TextInput, Button, Slider } from "frappe-ui";
 import ColorPicker from "./ColorPicker.vue";
 import FieldControl from "./FieldControl.vue";
 import PropRow from "./PropRow.vue";
@@ -275,7 +285,6 @@ function value(key) { return block.value?.props?.[key]; }
 function set(key, val) {
   if (!block.value) return;
   const updates = { [key]: val };
-  // When the font changes, clamp font_weight to a value the new font supports.
   if (key === "font_family") {
     const opts = fontWeightOptions(val);
     const validWeights = new Set(opts.map(o => o.value));

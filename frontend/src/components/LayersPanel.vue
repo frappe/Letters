@@ -9,33 +9,37 @@
         @contextmenu.prevent="closeContextMenu"
       >
         <div
-          class="fixed z-[101] bg-surface-base border border-outline-gray-2 rounded-lg shadow-xl py-1 w-44"
+          class="fixed z-[101] bg-surface-base border border-outline-gray-2 rounded-lg shadow-xl py-1 w-fit flex flex-col"
           :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
           @click.stop
         >
-          <button class="w-full text-left px-3 py-1.5 text-sm text-ink-gray-7 hover:bg-surface-gray-1 flex items-center gap-2 transition-colors" @click="menuRename">
-            <FeatherIcon name="edit-2" class="w-3.5 h-3.5 shrink-0" /> Rename
-          </button>
-          <button class="w-full text-left px-3 py-1.5 text-sm text-ink-gray-7 hover:bg-surface-gray-1 flex items-center gap-2 transition-colors" @click="menuDuplicate">
-            <FeatherIcon name="copy" class="w-3.5 h-3.5 shrink-0" /> Duplicate
-          </button>
+          <Button variant="ghost" size="sm" class="w-full !justify-start px-3 text-ink-gray-7" iconLeft="lucide-pencil" @click="menuRename">
+            Rename
+          </Button>
+          <Button variant="ghost" size="sm" class="w-full !justify-start px-3 text-ink-gray-7" iconLeft="lucide-copy" @click="menuDuplicate">
+            Duplicate
+          </Button>
           <template v-if="store.selectedBlock?.type !== 'container'">
             <div class="h-px bg-outline-gray-1 my-0.5 mx-2" />
-            <button class="w-full text-left px-3 py-1.5 text-sm text-ink-gray-7 hover:bg-surface-gray-1 flex items-center gap-2 transition-colors" @click="menuCopyStyle">
-              <FeatherIcon name="droplet" class="w-3.5 h-3.5 shrink-0" /> Copy style
-            </button>
-            <button
-              class="w-full text-left px-3 py-1.5 text-sm flex items-center gap-2 transition-colors"
-              :class="store.styleClipboard ? 'text-ink-gray-7 hover:bg-surface-gray-1 cursor-pointer' : 'text-ink-gray-3 cursor-not-allowed'"
+            <Button variant="ghost" size="sm" class="w-full !justify-start px-3 text-ink-gray-7" iconLeft="lucide-droplet" @click="menuCopyStyle">
+              Copy style
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              class="w-full !justify-start px-3"
+              :class="store.styleClipboard ? 'text-ink-gray-7' : 'text-ink-gray-3 cursor-not-allowed'"
+              :disabled="!store.styleClipboard"
+              iconLeft="lucide-clipboard"
               @click="menuPasteStyle"
             >
-              <FeatherIcon name="clipboard" class="w-3.5 h-3.5 shrink-0" /> Paste style
-            </button>
+              Paste style
+            </Button>
           </template>
           <div class="h-px bg-outline-gray-1 my-0.5 mx-2" />
-          <button class="w-full text-left px-3 py-1.5 text-sm text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors" @click="menuRemove">
-            <FeatherIcon name="trash-2" class="w-3.5 h-3.5 shrink-0" /> Remove
-          </button>
+          <Button variant="ghost" size="sm" theme="red" class="w-full !justify-start px-3" iconLeft="lucide-trash-2" @click="menuRemove">
+            Remove
+          </Button>
         </div>
       </div>
     </Teleport>
@@ -71,7 +75,7 @@
 
 <script setup>
 import { ref, computed, inject, defineComponent, h } from "vue";
-import { FeatherIcon } from "frappe-ui";
+import { Button, TextInput } from "frappe-ui";
 import { useEditorStore } from "../stores/editor";
 import { BLOCK_SCHEMA } from "../blockSchema";
 
@@ -96,9 +100,8 @@ function menuCopyStyle()  { store.copyStyle(contextMenu.value.blockId); closeCon
 function menuPasteStyle() { if (store.styleClipboard) store.pasteStyle(contextMenu.value.blockId); closeContextMenu(); }
 function menuRemove()     { store.removeBlock(contextMenu.value.blockId); closeContextMenu(); }
 
-// INDENT_W: px per depth level. Chevron is 16px wide, so line sits at depth*INDENT_W + 8 + INDENT_W/2
 const INDENT_W = 16;
-const BASE_PAD = 8; // px-2 equivalent
+const BASE_PAD = 8;
 
 const blockIcon  = (type) => BLOCK_SCHEMA[type]?.icon  || "box";
 const blockLabel = (type) => BLOCK_SCHEMA[type]?.label || type;
@@ -118,7 +121,6 @@ function getChildren(block) {
   return [];
 }
 
-// ── Block metadata ────────────────────────────────────────────────────────────
 const blockMeta = computed(() => {
   const map = new Map();
   function walk(list, parentId, colIndex = null) {
@@ -127,7 +129,7 @@ const blockMeta = computed(() => {
       map.set(block.id, {
         parentId,
         index,
-        colIndex,   // which column this block lives in (null = not a column child)
+        colIndex,
         childrenCount: (block.children?.length ?? 0) + colChildCount,
         isContainer: block.type === "container",
       });
@@ -146,7 +148,6 @@ function topLevelIndex(id) {
   return m && m.parentId === null ? m.index : null;
 }
 
-// ── Inline rename ─────────────────────────────────────────────────────────────
 const editingId = ref(null);
 function startRename(id)  { editingId.value = id; }
 function finishRename(id, value) {
@@ -154,7 +155,6 @@ function finishRename(id, value) {
   editingId.value = null;
 }
 
-// ── Drag-to-reorder ───────────────────────────────────────────────────────────
 const dragId    = ref(null);
 const dropState = ref(null);
 
@@ -204,8 +204,6 @@ function onDrop(id) {
 
   const insertOffset = state.zone === "before" ? 0 : 1;
 
-  // If the target block lives inside a column, use the column-aware move so the
-  // dragged block lands in the correct column rather than vanishing into .children.
   if (meta.colIndex !== null) {
     store.moveBlockToColumn(from, meta.parentId, meta.colIndex, meta.index + insertOffset);
   } else {
@@ -222,7 +220,6 @@ function onDropAtEnd() {
 
 function clearDrag() { dragId.value = null; dropState.value = null; }
 
-// ── Flat ordered block IDs for Shift+Click range-select ───────────────────────
 const flatBlockIds = computed(() => {
   const ids = [];
   function walk(list) {
@@ -238,7 +235,6 @@ const flatBlockIds = computed(() => {
   return ids;
 });
 
-// ── Multi-select click handler ────────────────────────────────────────────────
 function handleLayerClick(id, e) {
   e.stopPropagation();
   const mod = e.metaKey || e.ctrlKey;
@@ -259,7 +255,6 @@ function handleLayerClick(id, e) {
   store.selectBlock(id);
 }
 
-// ── Collapse state ────────────────────────────────────────────────────────────
 const collapsed = ref(new Set());
 function toggleCollapse(id) {
   const next = new Set(collapsed.value);
@@ -268,9 +263,6 @@ function toggleCollapse(id) {
 }
 
 // ── LayerNode ─────────────────────────────────────────────────────────────────
-// All indentation is driven by `depth` on each row's paddingLeft.
-// A single absolute-positioned vertical line is drawn for each expanded parent,
-// placed at the horizontal center of the parent's chevron.
 const LayerNode = defineComponent({
   name: "LayerNode",
   props: {
@@ -288,7 +280,6 @@ const LayerNode = defineComponent({
       const dState   = dropState.value;
       const idx      = topLevelIndex(b.id);
 
-      // Row left padding grows with depth
       const rowPaddingLeft = BASE_PAD + props.depth * INDENT_W;
 
       const row = h("div", {
@@ -311,28 +302,32 @@ const LayerNode = defineComponent({
           ? h("div", { class: "absolute inset-x-1 -bottom-px h-0.5 bg-blue-500 rounded-full pointer-events-none z-10" }) : null,
 
         hasKids
-          ? h("button", {
-              type: "button",
-              class: "flex-shrink-0 w-4 h-4 flex items-center justify-center text-ink-gray-6 hover:text-ink-gray-8",
+          ? h(Button, {
+              variant: "ghost",
+              size: "sm",
+              icon: `lucide-${isOpen ? "chevron-down" : "chevron-right"}`,
+              class: "flex-shrink-0 !w-4 !h-4 !p-0 !min-w-0 !rounded text-ink-gray-6 hover:text-ink-gray-8",
               onClick: (e) => { e.stopPropagation(); toggleCollapse(b.id); },
-            }, [h(FeatherIcon, { name: isOpen ? "chevron-down" : "chevron-right", class: "w-3.5 h-3.5" })])
+            })
           : h("span", { class: "flex-shrink-0 w-4" }),
 
-        h(FeatherIcon, { name: blockIcon(b.type), class: "w-3.5 h-3.5 flex-shrink-0 text-ink-gray-6" }),
+        h("span", { class: `lucide-${blockIcon(b.type)} size-3.5 flex-shrink-0 text-ink-gray-6`, "aria-hidden": "true" }),
 
         editingId.value === b.id
-          ? h("input", {
-              class: "flex-1 text-sm bg-transparent border-b border-blue-400 outline-none min-w-0 py-0.5",
-              value: b.label || blockLabel(b.type),
-              onBlur:    (e) => finishRename(b.id, e.target.value),
+          ? h(TextInput, {
+              size: "sm",
+              class: "flex-1 min-w-0 !bg-transparent !border-0 !border-b !border-blue-400 !rounded-none !outline-none py-0.5",
+              modelValue: b.label || blockLabel(b.type),
+              "onUpdate:modelValue": (v) => { store.setBlockLabel(b.id, v); },
+              onBlur:    () => { editingId.value = null; },
               onKeydown: (e) => {
-                if (e.key === "Enter")  { e.preventDefault(); finishRename(b.id, e.target.value); }
+                if (e.key === "Enter")  { e.preventDefault(); editingId.value = null; }
                 if (e.key === "Escape") { e.preventDefault(); editingId.value = null; }
               },
               onClick:    (e) => e.stopPropagation(),
               onDblclick: (e) => e.stopPropagation(),
               onDragstart:(e) => { e.stopPropagation(); e.preventDefault(); },
-              onVnodeMounted: ({ el }) => { el?.focus(); el?.select(); },
+              onVnodeMounted: ({ el }) => { el?.querySelector("input")?.focus(); el?.querySelector("input")?.select(); },
             })
           : h("span", { class: "flex-1 text-sm text-ink-gray-6 truncate" }, b.label || blockLabel(b.type)),
 
@@ -341,28 +336,31 @@ const LayerNode = defineComponent({
           : null,
 
         b.type === "container"
-          ? h("button", {
-              type: "button",
-              class: "opacity-0 group-hover:opacity-100 text-ink-gray-5 hover:text-blue-600 transition flex-shrink-0 w-4 h-4 flex items-center justify-center rounded hover:bg-blue-50",
+          ? h(Button, {
+              variant: "ghost",
+              size: "sm",
+              icon: "lucide-plus",
+              class: "opacity-0 group-hover:opacity-100 text-ink-gray-5 hover:text-blue-600 transition flex-shrink-0 !w-4 !h-4 !p-0 !min-w-0 !rounded hover:!bg-blue-50",
               title: "Add block inside",
               onClick: (e) => { e.stopPropagation(); openPicker({ mode: "child", parentId: b.id, afterIndex: (b.children?.length ?? 1) - 1 }); },
-            }, [h(FeatherIcon, { name: "plus", class: "w-3 h-3" })])
+            })
           : null,
 
-        h("button", {
-          type: "button",
+        h(Button, {
+          variant: "ghost",
+          size: "sm",
+          icon: "lucide-x",
           class: (store.selectedBlockId === b.id
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto")
-            + " text-ink-gray-4 hover:text-red-500 transition flex-shrink-0 w-4 h-4 flex items-center justify-center rounded",
+            + " text-ink-gray-4 hover:text-red-500 transition flex-shrink-0 !w-4 !h-4 !p-0 !min-w-0 !rounded",
           title: "Remove",
           onClick: (e) => { e.stopPropagation(); store.removeBlock(b.id); },
-        }, [h(FeatherIcon, { name: "x", class: "w-3 h-3" })]),
+        }),
       ]);
 
       if (!hasKids || !isOpen) return row;
 
-      // Guide line: absolute, left = mx-1(4px) + paddingLeft + half chevron(8px)
       const lineLeft = 4 + rowPaddingLeft + 8;
       const subLayerPad = rowPaddingLeft + INDENT_W;
 
@@ -373,7 +371,7 @@ const LayerNode = defineComponent({
           onClick: (e) => { e.stopPropagation(); store.selectBlock(b.id); },
         }, [
           h("span", { class: "flex-shrink-0 w-4" }),
-          h(FeatherIcon, { name: sl.icon, class: "w-3 h-3 flex-shrink-0 text-ink-gray-3" }),
+          h("span", { class: `lucide-${sl.icon} size-3 flex-shrink-0 text-ink-gray-3`, "aria-hidden": "true" }),
           h("span", { class: "text-xs text-ink-gray-3 truncate" }, sl.label),
         ])
       );

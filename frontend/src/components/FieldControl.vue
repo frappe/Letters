@@ -90,11 +90,12 @@
       :model-value="parsedDim.unit"
       @update:model-value="emit('change', parsedDim.num + $event)"
     />
-    <button
-      type="button"
-      :style="value === 'auto' ? autoActiveStyle : autoInactiveStyle"
+    <Button
+      size="sm"
+      :variant="value === 'auto' ? 'solid' : 'outline'"
+      class="flex-shrink-0 !text-[11px] !px-1.5 !py-0.5 !h-auto !min-h-0"
       @click="emit('change', 'auto')"
-    >auto</button>
+    >auto</Button>
   </div>
 
   <!-- default: text -->
@@ -110,7 +111,7 @@
 
 <script setup>
 import { computed } from "vue";
-import { TextInput, Select, Switch, TabButtons, Slider } from "frappe-ui";
+import { TextInput, Select, Switch, TabButtons, Slider, Button } from "frappe-ui";
 import ColorPicker from "./ColorPicker.vue";
 
 const props = defineProps({
@@ -155,6 +156,4 @@ const directionOptions = [
   { value: "column", icon: "arrow-down",  label: "Column", hideLabel: true },
 ];
 
-const autoActiveStyle   = "font-size:11px;font-weight:500;padding:2px 6px;border-radius:4px;border:1px solid var(--surface-gray-7);background:var(--surface-gray-7);color:var(--text-ink-white);flex-shrink:0;cursor:pointer;";
-const autoInactiveStyle = "font-size:11px;font-weight:500;padding:2px 6px;border-radius:4px;border:1px solid var(--outline-gray-2);background:transparent;color:var(--text-ink-gray-5);flex-shrink:0;cursor:pointer;";
 </script>
