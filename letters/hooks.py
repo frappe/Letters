@@ -30,5 +30,8 @@ doctype_js = {"Letter": "public/frappe_customizations/email_campaign.js"}
 
 fixtures = ["Letters Template"]
 
+after_install = "letters.install.after_install"
+after_migrate = "letters.install.after_migrate"
+
 # Override standard DocType forms
 # override_doctype_class = {}
