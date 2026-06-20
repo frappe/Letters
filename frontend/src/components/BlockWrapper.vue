@@ -10,104 +10,14 @@
     @mouseleave="isHovered = false"
     @click.stop="store.selectBlock(block.id)"
   >
-
-    <!-- ── Spacing bands — orange, in the spacing area (visually outside content) ── -->
-    <!-- Top spacing band sits in the paddingTop zone of the outer div -->
-    <div
-      v-if="selected && spacingTop > 0"
-      class="absolute inset-x-0 top-0 flex items-center justify-center cursor-ns-resize z-10 select-none"
-      :style="{ height: `${spacingTop}px` }"
-      @pointerdown.prevent.stop="startSpacingDrag('top', $event)"
-      @click.stop
-    >
-      <div class="absolute inset-0 bg-orange-400 opacity-25" />
-      <span class="relative text-[10px] font-mono text-orange-600 font-semibold z-10 pointer-events-none">{{ spacingTop }}px</span>
-    </div>
-    <!-- Bottom spacing band -->
-    <div
-      v-if="selected && spacingBottom > 0"
-      class="absolute inset-x-0 bottom-0 flex items-center justify-center cursor-ns-resize z-10 select-none"
-      :style="{ height: `${spacingBottom}px` }"
-      @pointerdown.prevent.stop="startSpacingDrag('bottom', $event)"
-      @click.stop
-    >
-      <div class="absolute inset-0 bg-orange-400 opacity-25" />
-      <span class="relative text-[10px] font-mono text-orange-600 font-semibold z-10 pointer-events-none">{{ spacingBottom }}px</span>
-    </div>
-
-    <!-- ── Padding handles — purple bars at content edges, offset past spacing ── -->
-    <!-- Top -->
-    <div
-      v-if="selected"
-      class="absolute inset-x-8 cursor-ns-resize z-11 flex items-center justify-center group/pad"
-      :style="{ top: `${spacingTop}px`, height: '12px' }"
-      @pointerdown.prevent.stop="startPaddingDrag('top', $event)"
-      @click.stop
-    >
-      <div class="w-10 h-1.5 rounded-full bg-violet-500 opacity-70 group-hover/pad:opacity-100 transition-opacity" />
-    </div>
-    <!-- Bottom -->
-    <div
-      v-if="selected"
-      class="absolute inset-x-8 cursor-ns-resize z-11 flex items-center justify-center group/pad"
-      :style="{ bottom: `${spacingBottom}px`, height: '12px' }"
-      @pointerdown.prevent.stop="startPaddingDrag('bottom', $event)"
-      @click.stop
-    >
-      <div class="w-10 h-1.5 rounded-full bg-violet-500 opacity-70 group-hover/pad:opacity-100 transition-opacity" />
-    </div>
-    <!-- Left -->
-    <div
-      v-if="selected"
-      class="absolute left-0 cursor-ew-resize z-11 flex items-center justify-center group/pad"
-      :style="{ top: `${spacingTop}px`, bottom: `${spacingBottom}px`, width: '12px' }"
-      @pointerdown.prevent.stop="startPaddingDragH('left', $event)"
-      @click.stop
-    >
-      <div class="w-1.5 h-10 rounded-full bg-violet-500 opacity-70 group-hover/pad:opacity-100 transition-opacity" />
-    </div>
-    <!-- Right -->
-    <div
-      v-if="selected"
-      class="absolute right-0 cursor-ew-resize z-11 flex items-center justify-center group/pad"
-      :style="{ top: `${spacingTop}px`, bottom: `${spacingBottom}px`, width: '12px' }"
-      @pointerdown.prevent.stop="startPaddingDragH('right', $event)"
-      @click.stop
-    >
-      <div class="w-1.5 h-10 rounded-full bg-violet-500 opacity-70 group-hover/pad:opacity-100 transition-opacity" />
-    </div>
-
-    <!-- ── Corner resize handle — sits at the content corner, not the spacing corner ── -->
-    <div
-      v-if="selected && isTopLevel"
-      title="Drag to resize"
-      class="absolute w-3 h-3 rounded-full bg-white border-2 border-blue-500
-             cursor-se-resize select-none z-30 shadow-sm hover:scale-125 transition-transform"
-      :style="{ bottom: `${spacingBottom - 6}px`, right: '-6px' }"
-      @pointerdown.prevent.stop="startCornerDrag($event)"
-      @click.stop
-    />
-
-    <!-- ── Tooltip (padding / resize feedback) ──────────────────────────── -->
-    <Transition
-      enter-active-class="transition-opacity duration-100"
-      leave-active-class="transition-opacity duration-100"
-      enter-from-class="opacity-0"
-      leave-to-class="opacity-0"
-    >
-      <div
-        v-if="paddingTip"
-        class="absolute right-1 text-xs bg-surface-gray-7 text-ink-white px-1.5 py-0.5 rounded pointer-events-none z-30 font-mono"
-        :style="{ top: `${spacingTop + 4}px` }"
-      >{{ paddingTip }}</div>
-    </Transition>
-
-    <!-- Inner content wrapper: clips to border-radius -->
+    <!-- Inner content (slot first so handles render above it in z-order) -->
     <div :style="{ ...contentClipStyle, ...topLevelContainerStyle }">
       <slot />
     </div>
 
-    <!-- Selection / hover ring — inset to the content area (excludes spacing zones) -->
+    <!-- ── All handles come AFTER slot so they stack above content ──────── -->
+
+    <!-- Selection / hover ring — inset to exclude spacing zones -->
     <div
       v-if="selected || (isHovered && !store.selectedBlockId)"
       class="absolute pointer-events-none z-20"
@@ -120,6 +30,110 @@
         borderRadius: blockBorderStyle.borderRadius,
       }"
     />
+
+    <!-- ── Spacing bands (orange) — always show thin line when selected;
+         expands with a fill + label when spacing > 0 ───────────────────── -->
+    <!-- Top -->
+    <div
+      v-if="selected"
+      class="absolute inset-x-0 top-0 flex items-center justify-center cursor-ns-resize z-30 select-none"
+      :style="{ height: spacingTop > 0 ? `${spacingTop}px` : '6px' }"
+      @pointerdown.prevent.stop="startSpacingDrag('top', $event)"
+      @click.stop
+    >
+      <div
+        class="absolute inset-0 transition-colors"
+        :class="spacingTop > 0 ? 'bg-orange-400 opacity-30' : 'bg-orange-300 opacity-0 hover:opacity-20'"
+      />
+      <span
+        v-if="spacingTop > 0"
+        class="relative text-[10px] font-mono text-orange-700 font-semibold z-10 pointer-events-none bg-white/70 px-1 rounded"
+      >{{ spacingTop }}px</span>
+    </div>
+    <!-- Bottom -->
+    <div
+      v-if="selected"
+      class="absolute inset-x-0 bottom-0 flex items-center justify-center cursor-ns-resize z-30 select-none"
+      :style="{ height: spacingBottom > 0 ? `${spacingBottom}px` : '6px' }"
+      @pointerdown.prevent.stop="startSpacingDrag('bottom', $event)"
+      @click.stop
+    >
+      <div
+        class="absolute inset-0 transition-colors"
+        :class="spacingBottom > 0 ? 'bg-orange-400 opacity-30' : 'bg-orange-300 opacity-0 hover:opacity-20'"
+      />
+      <span
+        v-if="spacingBottom > 0"
+        class="relative text-[10px] font-mono text-orange-700 font-semibold z-10 pointer-events-none bg-white/70 px-1 rounded"
+      >{{ spacingBottom }}px</span>
+    </div>
+
+    <!-- ── Padding handles (purple) — z-30 so they're above content ──────── -->
+    <!-- Top padding -->
+    <div
+      v-if="selected"
+      class="absolute inset-x-8 z-30 flex items-center justify-center cursor-ns-resize group/pad"
+      :style="{ top: `${spacingTop}px`, height: '14px' }"
+      @pointerdown.prevent.stop="startPaddingDrag('top', $event)"
+      @click.stop
+    >
+      <div class="w-12 h-2 rounded-full bg-violet-500 opacity-75 group-hover/pad:opacity-100 transition-opacity shadow-sm" />
+    </div>
+    <!-- Bottom padding -->
+    <div
+      v-if="selected"
+      class="absolute inset-x-8 z-30 flex items-center justify-center cursor-ns-resize group/pad"
+      :style="{ bottom: `${spacingBottom}px`, height: '14px' }"
+      @pointerdown.prevent.stop="startPaddingDrag('bottom', $event)"
+      @click.stop
+    >
+      <div class="w-12 h-2 rounded-full bg-violet-500 opacity-75 group-hover/pad:opacity-100 transition-opacity shadow-sm" />
+    </div>
+    <!-- Left padding -->
+    <div
+      v-if="selected"
+      class="absolute z-30 flex items-center justify-center cursor-ew-resize group/pad"
+      :style="{ top: `${spacingTop}px`, bottom: `${spacingBottom}px`, left: 0, width: '14px' }"
+      @pointerdown.prevent.stop="startPaddingDragH('left', $event)"
+      @click.stop
+    >
+      <div class="w-2 h-12 rounded-full bg-violet-500 opacity-75 group-hover/pad:opacity-100 transition-opacity shadow-sm" />
+    </div>
+    <!-- Right padding -->
+    <div
+      v-if="selected"
+      class="absolute z-30 flex items-center justify-center cursor-ew-resize group/pad"
+      :style="{ top: `${spacingTop}px`, bottom: `${spacingBottom}px`, right: 0, width: '14px' }"
+      @pointerdown.prevent.stop="startPaddingDragH('right', $event)"
+      @click.stop
+    >
+      <div class="w-2 h-12 rounded-full bg-violet-500 opacity-75 group-hover/pad:opacity-100 transition-opacity shadow-sm" />
+    </div>
+
+    <!-- ── Corner resize dot (bottom-right of content area) ─────────────── -->
+    <div
+      v-if="selected && isTopLevel"
+      title="Drag to resize"
+      class="absolute w-3 h-3 rounded-full bg-white border-2 border-blue-500
+             cursor-se-resize select-none z-40 shadow-sm hover:scale-125 transition-transform"
+      :style="{ bottom: `${spacingBottom - 6}px`, right: '-6px' }"
+      @pointerdown.prevent.stop="startCornerDrag($event)"
+      @click.stop
+    />
+
+    <!-- ── Tooltip ────────────────────────────────────────────────────────── -->
+    <Transition
+      enter-active-class="transition-opacity duration-100"
+      leave-active-class="transition-opacity duration-100"
+      enter-from-class="opacity-0"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="paddingTip"
+        class="absolute right-1 text-xs bg-surface-gray-7 text-ink-white px-1.5 py-0.5 rounded pointer-events-none z-40 font-mono"
+        :style="{ top: `${spacingTop + 4}px` }"
+      >{{ paddingTip }}</div>
+    </Transition>
   </div>
 </template>
 
@@ -164,8 +178,7 @@ const topLevelContainerStyle = computed(() => {
   };
 });
 
-// ── Block size (block_width / block_height) ───────────────────────────────────
-// image blocks use image_width/image_height internally; container uses topLevelContainerStyle
+// ── Block size ────────────────────────────────────────────────────────────────
 const blockSizeStyle = computed(() => {
   if (['container', 'image'].includes(props.block.type) || !isTopLevel.value) return {};
   const w = props.block.props?.block_width;
@@ -192,7 +205,7 @@ const spacingStyle = computed(() => {
   };
 });
 
-// ── Padding resize handles ───────────────────────────────────────────────────
+// ── Tip ──────────────────────────────────────────────────────────────────────
 const paddingTip = ref(null);
 let _tipTimer = null;
 
@@ -202,31 +215,27 @@ function showTip(msg) {
   _tipTimer = setTimeout(() => (paddingTip.value = null), 1200);
 }
 
+// ── Padding resize ────────────────────────────────────────────────────────────
 const DEFAULT_PADDING = { top: 20, right: 16, bottom: 20, left: 16 };
 
 function startPaddingDrag(edge, e) {
   store.selectBlock(props.block.id);
   e.target.setPointerCapture(e.pointerId);
-
   const propKey  = `padding_${edge}`;
   const startY   = e.clientY;
   const startVal = parseInt(props.block.props[propKey] ?? DEFAULT_PADDING[edge]);
-
   store.updateBlockProps(props.block.id, { [propKey]: startVal });
 
   function onMove(ev) {
     const delta   = ev.clientY - startY;
-    const raw     = startVal + delta;
-    const clamped = Math.max(0, Math.round(raw / 4) * 4);
+    const clamped = Math.max(0, Math.round((startVal + delta) / 4) * 4);
     store.updateBlockPropsLive(props.block.id, { [propKey]: clamped });
     showTip(`${edge === 'top' ? '↑' : '↓'} pad ${clamped}px`);
   }
-
   function onUp() {
     e.target.removeEventListener("pointermove", onMove);
     e.target.removeEventListener("pointerup",   onUp);
   }
-
   e.target.addEventListener("pointermove", onMove);
   e.target.addEventListener("pointerup",   onUp);
 }
@@ -234,60 +243,50 @@ function startPaddingDrag(edge, e) {
 function startPaddingDragH(edge, e) {
   store.selectBlock(props.block.id);
   e.target.setPointerCapture(e.pointerId);
-
   const propKey  = `padding_${edge}`;
   const startX   = e.clientX;
   const startVal = parseInt(props.block.props[propKey] ?? DEFAULT_PADDING[edge]);
-
   store.updateBlockProps(props.block.id, { [propKey]: startVal });
 
   function onMove(ev) {
     const delta   = ev.clientX - startX;
     const sign    = edge === "left" ? 1 : -1;
-    const raw     = startVal + sign * delta;
-    const clamped = Math.max(0, Math.round(raw / 4) * 4);
+    const clamped = Math.max(0, Math.round((startVal + sign * delta) / 4) * 4);
     store.updateBlockPropsLive(props.block.id, { [propKey]: clamped });
     showTip(`${edge === 'left' ? '←' : '→'} pad ${clamped}px`);
   }
-
   function onUp() {
     e.target.removeEventListener("pointermove", onMove);
     e.target.removeEventListener("pointerup",   onUp);
   }
-
   e.target.addEventListener("pointermove", onMove);
   e.target.addEventListener("pointerup",   onUp);
 }
 
-// ── Spacing drag (orange bands) ───────────────────────────────────────────────
+// ── Spacing drag ──────────────────────────────────────────────────────────────
 function startSpacingDrag(edge, e) {
   store.selectBlock(props.block.id);
   e.target.setPointerCapture(e.pointerId);
-
   const propKey  = `spacing_${edge}`;
   const startY   = e.clientY;
   const startVal = Number(props.block.props[propKey] ?? 0);
-
   store.updateBlockProps(props.block.id, { [propKey]: startVal });
 
   function onMove(ev) {
     const delta   = ev.clientY - startY;
-    const raw     = startVal + delta;
-    const clamped = Math.max(0, Math.round(raw / 4) * 4);
+    const clamped = Math.max(0, Math.round((startVal + delta) / 4) * 4);
     store.updateBlockPropsLive(props.block.id, { [propKey]: clamped });
     showTip(`spacing ${edge === "top" ? "↑" : "↓"} ${clamped}px`);
   }
-
   function onUp() {
     e.target.removeEventListener("pointermove", onMove);
     e.target.removeEventListener("pointerup",   onUp);
   }
-
   e.target.addEventListener("pointermove", onMove);
   e.target.addEventListener("pointerup",   onUp);
 }
 
-// ── Corner resize (width + height simultaneously) ────────────────────────────
+// ── Corner resize ─────────────────────────────────────────────────────────────
 function startCornerDrag(e) {
   store.selectBlock(props.block.id);
   e.target.setPointerCapture(e.pointerId);
@@ -295,14 +294,12 @@ function startCornerDrag(e) {
   const blockEl = e.currentTarget.parentElement;
   const startX  = e.clientX;
   const startY  = e.clientY;
-  // Measure only the CONTENT height (exclude spacing padding)
-  const startW  = blockEl ? blockEl.offsetWidth  : 200;
+  const startW  = blockEl ? blockEl.offsetWidth : 200;
   const startH  = blockEl ? (blockEl.offsetHeight - spacingTop.value - spacingBottom.value) : 100;
 
   const wKey = props.block.type === "container" ? "width"
              : props.block.type === "image"     ? "image_width"
              : "block_width";
-
   const hKey = props.block.type === "container" || props.block.type === "spacer" ? "height"
              : props.block.type === "image"     ? "image_height"
              : "block_height";
@@ -314,17 +311,15 @@ function startCornerDrag(e) {
     const dx   = ev.clientX - startX;
     const dy   = ev.clientY - startY;
     const newW = Math.max(60, Math.min(store.emailWidth, Math.round(startW + dx)));
-    const newH = Math.max(8,  Math.round(startH + dy));
+    const newH = Math.max(8, Math.round(startH + dy));
     const hVal = props.block.type === "spacer" ? newH : `${newH}px`;
     store.updateBlockPropsLive(props.block.id, { [wKey]: `${newW}px`, [hKey]: hVal });
     showTip(`${newW} × ${newH}px`);
   }
-
   function onUp() {
     e.target.removeEventListener("pointermove", onMove);
     e.target.removeEventListener("pointerup",   onUp);
   }
-
   e.target.addEventListener("pointermove", onMove);
   e.target.addEventListener("pointerup",   onUp);
 }
