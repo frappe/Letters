@@ -1023,35 +1023,32 @@ def _image_text_block(position="left", pl=32, pr=32, pt=20, pb=20):
 
 
 class TestImageTextRendererPadding:
-    """Outer padding must stay on the outer edge regardless of image position."""
+    """Block padding goes on the outer wrapper; inner cells carry only the gap."""
 
-    def test_position_left_img_has_outer_left_padding(self):
-        # Image on left: img cell's left padding == pl (outer), right == gap (inner)
+    def test_block_padding_on_outer_wrapper(self):
+        # All block padding should appear on the outer <td>, not distributed to inner cells
         html = ImageTextRenderer().render(_image_text_block(position="left", pl=40, pr=24))
-        tds = html.split("<td")
-        img_td = next(t for t in tds if "display:block" in t or "Image</div>" in t or "img.jpg" in t)
-        assert "padding:20px 16px 20px 40px" in img_td, img_td
+        # Outer wrapper td is the first <td with style containing the full padding
+        assert "padding:20px 24px 20px 40px" in html
 
-    def test_position_left_text_has_outer_right_padding(self):
-        # Text on right: text cell's right padding == pr (outer), left == gap (inner)
+    def test_img_cell_has_only_gap_not_block_padding(self):
+        # Image cell should have only the gap padding, not the block's outer padding
         html = ImageTextRenderer().render(_image_text_block(position="left", pl=40, pr=24))
-        tds = html.split("<td")
-        text_td = next(t for t in tds if "Hello" in t)
-        assert "padding:20px 24px 20px 16px" in text_td, text_td
-
-    def test_position_right_text_has_outer_left_padding(self):
-        # Image on right, text on left: text cell's left padding == pl (outer), right == gap
-        html = ImageTextRenderer().render(_image_text_block(position="right", pl=40, pr=24))
-        tds = html.split("<td")
-        text_td = next(t for t in tds if "Hello" in t)
-        assert "padding:20px 16px 20px 40px" in text_td, text_td
-
-    def test_position_right_img_has_outer_right_padding(self):
-        # Image on right: img cell's right padding == pr (outer), left == gap
-        html = ImageTextRenderer().render(_image_text_block(position="right", pl=40, pr=24))
         tds = html.split("<td")
         img_td = next(t for t in tds if "img.jpg" in t)
-        assert "padding:20px 24px 20px 16px" in img_td, img_td
+        assert "40px" not in img_td, "block pl should not appear in image cell"
+        assert "24px" not in img_td, "block pr should not appear in image cell"
+
+    def test_text_cell_has_only_gap_not_block_padding(self):
+        html = ImageTextRenderer().render(_image_text_block(position="left", pl=40, pr=24))
+        tds = html.split("<td")
+        text_td = next(t for t in tds if "Hello" in t)
+        assert "40px" not in text_td, "block pl should not appear in text cell"
+        assert "24px" not in text_td, "block pr should not appear in text cell"
+
+    def test_position_right_outer_wrapper_has_block_padding(self):
+        html = ImageTextRenderer().render(_image_text_block(position="right", pl=40, pr=24))
+        assert "padding:20px 24px 20px 40px" in html
 
     def test_position_left_column_order(self):
         html = ImageTextRenderer().render(_image_text_block(position="left"))

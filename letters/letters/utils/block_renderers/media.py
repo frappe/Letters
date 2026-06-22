@@ -116,40 +116,43 @@ class ImageTextRenderer(BlockRenderer):
             )
         else:
             # Side-by-side (default)
-            gap = 16
-            if position == "left":
-                img_pad  = f"{pt}px {gap}px {pb}px {pl}px"
-                text_pad = f"{pt}px {pr}px {pb}px {gap}px"
-            else:
-                text_pad = f"{pt}px {gap}px {pb}px {pl}px"
-                img_pad  = f"{pt}px {pr}px {pb}px {gap}px"
+            # Block padding wraps the outer table; inner cells only need the gap between image and text.
+            gap          = 20
+            outer_pad    = f"{pt}px {pr}px {pb}px {pl}px"
+            text_color   = escape(p.get("text_color", "#333333"))
+            img_pad      = f"0 {gap}px 0 0" if position == "left" else f"0 0 0 {gap}px"
+            text_pad_str = "0" if position == "left" else "0"
             img_cell = (
-                f'<td width="{img_px}" valign="top" style="padding:{img_pad};">'
+                f'<td width="{img_px}" valign="middle" style="padding:{img_pad};">'
                 f'<img src="{image_url}" width="{img_px}" style="display:block;border:0;'
-                f'border-radius:8px;" alt="" />'
+                f'border-radius:4px;" alt="" />'
                 f'</td>'
             ) if image_url else (
-                f'<td width="{img_px}" valign="top" style="padding:{img_pad};">'
+                f'<td width="{img_px}" valign="middle" style="padding:{img_pad};">'
                 f'<div style="width:{img_px}px;height:100px;background:#eeeeee;'
                 f'font-family:Arial,sans-serif;font-size:12px;color:#999;text-align:center;'
                 f'padding-top:40px;">Image</div>'
                 f'</td>'
             )
             heading_html = (
-                f'<p style="margin:0 0 8px;font-family:{font};font-size:16px;'
+                f'<p style="margin:0 0 6px;font-family:{font};font-size:16px;'
                 f'font-weight:700;color:{heading_color};line-height:1.3;">{heading_text}</p>'
             ) if heading_text else ""
             text_cell = (
-                f'<td valign="top" style="padding:{text_pad};">'
+                f'<td valign="middle" style="padding:{text_pad_str};">'
                 f'{heading_html}'
                 f'<p style="margin:0;font-family:{font};font-size:15px;'
-                f'color:#333333;line-height:1.6;">{text}</p>'
+                f'color:{text_color};line-height:1.6;">{text}</p>'
                 f'</td>'
             )
             cells = (img_cell + text_cell) if position == "left" else (text_cell + img_cell)
             html = (
                 f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
-                f'<tr>{cells}</tr></table>'
+                f'<tr><td style="padding:{outer_pad};">'
+                f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
+                f'<tr>{cells}</tr>'
+                f'</table>'
+                f'</td></tr></table>'
             )
 
         return _spacing_wrapper(html, p)
