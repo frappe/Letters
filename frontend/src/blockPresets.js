@@ -326,6 +326,24 @@ export const BLOCK_PRESET_DEFS = {
     ],
   },
 
+  // ── Section Label ──────────────────────────────────────────────────────────
+  // Outer container → text block (uppercase label) + divider block
+  section_label: {
+    type: "container", label: "Section Label",
+    props: { layout: "column", background_color: "transparent", gap: 0,
+             padding_top: 12, padding_right: 16, padding_bottom: 12, padding_left: 16 },
+    children: [
+      { type: "text", label: "Label text",
+        props: { html_content: "<p>SECTION TITLE</p>",
+                 font_size: "11px", font_weight: "600", text_color: "#383838",
+                 letter_spacing: "0.15em", line_height: "1.2",
+                 background_color: "transparent", ...noPad } },
+      { type: "divider", label: "Divider line",
+        props: { border_color: "#ededed", thickness: 0.5, style: "solid", width: "100%",
+                 padding_top: 8, padding_right: 0, padding_bottom: 0, padding_left: 0 } },
+    ],
+  },
+
   // ── Footer ─────────────────────────────────────────────────────────────────
   // Simple: outer container → text section
   footer: {

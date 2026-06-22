@@ -198,62 +198,6 @@ export const BLOCK_SCHEMA = {
     ],
   },
 
-  section_label: {
-    label: "Section Label",
-    icon: "tag",
-    sub_layers: [
-      { label: "Label text",  icon: "type",  section: "label" },
-      { label: "Divider line", icon: "minus", section: "line"  },
-    ],
-    defaults: {
-      label: "SECTION TITLE",
-      text_color: "#383838",
-      font_size: "11px",
-      font_weight: "600",
-      letter_spacing: "0.15em",
-      line_color: "#ededed",
-      line_thickness: 0.5,
-      line_position: "below",
-      align: "left",
-      font_family: "Arial",
-      padding_top: 12, padding_right: 16, padding_bottom: 12, padding_left: 16,
-      ...borderDefaults,
-    },
-    sections: [
-      {
-        id: "label",
-        title: "Label",
-        fields: [
-          fontField,
-          { key: "text_color", label: "Text color", type: "color" },
-          { key: "font_size", label: "Font size", type: "text", placeholder: "11px" },
-          fontWeightField(),
-          letterSpacingField,
-          { key: "align", label: "Alignment", type: "align" },
-          ...borderFields,
-        ],
-      },
-      {
-        id: "line",
-        title: "Line",
-        fields: [
-          { key: "line_color", label: "Color", type: "color" },
-          { key: "line_thickness", label: "Thickness", type: "number", placeholder: "0.5" },
-          {
-            key: "line_position",
-            label: "Position",
-            type: "select",
-            options: [
-              { label: "Below label", value: "below" },
-              { label: "Above label", value: "above" },
-              { label: "None", value: "none" },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-
   image_text: {
     label: "Image + Text",
     icon: "sidebar",
