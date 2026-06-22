@@ -201,10 +201,6 @@ export const BLOCK_SCHEMA = {
   section_label: {
     label: "Section Label",
     icon: "tag",
-    sub_layers: [
-      { label: "Label text", icon: "type" },
-      { label: "Divider line", icon: "minus" },
-    ],
     defaults: {
       label: "SECTION TITLE",
       text_color: "#383838",
