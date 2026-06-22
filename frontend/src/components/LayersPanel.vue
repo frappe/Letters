@@ -364,17 +364,19 @@ const LayerNode = defineComponent({
       const lineLeft = 4 + rowPaddingLeft + 8;
       const subLayerPad = rowPaddingLeft + INDENT_W;
 
-      const subLayerRows = subLayers.map((sl) =>
-        h("div", {
-          class: "flex items-center gap-1.5 pr-2 py-1 mx-1 rounded cursor-pointer transition-colors hover:bg-surface-gray-1",
+      const subLayerRows = subLayers.map((sl) => {
+        const isActiveSub = store.selectedSubLayerSection === sl.section && store.selectedBlockId === b.id;
+        return h("div", {
+          class: "flex items-center gap-1.5 pr-2 py-1 mx-1 rounded cursor-pointer transition-colors "
+            + (isActiveSub ? "bg-surface-gray-2 text-ink-gray-8" : "hover:bg-surface-gray-1 text-ink-gray-4"),
           style: { paddingLeft: subLayerPad + "px" },
-          onClick: (e) => { e.stopPropagation(); store.selectBlock(b.id); },
+          onClick: (e) => { e.stopPropagation(); store.selectSubLayer(b.id, sl.section); },
         }, [
           h("span", { class: "flex-shrink-0 w-4" }),
-          h("span", { class: `lucide-${sl.icon} size-3 flex-shrink-0 text-ink-gray-3`, "aria-hidden": "true" }),
-          h("span", { class: "text-xs text-ink-gray-3 truncate" }, sl.label),
-        ])
-      );
+          h("span", { class: `lucide-${sl.icon} size-3 flex-shrink-0`, "aria-hidden": "true" }),
+          h("span", { class: "text-xs truncate" }, sl.label),
+        ]);
+      });
 
       const childrenSection = h("div", { class: "relative" }, [
         h("div", {

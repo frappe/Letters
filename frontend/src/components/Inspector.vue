@@ -12,6 +12,12 @@
       <template v-else-if="block">
         <span :class="`lucide-${schema?.icon || 'box'} size-3.5 text-ink-gray-5 flex-shrink-0`" aria-hidden="true" />
         <span class="text-sm font-medium text-ink-gray-8">{{ schema?.label || block.label || block.type }}</span>
+        <template v-if="store.selectedSubLayerSection">
+          <span class="text-ink-gray-4 text-sm">/</span>
+          <span class="text-sm font-medium text-ink-gray-6">
+            {{ schema?.sub_layers?.find(sl => sl.section === store.selectedSubLayerSection)?.label }}
+          </span>
+        </template>
       </template>
       <template v-else>
         <span class="lucide-mail size-3.5 text-ink-gray-5 flex-shrink-0" aria-hidden="true" />
@@ -83,9 +89,9 @@
     <!-- Block sections -->
     <div v-else-if="block" class="flex-1 overflow-y-auto">
 
-      <!-- Schema-defined sections -->
+      <!-- Schema-defined sections (filtered to active sub-layer if one is selected) -->
       <div
-        v-for="section in (schema?.sections ?? [])"
+        v-for="section in (schema?.sections ?? []).filter(s => !store.selectedSubLayerSection || s.id === store.selectedSubLayerSection)"
         :key="section.id"
         class="border-b border-outline-gray-1"
       >

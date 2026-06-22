@@ -201,6 +201,10 @@ export const BLOCK_SCHEMA = {
   section_label: {
     label: "Section Label",
     icon: "tag",
+    sub_layers: [
+      { label: "Label text",  icon: "type",  section: "label" },
+      { label: "Divider line", icon: "minus", section: "line"  },
+    ],
     defaults: {
       label: "SECTION TITLE",
       text_color: "#383838",
@@ -217,19 +221,27 @@ export const BLOCK_SCHEMA = {
     },
     sections: [
       {
-        id: "style",
-        title: "Style",
+        id: "label",
+        title: "Label",
         fields: [
           fontField,
           { key: "text_color", label: "Text color", type: "color" },
           { key: "font_size", label: "Font size", type: "text", placeholder: "11px" },
           fontWeightField(),
           letterSpacingField,
-          { key: "line_color", label: "Line color", type: "color" },
-          { key: "line_thickness", label: "Line thickness", type: "number", placeholder: "0.5" },
+          { key: "align", label: "Alignment", type: "align" },
+          ...borderFields,
+        ],
+      },
+      {
+        id: "line",
+        title: "Line",
+        fields: [
+          { key: "line_color", label: "Color", type: "color" },
+          { key: "line_thickness", label: "Thickness", type: "number", placeholder: "0.5" },
           {
             key: "line_position",
-            label: "Line",
+            label: "Position",
             type: "select",
             options: [
               { label: "Below label", value: "below" },
@@ -237,8 +249,6 @@ export const BLOCK_SCHEMA = {
               { label: "None", value: "none" },
             ],
           },
-          { key: "align", label: "Alignment", type: "align" },
-          ...borderFields,
         ],
       },
     ],

@@ -11,6 +11,7 @@ export const useEditorStore = defineStore("editor", () => {
   const canvasBg         = ref("#ffffff");
   const selectedBlockId  = ref(null);
   const selectedBlockIds = ref(new Set()); // all selected block ids (for multi-select)
+  const selectedSubLayerSection = ref(null); // active sub-layer section id within selected block
   const isDirty          = ref(false);
   const clipboard        = ref(null); // array of deep-cloned blocks, or null
   const styleClipboard   = ref(null); // copied style props object
@@ -143,6 +144,14 @@ export const useEditorStore = defineStore("editor", () => {
     if (isReadOnly.value) return;
     selectedBlockId.value = id;
     selectedBlockIds.value = id ? new Set([id]) : new Set();
+    selectedSubLayerSection.value = null;
+  }
+
+  function selectSubLayer(blockId, sectionId) {
+    if (isReadOnly.value) return;
+    selectedBlockId.value = blockId;
+    selectedBlockIds.value = new Set([blockId]);
+    selectedSubLayerSection.value = sectionId;
   }
 
   function toggleInSelection(id) {
@@ -612,6 +621,7 @@ export const useEditorStore = defineStore("editor", () => {
     canvasBg,
     selectedBlockId,
     selectedBlockIds,
+    selectedSubLayerSection,
     selectedBlock,
     isDirty,
     canUndo,
@@ -622,6 +632,7 @@ export const useEditorStore = defineStore("editor", () => {
     removeBlock,
     moveBlock,
     selectBlock,
+    selectSubLayer,
     toggleInSelection,
     addRangeToSelection,
     updateBlockProps,
