@@ -29,4 +29,15 @@ export default {
     './node_modules/frappe-ui/src/**/*.{vue,js,ts}',
   ],
   safelist: dynamicLucideIcons,
+  theme: {
+    extend: {
+      backgroundColor: {
+        // surface.base was in a locally-modified frappe-ui that got wiped by
+        // npm install. Define it here so bg-surface-base keeps working.
+        surface: {
+          base: 'var(--surface-base, #ffffff)',
+        },
+      },
+    },
+  },
 }

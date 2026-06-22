@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* --surface-base was in a locally-modified frappe-ui that got wiped by npm install.
+   Define it here so bg-surface-base works in both themes. */
+:root { --surface-base: #ffffff; }
+[data-theme="dark"] { --surface-base: #111111; }
+
 html, body {
   margin: 0;
   padding: 0;
