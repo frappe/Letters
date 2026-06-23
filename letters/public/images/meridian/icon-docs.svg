@@ -1,0 +1,11 @@
+<svg viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
+  <!-- Rounded square background -->
+  <rect width="56" height="56" rx="12" fill="#EDE5DC"/>
+  <!-- Document shape -->
+  <path d="M18 14 L34 14 L38 18 L38 42 L18 42 Z" fill="none" stroke="#D4582A" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M34 14 L34 18 L38 18" fill="none" stroke="#D4582A" stroke-width="2" stroke-linejoin="round"/>
+  <!-- Lines -->
+  <line x1="23" y1="24" x2="33" y2="24" stroke="#D4582A" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="23" y1="29" x2="33" y2="29" stroke="#D4582A" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="23" y1="34" x2="29" y2="34" stroke="#D4582A" stroke-width="1.5" stroke-linecap="round"/>
+</svg>

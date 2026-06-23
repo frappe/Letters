@@ -1,0 +1,6 @@
+<svg viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
+  <!-- Rounded square background -->
+  <rect width="56" height="56" rx="12" fill="#EDE5DC"/>
+  <!-- Play triangle -->
+  <polygon points="22,18 22,38 40,28" fill="#D4582A"/>
+</svg>

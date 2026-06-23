@@ -1,0 +1,10 @@
+<svg viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
+  <!-- Rounded square background -->
+  <rect width="56" height="56" rx="12" fill="#EDE5DC"/>
+  <!-- Primary speech bubble -->
+  <rect x="10" y="13" width="26" height="18" rx="5" fill="none" stroke="#D4582A" stroke-width="2"/>
+  <path d="M16 31 L13 38 L22 33" fill="none" stroke="#D4582A" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- Secondary speech bubble (offset right, behind) -->
+  <rect x="22" y="23" width="24" height="16" rx="5" fill="#EDE5DC" stroke="#D4582A" stroke-width="2"/>
+  <path d="M40 39 L43 45 L36 41" fill="#EDE5DC" stroke="#D4582A" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>
