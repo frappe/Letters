@@ -1,7 +1,7 @@
 app_name = "letters"
 app_title = "Letters"
 app_publisher = "Palkan Parsana"
-app_description = "Visual email design and campaign system for Frappe"
+app_description = "Visual email design and letter sending system for Frappe"
 app_email = "palkan@frappe.io"
 app_license = "MIT"
 
@@ -26,7 +26,7 @@ scheduler_events = {
 
 page_js = {"letter-builder": "public/js/letter-builder.js"}
 
-doctype_js = {"Letter": "public/frappe_customizations/email_campaign.js"}
+doctype_js = {"Letter": "public/frappe_customizations/letter.js"}
 
 fixtures = ["Letters Template"]
 

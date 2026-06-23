@@ -38,8 +38,8 @@ export function usePreview(editorStore, previewText) {
         },
       });
       const html          = res.message.html;
-      const rawTitle      = editorStore.campaignName || "Email Preview";
-      const campaignTitle = rawTitle
+      const rawTitle      = editorStore.letterName || "Email Preview";
+      const letterTitle = rawTitle
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
@@ -66,7 +66,7 @@ export function usePreview(editorStore, previewText) {
   #__preview-toolbar button.active { background: #374151; color: #fff; }
 </style>
 <div id="__preview-toolbar">
-  <span>${campaignTitle}</span>
+  <span>${letterTitle}</span>
   <button class="active" onclick="setMode('desktop', this)">🖥 Desktop</button>
   <button onclick="setMode('mobile', this)">📱 Mobile</button>
 </div>

@@ -10,14 +10,14 @@ from ..doctype.letter._content import _unique_letter_title
 
 
 @frappe.whitelist(methods=["GET", "POST"])
-def get_campaign(name: str):
+def get_letter(name: str):
     doc = frappe.get_doc("Letter", name)
     frappe.has_permission("Letter", "read", doc=doc, throw=True)
     return doc.as_builder_dict()
 
 
 @frappe.whitelist(methods=["POST"])
-def save_campaign(name: str | None = None, title: str | None = None, subject: str | None = None, preview_text: str | None = None, blocks: str | None = None, email_width: int | None = None, canvas_background: str | None = None, recipient_config: str | None = None, folder: str | None = None, include_unsubscribe: bool | None = None):
+def save_letter(name: str | None = None, title: str | None = None, subject: str | None = None, preview_text: str | None = None, blocks: str | None = None, email_width: int | None = None, canvas_background: str | None = None, recipient_config: str | None = None, folder: str | None = None, include_unsubscribe: bool | None = None):
     blocks_json = json.dumps(blocks if isinstance(blocks, list) else json.loads(blocks or "[]"))
     normalized_config = _normalize_recipient_config(recipient_config)
 
@@ -127,8 +127,8 @@ def get_letters(folder: str | None = None):
 
 
 @frappe.whitelist(methods=["POST"])
-def duplicate_campaign(name: str):
-    """Create an exact copy of a campaign as a new Draft."""
+def duplicate_letter(name: str):
+    """Create an exact copy of a letter as a new Draft."""
     original = frappe.get_doc("Letter", name)
     frappe.has_permission("Letter", "read", doc=original, throw=True)
     return original.duplicate()

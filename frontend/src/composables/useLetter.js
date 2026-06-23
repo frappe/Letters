@@ -17,7 +17,7 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
   const saving        = ref(false);
   const savedFlash    = ref(false);
   let _savedFlashTimer = null;
-  const loadingCampaign = ref(false);
+  const loadingLetter = ref(false);
 
   const showSettings        = ref(false);
   const showTemplatePicker  = ref(false);
@@ -32,12 +32,12 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
   const sendProgress = ref({ status: "Queued", sent: 0, total: 0 });
   let _progressTimer = null;
 
-  const campaignStatus = computed(() => {
-    // While actively polling use live sendProgress status, otherwise campaignDoc
+  const letterStatus = computed(() => {
+    // While actively polling use live sendProgress status, otherwise letterDoc
     if (["Sending", "Queued"].includes(sendProgress.value.status) && _progressTimer) {
       return "Sending";
     }
-    return editorStore.campaignDoc?.status || null;
+    return editorStore.letterDoc?.status || null;
   });
 
   const minScheduleDate = computed(() => {
@@ -47,11 +47,11 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
   });
 
   // ── Dirty tracking ──────────────────────────────────────────────────────────
-  // _suppressDirty is a counter (not a boolean) so concurrent loadCampaign calls
+  // _suppressDirty is a counter (not a boolean) so concurrent loadLetter calls
   // each hold their own increment and don't accidentally re-enable dirty
   // tracking while another load is still in flight.
   let _suppressDirty = 0;
-  watch([subject, previewText, () => editorStore.campaignName], () => {
+  watch([subject, previewText, () => editorStore.letterName], () => {
     if (_suppressDirty === 0) editorStore.markDirty();
   });
   // Recipient selection is persisted on the campaign (so scheduled sends and
@@ -72,7 +72,7 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
     if (!dirty) return;
     clearTimeout(_autoSaveTimer);
     _autoSaveTimer = setTimeout(() => {
-      if (editorStore.isDirty && !saving.value) saveCampaign();
+      if (editorStore.isDirty && !saving.value) saveLetter();
     }, 800);
   });
 
@@ -102,7 +102,7 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
     // Otherwise fall back to the Frappe route / legacy query param.
     const name = initialName || getRouteParam();
     if (name) {
-      await loadCampaign(name);
+      await loadLetter(name);
       setRouteParam(name);
       if (!editorStore.blocks.length) showTemplatePicker.value = true;
     } else {
@@ -111,11 +111,11 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
   });
   onUnmounted(() => clearInterval(_progressTimer));
 
-  async function loadCampaign(name) {
-    loadingCampaign.value = true;
+  async function loadLetter(name) {
+    loadingLetter.value = true;
     _suppressDirty++;
     try {
-      const res = await frappe.call({ method: "letters.letters.api.get_campaign", args: { name } });
+      const res = await frappe.call({ method: "letters.letters.api.get_letter", args: { name } });
       const doc = res.message;
       editorStore.loadFromDoc(doc);
       subject.value         = doc.subject || "";
@@ -126,11 +126,11 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
       // Allow one Vue flush cycle before re-enabling dirty tracking
       await Promise.resolve();
     } catch (e) {
-      toast.error("Couldn't load campaign: " + describeError(e));
+      toast.error("Couldn't load letter: " + describeError(e));
     } finally {
       // Always decrement, even on error, so the watcher is never permanently silenced
       _suppressDirty--;
-      loadingCampaign.value = false;
+      loadingLetter.value = false;
     }
   }
 
@@ -138,15 +138,15 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
   //   - Existing campaign already loaded → apply blocks to it and save.
   //   - No campaign yet → create a new one, then load it.
   async function onTemplateSubmit(blocks) {
-    if (editorStore.campaignDoc?.name) {
+    if (editorStore.letterDoc?.name) {
       editorStore.loadTemplate(blocks);
-      await saveCampaign();
+      await saveLetter();
       showTemplatePicker.value = false;
       return;
     }
 
     const res = await frappe.call({
-      method: "letters.letters.api.save_campaign",
+      method: "letters.letters.api.save_letter",
       args: {
         name: null,
         title: "Untitled Letter",
@@ -159,24 +159,24 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
       },
     });
     showTemplatePicker.value = false;
-    await loadCampaign(res.message.name);
+    await loadLetter(res.message.name);
     setRouteParam(res.message.name);
   }
 
   // ── Save ──────────────────────────────────────────────────────────────────────
-  async function saveCampaign() {
+  async function saveLetter() {
     if (editorStore.isReadOnly) return;
     // Never create a campaign from autosave — initial creation is handled by
     // onTemplateSubmit. Without this guard, null name → HTTP '' → backend creates
     // a phantom campaign and the original is never updated.
-    if (!editorStore.campaignDoc?.name) return;
+    if (!editorStore.letterDoc?.name) return;
     saving.value = true;
     try {
       const res = await frappe.call({
-        method: "letters.letters.api.save_campaign",
+        method: "letters.letters.api.save_letter",
         args: {
-          name:         editorStore.campaignDoc?.name || null,
-          title:        editorStore.campaignName || "Untitled Letter",
+          name:         editorStore.letterDoc?.name || null,
+          title:        editorStore.letterName || "Untitled Letter",
           subject:      subject.value,
           preview_text: previewText.value,
           email_width:        editorStore.emailWidth,
@@ -188,11 +188,11 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
       });
       const saved = res.message;
       // Always replace the full doc object so status/title stay consistent
-      editorStore.campaignDoc = saved;
+      editorStore.letterDoc = saved;
       setRouteParam(saved.name);
       editorStore.clearDirty();
       // Keep browser tab title in sync with the campaign name
-      document.title = (editorStore.campaignName || "Untitled Letter") + " · Letters";
+      document.title = (editorStore.letterName || "Untitled Letter") + " · Letters";
       // Brief "Saved" confirmation in the toolbar
       clearTimeout(_savedFlashTimer);
       savedFlash.value = true;
@@ -208,11 +208,11 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
   // two don't race into a double write.
   function saveNow() {
     clearTimeout(_autoSaveTimer);
-    saveCampaign();
+    saveLetter();
   }
 
   // ── Send ────────────────────────────────────────────────────────────────────
-  async function sendCampaign() {
+  async function sendLetter() {
     if (!subject.value?.trim()) {
       showSettings.value = true;
       toast.warning("Add a subject line before sending.");
@@ -231,13 +231,13 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
     // Flush any pending autosave so the backend sends the current editor state.
     if (editorStore.isDirty) {
       clearTimeout(_autoSaveTimer);
-      await saveCampaign();
+      await saveLetter();
     }
 
     sending.value = true;
     try {
       const cfg  = recipientConfig.value;
-      const args = { name: editorStore.campaignDoc?.name };
+      const args = { name: editorStore.letterDoc?.name };
       if (cfg.type === "group") {
         args.email_group = cfg.email_group;
       } else if (cfg.type === "paste") {
@@ -249,7 +249,7 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
           filters:     cfg.filters || {},
         });
       }
-      const res = await frappe.call({ method: "letters.letters.api.send_campaign", args });
+      const res = await frappe.call({ method: "letters.letters.api.send_letter", args });
       const { count, skipped_invalid } = res.message;
       let msg = `Queued for ${count} recipient${count === 1 ? "" : "s"}!`;
       if (skipped_invalid > 0) {
@@ -257,7 +257,7 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
       }
       toast.success(msg);
       sendProgress.value = { status: "Queued", sent: 0, total: count };
-      if (editorStore.campaignDoc) editorStore.campaignDoc.status = "Sending";
+      if (editorStore.letterDoc) editorStore.letterDoc.status = "Sending";
       _startProgressPolling();
     } catch (e) {
       const raw = e?._server_messages;
@@ -274,19 +274,19 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
   function _startProgressPolling() {
     clearInterval(_progressTimer);
     _progressTimer = setInterval(async () => {
-      if (!editorStore.campaignDoc?.name) { clearInterval(_progressTimer); return; }
+      if (!editorStore.letterDoc?.name) { clearInterval(_progressTimer); return; }
       try {
         const r = await frappe.call({
           method: "letters.letters.api.get_send_progress",
-          args: { name: editorStore.campaignDoc.name },
+          args: { name: editorStore.letterDoc.name },
         });
         sendProgress.value = r.message;
         if (["Sent", "Failed", "Partial"].includes(r.message.status)) {
           clearInterval(_progressTimer);
           _progressTimer = null;
           // Sync final status back to campaignDoc so toolbar badge reflects it
-          if (editorStore.campaignDoc) editorStore.campaignDoc.status = r.message.status;
-          const label = r.message.status === "Sent" ? "Campaign sent successfully!" : `Send ${r.message.status.toLowerCase()}.`;
+          if (editorStore.letterDoc) editorStore.letterDoc.status = r.message.status;
+          const label = r.message.status === "Sent" ? "Letter sent successfully!" : `Send ${r.message.status.toLowerCase()}.`;
           toast[r.message.status === "Sent" ? "success" : "warning"](label);
         }
       } catch { clearInterval(_progressTimer); _progressTimer = null; }
@@ -296,7 +296,7 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
   // ── Schedule send ─────────────────────────────────────────────────────────────
   // Prefill the modal's date/time from a previously scheduled value.
   function openScheduleModal() {
-    const existing = editorStore.campaignDoc?.scheduled_at;
+    const existing = editorStore.letterDoc?.scheduled_at;
     if (existing) {
       const [d, t] = existing.split(" ");
       scheduleDate.value = d || "";
@@ -305,7 +305,7 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
     showScheduleModal.value = true;
   }
 
-  async function scheduleCampaign() {
+  async function scheduleLetter() {
     if (!scheduleDate.value || !scheduleTime.value) return;
     if (!subject.value?.trim()) {
       showScheduleModal.value = false;
@@ -326,19 +326,19 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
       // against a stale (or recipient-less) saved state.
       if (editorStore.isDirty) {
         clearTimeout(_autoSaveTimer);
-        await saveCampaign();
+        await saveLetter();
       }
       // Combine date (YYYY-MM-DD) + time (HH:mm or HH:mm:ss) into local datetime
       // string — Frappe server works in local time so no UTC conversion needed.
       const dt = `${scheduleDate.value} ${scheduleTime.value}`;
       await frappe.call({
-        method: "letters.letters.api.schedule_campaign",
-        args: { name: editorStore.campaignDoc.name, scheduled_at: dt },
+        method: "letters.letters.api.schedule_letter",
+        args: { name: editorStore.letterDoc.name, scheduled_at: dt },
       });
       // Reflect the new status locally so the toolbar shows the Scheduled badge.
-      if (editorStore.campaignDoc) {
-        editorStore.campaignDoc.status = "Scheduled";
-        editorStore.campaignDoc.scheduled_at = dt;
+      if (editorStore.letterDoc) {
+        editorStore.letterDoc.status = "Scheduled";
+        editorStore.letterDoc.scheduled_at = dt;
       }
       toast.success(`Scheduled for ${scheduleDate.value} at ${scheduleTime.value}`);
       showScheduleModal.value = false;
@@ -352,13 +352,13 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
   }
 
   // ── Duplicate ─────────────────────────────────────────────────────────────────
-  async function duplicateCampaign() {
-    if (!editorStore.campaignDoc?.name) return;
+  async function duplicateLetter() {
+    if (!editorStore.letterDoc?.name) return;
     duplicating.value = true;
     try {
       const res = await frappe.call({
-        method: "letters.letters.api.duplicate_campaign",
-        args: { name: editorStore.campaignDoc.name },
+        method: "letters.letters.api.duplicate_letter",
+        args: { name: editorStore.letterDoc.name },
       });
       const newName = res.message.name;
       toast.success(`Duplicated as "${res.message.title}". Opening it now.`);
@@ -376,13 +376,13 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
     // ui visibility
     showSettings, showTemplatePicker, showScheduleModal,
     // status flags
-    saving, savedFlash, loadingCampaign, sending, duplicating, scheduling,
+    saving, savedFlash, loadingLetter, sending, duplicating, scheduling,
     // schedule modal
     scheduleDate, scheduleTime, minScheduleDate, openScheduleModal,
     // progress
-    sendProgress, campaignStatus,
+    sendProgress, letterStatus,
     // actions
-    loadCampaign, onTemplateSubmit, saveCampaign, saveNow,
-    sendCampaign, scheduleCampaign, duplicateCampaign,
+    loadLetter, onTemplateSubmit, saveLetter, saveNow,
+    sendLetter, scheduleLetter, duplicateLetter,
   };
 }

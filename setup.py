@@ -6,7 +6,7 @@ with open("requirements.txt") as f:
 setup(
     name="letters",
     version="0.1.0",
-    description="Visual email design and campaign system for Frappe",
+    description="Visual email design and letter sending system for Frappe",
     author="Palkan Parsana",
     author_email="",
     packages=find_packages(),

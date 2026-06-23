@@ -68,7 +68,7 @@
     <!-- Live summary -->
     <p class="text-xs text-ink-gray-5 border-t border-outline-gray-1 pt-3">
       <template v-if="summaryText">{{ summaryText }}</template>
-      <template v-else>Configure who will receive this campaign.</template>
+      <template v-else>Configure who will receive this letter.</template>
     </p>
   </div>
 </template>

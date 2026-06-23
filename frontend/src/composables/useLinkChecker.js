@@ -23,8 +23,8 @@ export function useLinkChecker(editorStore, { flushSave } = {}) {
     // Cancel any in-flight poll from a previous check.
     if (_linkCheckPollTimer) { clearInterval(_linkCheckPollTimer); _linkCheckPollTimer = null; }
     try {
-      const args = editorStore.campaignDoc?.name
-        ? { name: editorStore.campaignDoc.name }
+      const args = editorStore.letterDoc?.name
+        ? { name: editorStore.letterDoc.name }
         : { blocks: JSON.stringify(editorStore.blocks.map(stripIds)) };
       const startRes = await frappe.call({ method: "letters.letters.api.start_link_check", args });
       const jobKey = startRes.message?.job_key;

@@ -12,6 +12,6 @@ class Letter(ContentMixin, SendingMixin, AnalyticsMixin, Document):
             return
         if self.status == "Sending" and self.has_value_changed("title"):
             frappe.throw(
-                frappe._("Cannot rename a campaign while it is actively sending."),
+                frappe._("Cannot rename a letter while it is actively sending."),
                 frappe.ValidationError,
             )

@@ -16,11 +16,11 @@ Cypress.Commands.add("login", (user, password) => {
 
 /**
  * Navigate to the Letters builder inside Frappe Desk.
- * Pass a campaign name to open that campaign directly.
+ * Pass a letter name to open that campaign directly.
  */
-Cypress.Commands.add("openBuilder", (campaignName) => {
-  const url = campaignName
-    ? `/app/letter-builder/${campaignName}`
+Cypress.Commands.add("openBuilder", (letterName) => {
+  const url = letterName
+    ? `/app/letter-builder/${letterName}`
     : "/app/letter-builder";
   cy.visit(url);
   // Wait for Frappe Desk JS to boot and mount the Vue app

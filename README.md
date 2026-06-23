@@ -1,6 +1,6 @@
 # Letters
 
-Visual email design and campaign system for Frappe.
+Visual email design and letter sending system for Frappe.
 
 ## Install
 

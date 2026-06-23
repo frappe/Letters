@@ -1,7 +1,7 @@
 """
-Integration tests for LettersCampaign Document methods.
+Integration tests for Letter Document methods.
 
-Run with:  bench run-tests --app letters --module letters.tests.test_campaign_doc
+Run with:  bench run-tests --app letters --module letters.tests.test_letter_doc
 
 LettersTestCase tracks every doc created per test and deletes them in tearDown,
 so the suite is safe to run against a real site (not just a dedicated test site).
@@ -43,8 +43,8 @@ class LettersTestCase(IntegrationTestCase):
         frappe.db.commit()
         super().tearDown()
 
-    def new_campaign(self, **kwargs):
-        title = f"Test Campaign {frappe.generate_hash(length=8)}"
+    def new_letter(self, **kwargs):
+        title = f"Test Letter {frappe.generate_hash(length=8)}"
         doc = frappe.get_doc({
             "doctype": "Letter",
             "title": kwargs.get("title", title),
@@ -59,14 +59,14 @@ class LettersTestCase(IntegrationTestCase):
         self._created.append(("Letter", doc.name))
         return doc
 
-    def new_email_send(self, campaign_name, status="Sent", recipients=None):
+    def new_email_send(self, letter_name, status="Sent", recipients=None):
         recipients = recipients or [
             {"email": "a@example.com", "status": "Sent"},
             {"email": "b@example.com", "status": "Sent"},
         ]
         send = frappe.get_doc({
             "doctype": "Email Send",
-            "campaign": campaign_name,
+            "letter": letter_name,
             "status": status,
             "send_mode": "direct",
             "email_group": "",
@@ -100,82 +100,82 @@ class LettersTestCase(IntegrationTestCase):
 
 class TestAsBuilderDict(LettersTestCase):
     def test_returns_all_expected_keys(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         result = doc.as_builder_dict()
         for key in ("name", "title", "subject", "preview_text", "status",
                     "scheduled_at", "email_width", "blocks", "recipient_config"):
             self.assertIn(key, result)
 
     def test_blocks_returned_as_list(self):
-        doc = self.new_campaign(blocks_json=SAMPLE_BLOCKS)
+        doc = self.new_letter(blocks_json=SAMPLE_BLOCKS)
         result = doc.as_builder_dict()
         self.assertIsInstance(result["blocks"], list)
         self.assertEqual(result["blocks"][0]["type"], "text")
 
     def test_empty_blocks_json_returns_empty_list(self):
-        doc = self.new_campaign(blocks_json="[]")
+        doc = self.new_letter(blocks_json="[]")
         result = doc.as_builder_dict()
         self.assertEqual(result["blocks"], [])
 
     def test_email_width_defaults_to_600_when_unset(self):
-        doc = self.new_campaign(email_width=0)
+        doc = self.new_letter(email_width=0)
         doc.email_width = None
         result = doc.as_builder_dict()
         self.assertEqual(result["email_width"], 600)
 
     def test_recipient_config_parsed_from_json(self):
-        doc = self.new_campaign(recipient_config=json.dumps({"type": "paste", "recipients": ["x@y.com"]}))
+        doc = self.new_letter(recipient_config=json.dumps({"type": "paste", "recipients": ["x@y.com"]}))
         result = doc.as_builder_dict()
         self.assertIsInstance(result["recipient_config"], dict)
         self.assertEqual(result["recipient_config"]["type"], "paste")
 
     def test_scheduled_at_is_none_when_not_set(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         result = doc.as_builder_dict()
         self.assertIsNone(result["scheduled_at"])
 
 
 class TestRenderPreviewHtml(LettersTestCase):
     def test_returns_html_string(self):
-        doc = self.new_campaign(blocks_json=SAMPLE_BLOCKS)
+        doc = self.new_letter(blocks_json=SAMPLE_BLOCKS)
         html = doc.render_preview_html()
         self.assertIsInstance(html, str)
         self.assertIn("<", html)
 
     def test_block_content_appears_in_output(self):
         blocks = json.dumps([{"type": "text", "props": {"html_content": "<p>Unique Marker 12345</p>"}}])
-        doc = self.new_campaign(blocks_json=blocks)
+        doc = self.new_letter(blocks_json=blocks)
         html = doc.render_preview_html()
         self.assertIn("Unique Marker 12345", html)
 
     def test_preview_text_override_is_used(self):
-        doc = self.new_campaign(preview_text="original preview")
+        doc = self.new_letter(preview_text="original preview")
         html = doc.render_preview_html(preview_text="overridden preview")
         self.assertIsInstance(html, str)
 
     def test_email_width_override_is_respected(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         html = doc.render_preview_html(email_width=800)
         self.assertIn("800px", html)
 
 
 class TestDuplicate(LettersTestCase):
     def test_creates_new_doc(self):
-        original = self.new_campaign()
+        original = self.new_letter()
         result = original.duplicate()
         self._created.append(("Letter", result["name"]))
         self.assertIn("name", result)
         self.assertTrue(frappe.db.exists("Letter", result["name"]))
 
     def test_new_title_prefixed_with_copy_of(self):
-        original = self.new_campaign()
+        original = self.new_letter()
         result = original.duplicate()
         self._created.append(("Letter", result["name"]))
         self.assertIn("Copy of", result["title"])
         self.assertIn(original.title, result["title"])
 
     def test_copy_is_always_draft(self):
-        original = self.new_campaign(status="Sent")
+        original = self.new_letter(status="Sent")
         frappe.db.set_value("Letter", original.name, "status", "Sent")
         original.reload()
         result = original.duplicate()
@@ -184,7 +184,7 @@ class TestDuplicate(LettersTestCase):
         self.assertEqual(new_doc.status, "Draft")
 
     def test_copy_inherits_blocks_and_subject(self):
-        original = self.new_campaign(subject="Original Subject", blocks_json=SAMPLE_BLOCKS)
+        original = self.new_letter(subject="Original Subject", blocks_json=SAMPLE_BLOCKS)
         result = original.duplicate()
         self._created.append(("Letter", result["name"]))
         new_doc = frappe.get_doc("Letter", result["name"])
@@ -198,71 +198,71 @@ class TestDuplicate(LettersTestCase):
 
 class TestSchedule(LettersTestCase):
     def test_sets_status_scheduled(self):
-        doc = self.new_campaign(recipient_config=SAMPLE_RECIPIENT_CONFIG)
+        doc = self.new_letter(recipient_config=SAMPLE_RECIPIENT_CONFIG)
         with patch.object(frappe.utils, "now_datetime", return_value=frappe.utils.get_datetime("2020-01-01")):
             doc.schedule("2099-01-01 10:00:00")
         doc.reload()
         self.assertEqual(doc.status, "Scheduled")
 
     def test_sets_scheduled_at(self):
-        doc = self.new_campaign(recipient_config=SAMPLE_RECIPIENT_CONFIG)
+        doc = self.new_letter(recipient_config=SAMPLE_RECIPIENT_CONFIG)
         with patch.object(frappe.utils, "now_datetime", return_value=frappe.utils.get_datetime("2020-01-01")):
             result = doc.schedule("2099-06-15 09:00:00")
         self.assertIn("scheduled_at", result)
 
     def test_throws_when_already_sent(self):
-        doc = self.new_campaign(status="Sent")
+        doc = self.new_letter(status="Sent")
         frappe.db.set_value("Letter", doc.name, "status", "Sent")
         doc.reload()
         with self.assertRaises(frappe.ValidationError):
             doc.schedule("2099-01-01 10:00:00")
 
     def test_throws_when_no_recipient_config(self):
-        doc = self.new_campaign(recipient_config="")
+        doc = self.new_letter(recipient_config="")
         with self.assertRaises(frappe.ValidationError):
             doc.schedule("2099-01-01 10:00:00")
 
     def test_throws_when_no_blocks(self):
-        doc = self.new_campaign(blocks_json="", recipient_config=SAMPLE_RECIPIENT_CONFIG)
+        doc = self.new_letter(blocks_json="", recipient_config=SAMPLE_RECIPIENT_CONFIG)
         with self.assertRaises(frappe.ValidationError):
             doc.schedule("2099-01-01 10:00:00")
 
     def test_throws_when_scheduled_time_is_in_past(self):
-        doc = self.new_campaign(recipient_config=SAMPLE_RECIPIENT_CONFIG)
+        doc = self.new_letter(recipient_config=SAMPLE_RECIPIENT_CONFIG)
         with self.assertRaises(frappe.ValidationError):
             doc.schedule("2000-01-01 10:00:00")
 
 
 class TestSendValidation(LettersTestCase):
     def test_throws_when_already_sending(self):
-        doc = self.new_campaign(status="Sending")
+        doc = self.new_letter(status="Sending")
         frappe.db.set_value("Letter", doc.name, "status", "Sending")
         doc.reload()
         with self.assertRaises(frappe.ValidationError):
             doc.send(recipients=["a@example.com"])
 
     def test_throws_when_no_blocks(self):
-        doc = self.new_campaign(blocks_json="")
+        doc = self.new_letter(blocks_json="")
         with self.assertRaises(frappe.ValidationError):
             doc.send(recipients=["a@example.com"])
 
     def test_throws_when_no_subject(self):
-        doc = self.new_campaign(subject="")
+        doc = self.new_letter(subject="")
         with self.assertRaises(frappe.ValidationError):
             doc.send(recipients=["a@example.com"])
 
     def test_throws_when_no_recipients_and_no_config(self):
-        doc = self.new_campaign(recipient_config="")
+        doc = self.new_letter(recipient_config="")
         with self.assertRaises(frappe.ValidationError):
             doc.send()
 
     def test_throws_when_recipient_list_is_empty(self):
-        doc = self.new_campaign(recipient_config="")
+        doc = self.new_letter(recipient_config="")
         with self.assertRaises(frappe.ValidationError):
             doc.send(recipients=[])
 
     def test_throws_when_all_recipients_unsubscribed(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         unsub = frappe.get_doc({
             "doctype": "Email Unsubscribe",
             "email": "only@example.com",
@@ -278,7 +278,7 @@ class TestSendValidation(LettersTestCase):
 
 class TestSendEnqueue(LettersTestCase):
     def test_enqueues_background_job(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         with patch("frappe.enqueue") as mock_enqueue:
             doc.send(recipients=["a@example.com", "b@example.com"])
         mock_enqueue.assert_called_once()
@@ -287,32 +287,32 @@ class TestSendEnqueue(LettersTestCase):
         self.assertIn("_execute_send", str(job_path))
 
     def test_returns_queued_true_with_correct_count(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         with patch("frappe.enqueue"):
             result = doc.send(recipients=["a@example.com", "b@example.com"])
         self.assertTrue(result["queued"])
         self.assertEqual(result["count"], 2)
 
     def test_creates_email_send_doc(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         with patch("frappe.enqueue"):
             doc.send(recipients=["a@example.com"])
-        send_name = frappe.db.get_value("Email Send", {"campaign": doc.name}, "name")
+        send_name = frappe.db.get_value("Email Send", {"letter": doc.name}, "name")
         self.assertIsNotNone(send_name)
         self._created.append(("Email Send", send_name))
 
     def test_falls_back_to_saved_recipient_config(self):
-        doc = self.new_campaign(recipient_config=SAMPLE_RECIPIENT_CONFIG)
+        doc = self.new_letter(recipient_config=SAMPLE_RECIPIENT_CONFIG)
         with patch("frappe.enqueue"):
             result = doc.send()
         self.assertTrue(result["queued"])
         self.assertEqual(result["count"], 2)
 
     def test_resumes_failed_send_instead_of_restarting(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         with patch("frappe.enqueue"):
             doc.send(recipients=["a@example.com"])
-        send_name = frappe.db.get_value("Email Send", {"campaign": doc.name}, "name")
+        send_name = frappe.db.get_value("Email Send", {"letter": doc.name}, "name")
         self._created.append(("Email Send", send_name))
         frappe.db.set_value("Email Send", send_name, "status", "Failed")
         frappe.db.set_value("Letter", doc.name, "status", "Draft")
@@ -321,17 +321,17 @@ class TestSendEnqueue(LettersTestCase):
         with patch("frappe.enqueue") as mock_enqueue:
             result = doc.send(recipients=["a@example.com"])
         self.assertTrue(result.get("resumed"))
-        self.assertEqual(frappe.db.count("Email Send", {"campaign": doc.name}), 1)
+        self.assertEqual(frappe.db.count("Email Send", {"letter": doc.name}), 1)
 
 
 class TestSendSnapshot(LettersTestCase):
     """Content is snapshotted onto Email Send at queue time."""
 
     def test_snapshot_fields_written_on_send(self):
-        doc = self.new_campaign(subject="Snap Subject", blocks_json=SAMPLE_BLOCKS)
+        doc = self.new_letter(subject="Snap Subject", blocks_json=SAMPLE_BLOCKS)
         with patch("frappe.enqueue"):
             doc.send(recipients=["a@example.com"])
-        send_name = frappe.db.get_value("Email Send", {"campaign": doc.name}, "name")
+        send_name = frappe.db.get_value("Email Send", {"letter": doc.name}, "name")
         self._created.append(("Email Send", send_name))
         snap = frappe.db.get_value(
             "Email Send", send_name,
@@ -341,12 +341,12 @@ class TestSendSnapshot(LettersTestCase):
         self.assertEqual(snap.snapshot_subject, "Snap Subject")
         self.assertEqual(snap.snapshot_blocks, SAMPLE_BLOCKS)
 
-    def test_snapshot_is_independent_of_later_campaign_edits(self):
-        doc = self.new_campaign(subject="Original Subject", blocks_json=SAMPLE_BLOCKS)
+    def test_snapshot_is_independent_of_later_letter_edits(self):
+        doc = self.new_letter(subject="Original Subject", blocks_json=SAMPLE_BLOCKS)
         with patch("frappe.enqueue"):
             doc.send(recipients=["a@example.com"])
         frappe.db.set_value("Letter", doc.name, "subject", "Edited After Send")
-        send_name = frappe.db.get_value("Email Send", {"campaign": doc.name}, "name")
+        send_name = frappe.db.get_value("Email Send", {"letter": doc.name}, "name")
         self._created.append(("Email Send", send_name))
         snap_subject = frappe.db.get_value("Email Send", send_name, "snapshot_subject")
         self.assertEqual(snap_subject, "Original Subject")
@@ -356,24 +356,24 @@ class TestAtomicSendClaim(LettersTestCase):
     """send() must atomically transition Draft → Sending to prevent double-sends."""
 
     def test_throws_when_already_sending(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         frappe.db.set_value("Letter", doc.name, "status", "Sending")
         doc.reload()
         with self.assertRaises(frappe.ValidationError):
             doc.send(recipients=["a@example.com"])
 
     def test_throws_when_already_sent(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         frappe.db.set_value("Letter", doc.name, "status", "Sent")
         doc.reload()
         with self.assertRaises(frappe.ValidationError):
             doc.send(recipients=["a@example.com"])
 
-    def test_campaign_status_is_sending_after_successful_claim(self):
-        doc = self.new_campaign()
+    def test_letter_status_is_sending_after_successful_claim(self):
+        doc = self.new_letter()
         with patch("frappe.enqueue"):
             doc.send(recipients=["a@example.com"])
-        send_name = frappe.db.get_value("Email Send", {"campaign": doc.name}, "name")
+        send_name = frappe.db.get_value("Email Send", {"letter": doc.name}, "name")
         self._created.append(("Email Send", send_name))
         status = frappe.db.get_value("Letter", doc.name, "status")
         self.assertEqual(status, "Sending")
@@ -381,7 +381,7 @@ class TestAtomicSendClaim(LettersTestCase):
 
 class TestSendTestEmail(LettersTestCase):
     def test_sends_to_session_user(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         frappe.set_user("Administrator")
         with patch("frappe.sendmail") as mock_sendmail, \
              patch("frappe.utils.validate_email_address", return_value="admin@example.com"):
@@ -390,17 +390,17 @@ class TestSendTestEmail(LettersTestCase):
         self.assertIn("sent_to", result)
 
     def test_subject_prefixed_with_test(self):
-        doc = self.new_campaign(subject="My Campaign")
+        doc = self.new_letter(subject="My Letter")
         frappe.set_user("Administrator")
         with patch("frappe.sendmail") as mock_sendmail, \
              patch("frappe.utils.validate_email_address", return_value="admin@example.com"):
             doc.send_test_email()
         kw = mock_sendmail.call_args.kwargs
         self.assertIn("[TEST]", kw.get("subject", ""))
-        self.assertIn("My Campaign", kw.get("subject", ""))
+        self.assertIn("My Letter", kw.get("subject", ""))
 
     def test_rejects_recipient_not_matching_session_user(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         frappe.set_user("Administrator")
         with patch("frappe.utils.validate_email_address", return_value="admin@example.com"):
             with self.assertRaises(frappe.ValidationError):
@@ -413,7 +413,7 @@ class TestSendTestEmail(LettersTestCase):
 
 class TestGetAnalytics(LettersTestCase):
     def test_returns_zeros_when_no_sends(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         result = doc.get_analytics()
         self.assertIsNone(result["sent_status"])
         self.assertEqual(result["total"], 0)
@@ -422,7 +422,7 @@ class TestGetAnalytics(LettersTestCase):
         self.assertEqual(result["open_rate"], 0)
 
     def test_computes_open_rate_from_latest_send(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         self.new_email_send(doc.name, status="Sent", recipients=[
             {"email": "a@example.com", "status": "Sent"},
             {"email": "b@example.com", "status": "Sent"},
@@ -438,7 +438,7 @@ class TestGetAnalytics(LettersTestCase):
         self.assertEqual(result["sent_status"], "Sent")
 
     def test_scopes_metrics_to_latest_send(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         self.new_email_send(doc.name, status="Sent", recipients=[
             {"email": "old@example.com", "status": "Sent"},
         ])
@@ -450,7 +450,7 @@ class TestGetAnalytics(LettersTestCase):
         self.assertEqual(result["total"], 2)
 
     def test_includes_status_counts(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         self.new_email_send(doc.name, status="Sent", recipients=[
             {"email": "a@example.com", "status": "Sent"},
             {"email": "b@example.com", "status": "Failed"},
@@ -463,11 +463,11 @@ class TestGetAnalytics(LettersTestCase):
 
 class TestGetRecipients(LettersTestCase):
     def test_returns_empty_when_no_send(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         self.assertEqual(doc.get_recipients(), [])
 
     def test_returns_recipient_rows(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         self.new_email_send(doc.name, recipients=[
             {"email": "a@example.com", "status": "Sent"},
             {"email": "b@example.com", "status": "Sent"},
@@ -477,7 +477,7 @@ class TestGetRecipients(LettersTestCase):
         self.assertIn("a@example.com", {r.email for r in result})
 
     def test_limit_is_respected(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         self.new_email_send(doc.name, recipients=[
             {"email": f"r{i}@example.com", "status": "Sent"} for i in range(5)
         ])
@@ -486,14 +486,14 @@ class TestGetRecipients(LettersTestCase):
 
 class TestGetSendProgress(LettersTestCase):
     def test_returns_queued_when_no_send(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         result = doc.get_send_progress()
         self.assertEqual(result["status"], "Queued")
         self.assertEqual(result["sent"], 0)
         self.assertEqual(result["total"], 0)
 
     def test_returns_progress_from_latest_send(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         send = self.new_email_send(doc.name, status="Sending", recipients=[
             {"email": "a@example.com", "status": "Sent"},
             {"email": "b@example.com", "status": "Pending"},
@@ -507,7 +507,7 @@ class TestGetSendProgress(LettersTestCase):
 
 class TestRecordOpen(LettersTestCase):
     def test_marks_recipient_as_opened(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         self.new_email_send(doc.name, recipients=[{"email": "reader@example.com", "status": "Sent"}])
         doc.record_open("reader@example.com")
         row = frappe.db.get_value(
@@ -519,7 +519,7 @@ class TestRecordOpen(LettersTestCase):
         self.assertIsNotNone(row.opened_on)
 
     def test_second_open_increments_count_without_re_stamping_opened(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         self.new_email_send(doc.name, recipients=[{"email": "reader@example.com", "status": "Sent"}])
         doc.record_open("reader@example.com")
         doc.record_open("reader@example.com")
@@ -529,7 +529,7 @@ class TestRecordOpen(LettersTestCase):
         self.assertEqual(row.open_count, 2)
 
     def test_noop_when_no_sends(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         doc.record_open("nobody@example.com")
 
 
@@ -546,14 +546,14 @@ class TestUniqueCampaignTitle(LettersTestCase):
 
     def test_appends_1_when_title_already_exists(self):
         base = f"Duplicate Title {frappe.generate_hash(length=8)}"
-        doc = self.new_campaign(title=base)
+        doc = self.new_letter(title=base)
         result = _unique_letter_title(base)
         self.assertEqual(result, f"{base} - 1")
 
     def test_increments_past_existing_suffixes(self):
         base = f"Multi Title {frappe.generate_hash(length=8)}"
-        doc1 = self.new_campaign(title=base)
-        doc2 = self.new_campaign(title=f"{base} - 1")
+        doc1 = self.new_letter(title=base)
+        doc2 = self.new_letter(title=f"{base} - 1")
         result = _unique_letter_title(base)
         self.assertEqual(result, f"{base} - 2")
 
@@ -564,7 +564,7 @@ class TestUniqueCampaignTitle(LettersTestCase):
 
     def test_copy_of_prefix_gets_unique_title(self):
         base = f"Copy Title {frappe.generate_hash(length=8)}"
-        self.new_campaign(title=f"Copy of {base}")
+        self.new_letter(title=f"Copy of {base}")
         result = _unique_letter_title(f"Copy of {base}")
         self.assertEqual(result, f"Copy of {base} - 1")
 
@@ -575,26 +575,26 @@ class TestUniqueCampaignTitle(LettersTestCase):
 
 class TestRenameValidation(LettersTestCase):
     def test_rename_allowed_on_draft(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         doc.title = f"Renamed {frappe.generate_hash(length=6)}"
         doc.save()  # must not raise
 
     def test_rename_allowed_on_sent(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         frappe.db.set_value("Letter", doc.name, "status", "Sent")
         doc.reload()
         doc.title = f"Renamed Sent {frappe.generate_hash(length=6)}"
         doc.save()  # must not raise
 
     def test_rename_allowed_on_scheduled(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         frappe.db.set_value("Letter", doc.name, "status", "Scheduled")
         doc.reload()
         doc.title = f"Renamed Scheduled {frappe.generate_hash(length=6)}"
         doc.save()  # must not raise
 
     def test_rename_blocked_while_sending(self):
-        doc = self.new_campaign()
+        doc = self.new_letter()
         frappe.db.set_value("Letter", doc.name, "status", "Sending")
         doc.reload()
         doc.title = f"Renamed Sending {frappe.generate_hash(length=6)}"

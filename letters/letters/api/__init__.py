@@ -17,13 +17,13 @@ from .recipients import (
     _suppressed_emails,
     _valid_emails,
 )
-from .campaigns import (
-    get_campaign,
-    save_campaign,
+from .letters_api import (
+    get_letter,
+    save_letter,
     get_letters,
     get_templates,
     render_preview,
-    duplicate_campaign,
+    duplicate_letter,
     _unique_letter_title,
 )
 from .sending import (
@@ -32,11 +32,11 @@ from .sending import (
     COMMIT_EVERY,
     send_test,
     track_open,
-    get_campaign_analytics,
-    get_campaign_recipients,
+    get_letter_analytics,
+    get_letter_recipients,
     get_send_progress,
-    schedule_campaign,
-    send_campaign,
+    schedule_letter,
+    send_letter,
     process_scheduled_sends,
     _record_open,
     _resume_send,

@@ -6,13 +6,13 @@
       :menu-options="menuOptions"
       :preview-options="previewOptions"
       :send-options="sendOptions"
-      :campaign-status="campaignStatus"
+      :letter-status="letterStatus"
       :send-progress="sendProgress"
       :saving="saving"
       :saved-flash="savedFlash"
-      :campaign-name="editorStore.campaignName"
-      :scheduled-at="editorStore.campaignDoc?.scheduled_at || ''"
-      :can-send="!!editorStore.campaignDoc"
+      :letter-name="editorStore.letterName"
+      :scheduled-at="editorStore.letterDoc?.scheduled_at || ''"
+      :can-send="!!editorStore.letterDoc"
       @add-block="onAddBlock"
       @add-container="addContainer"
       @insert="insertBlock"
@@ -104,7 +104,7 @@
         >
 
           <!-- Loading skeleton (while fetching a saved campaign) -->
-          <div v-if="loadingCampaign" class="p-6 space-y-3" aria-busy="true" aria-label="Loading campaign">
+          <div v-if="loadingLetter" class="p-6 space-y-3" aria-busy="true" aria-label="Loading letter">
             <div v-for="n in 4" :key="n" class="h-16 bg-surface-gray-2 animate-pulse rounded-lg" />
           </div>
 
@@ -119,14 +119,14 @@
           </div>
 
           <!-- Block list with inline adders -->
-          <template v-else-if="!loadingCampaign">
+          <template v-else-if="!loadingLetter">
             <!-- Read-only notice for sent/sending campaigns -->
             <div
               v-if="editorStore.isReadOnly"
               class="flex items-center gap-2 px-4 py-2.5 bg-surface-gray-2 border-b border-outline-gray-1 text-xs text-ink-gray-5 select-none"
             >
               <span class="lucide-lock size-3.5 flex-shrink-0" aria-hidden="true" />
-              This campaign has been sent and is read-only.
+              This letter has been sent and is read-only.
             </div>
 
             <!-- Adder before first block (hidden when read-only) -->
@@ -174,15 +174,15 @@
     </div>
   </div>
 
-  <CampaignSettings
+  <LetterSettings
     v-model="showSettings"
-    :campaign-name="editorStore.campaignName"
-    @update:campaign-name="(v) => (editorStore.campaignName = v)"
+    :letter-name="editorStore.letterName"
+    @update:letter-name="(v) => (editorStore.letterName = v)"
     v-model:subject="subject"
     v-model:preview-text="previewText"
     v-model:recipient-config="recipientConfig"
     v-model:include-unsubscribe="includeUnsubscribe"
-    :campaign-doc="editorStore.campaignDoc"
+    :letter-doc="editorStore.letterDoc"
   />
 
   <TemplatePicker
@@ -213,7 +213,7 @@
     v-model:time="scheduleTime"
     :min-date="minScheduleDate"
     :scheduling="scheduling"
-    @schedule="scheduleCampaign"
+    @schedule="scheduleLetter"
   />
 
 </template>
@@ -225,7 +225,7 @@ import { useEditorStore } from "../stores/editor";
 import { injectGoogleFonts } from "../fonts";
 import Inspector from "../components/Inspector.vue";
 import LayersPanel from "../components/LayersPanel.vue";
-import CampaignSettings from "../components/CampaignSettings.vue";
+import LetterSettings from "../components/LetterSettings.vue";
 import TemplatePicker from "../components/TemplatePicker.vue";
 import BlockAdderRow from "../components/BlockAdderRow.vue";
 import BlockRenderer from "../components/BlockRenderer.vue";
@@ -257,16 +257,16 @@ const showShortcuts = ref(false);
 const {
   subject, previewText, recipientConfig, includeUnsubscribe,
   showSettings, showTemplatePicker, showScheduleModal,
-  saving, savedFlash, loadingCampaign, duplicating, scheduling,
+  saving, savedFlash, loadingLetter, duplicating, scheduling,
   scheduleDate, scheduleTime, minScheduleDate, openScheduleModal,
-  sendProgress, campaignStatus,
-  onTemplateSubmit, saveNow, saveCampaign,
-  sendCampaign, scheduleCampaign, duplicateCampaign,
+  sendProgress, letterStatus,
+  onTemplateSubmit, saveNow, saveLetter,
+  sendLetter, scheduleLetter, duplicateLetter,
 } = useLetter(editorStore, { initialName: props.initialName, onClose: () => emit("close") });
 
 const { openPreview } = usePreview(editorStore, previewText);
-const { showLinkChecker, linkResults, checkingLinks, openLinkChecker, applyLinkFix } = useLinkChecker(editorStore, { flushSave: saveCampaign });
-const { showTestModal, testSending, testRecipient, openTestModal, sendTest } = useTestEmail(editorStore, { subject, previewText, flushSave: saveCampaign });
+const { showLinkChecker, linkResults, checkingLinks, openLinkChecker, applyLinkFix } = useLinkChecker(editorStore, { flushSave: saveLetter });
+const { showTestModal, testSending, testRecipient, openTestModal, sendTest } = useTestEmail(editorStore, { subject, previewText, flushSave: saveLetter });
 
 watch(showSettings, (open) => { if (!open && editorStore.isDirty) saveNow(); });
 
@@ -293,8 +293,8 @@ const menuOptions = computed(() => [
       {
         label: "Duplicate Letter",
         icon: "lucide-copy",
-        onClick: duplicateCampaign,
-        disabled: !editorStore.campaignDoc || duplicating.value,
+        onClick: duplicateLetter,
+        disabled: !editorStore.letterDoc || duplicating.value,
       },
       {
         label: "Settings",
@@ -324,14 +324,14 @@ const sendOptions = computed(() => [
   {
     label: "Send now",
     icon: "lucide-send",
-    onClick: sendCampaign,
-    disabled: !editorStore.campaignDoc,
+    onClick: sendLetter,
+    disabled: !editorStore.letterDoc,
   },
   {
     label: "Schedule sending",
     icon: "lucide-clock",
     onClick: openScheduleModal,
-    disabled: !editorStore.campaignDoc,
+    disabled: !editorStore.letterDoc,
   },
 ]);
 

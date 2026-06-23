@@ -1,6 +1,6 @@
 // Client-side hooks for the Letter doctype.
 // Adds a "Duplicate" action on the standard list view so users can
-// copy a campaign without opening the builder first.
+// copy a letter without opening the builder first.
 
 frappe.listview_settings["Letter"] = {
   add_fields: ["status", "subject"],
@@ -30,18 +30,18 @@ frappe.listview_settings["Letter"] = {
     listview.page.add_action_item(__("Duplicate"), async () => {
       const selected = listview.get_checked_items();
       if (!selected.length) {
-        frappe.msgprint(__("Select at least one campaign to duplicate."));
+        frappe.msgprint(__("Select at least one letter to duplicate."));
         return;
       }
 
       frappe.confirm(
-        __("Duplicate {0} campaign(s)?", [selected.length]),
+        __("Duplicate {0} letter(s)?", [selected.length]),
         async () => {
           let done = 0;
           for (const row of selected) {
             try {
               await frappe.call({
-                method: "letters.letters.api.duplicate_campaign",
+                method: "letters.letters.api.duplicate_letter",
                 args: { name: row.name },
               });
               done++;
@@ -49,7 +49,7 @@ frappe.listview_settings["Letter"] = {
               frappe.msgprint(__("Failed to duplicate {0}", [row.name]));
             }
           }
-          frappe.show_alert({ message: __("{0} campaign(s) duplicated.", [done]), indicator: "green" });
+          frappe.show_alert({ message: __("{0} letter(s) duplicated.", [done]), indicator: "green" });
           listview.refresh();
         }
       );

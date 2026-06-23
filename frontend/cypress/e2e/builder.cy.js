@@ -9,16 +9,16 @@
  */
 
 describe("Letter Builder", () => {
-  let campaignName;
+  let letterName;
 
   beforeEach(() => {
     cy.login();
 
     // Create a campaign via the API so we have a known name to open
-    cy.request("POST", "/api/method/letters.letters.api.save_campaign", {})
+    cy.request("POST", "/api/method/letters.letters.api.save_letter", {})
       .its("body.message.name")
       .then((name) => {
-        campaignName = name;
+        letterName = name;
         cy.visit(`/app/letter-builder/${name}`);
         cy.get("#letter-builder", { timeout: 15000 }).should("exist");
         // New campaigns auto-open the template picker; select "Blank" so each
@@ -29,7 +29,7 @@ describe("Letter Builder", () => {
   });
 
   afterEach(() => {
-    if (!campaignName) return;
+    if (!letterName) return;
     // Frappe requires the CSRF token for mutations; grab it from the loaded page.
     cy.window()
       .its("frappe.csrf_token")
@@ -38,7 +38,7 @@ describe("Letter Builder", () => {
           method: "POST",
           url: "/api/method/frappe.client.delete",
           headers: { "X-Frappe-CSRF-Token": csrfToken },
-          body: { doctype: "Letter", name: campaignName },
+          body: { doctype: "Letter", name: letterName },
         });
       });
   });

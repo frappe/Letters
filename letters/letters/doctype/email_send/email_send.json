@@ -8,7 +8,7 @@
   "track_changes": 1,
   "fields": [
     {
-      "fieldname": "campaign",
+      "fieldname": "letter",
       "fieldtype": "Link",
       "label": "Letter",
       "options": "Letter",

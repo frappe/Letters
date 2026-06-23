@@ -5,8 +5,8 @@ import { BLOCK_SCHEMA } from "../blockSchema";
 export const useEditorStore = defineStore("editor", () => {
   const blocks         = ref([]);
   const renderedHtml   = ref("");
-  const campaignName   = ref("");
-  const campaignDoc    = ref(null);
+  const letterName   = ref("");
+  const letterDoc    = ref(null);
   const emailWidth       = ref(600);
   const canvasBg         = ref("#ffffff");
   const selectedBlockId  = ref(null);
@@ -17,7 +17,7 @@ export const useEditorStore = defineStore("editor", () => {
   const styleClipboard   = ref(null); // copied style props object
 
   const SENT_STATUSES = ["Sent", "Sending", "Partial", "Failed"];
-  const isReadOnly = computed(() => SENT_STATUSES.includes(campaignDoc.value?.status));
+  const isReadOnly = computed(() => SENT_STATUSES.includes(letterDoc.value?.status));
 
   const _idCounter = ref(0);
   function nextId() { return ++_idCounter.value; }
@@ -574,8 +574,8 @@ export const useEditorStore = defineStore("editor", () => {
   }
 
   function loadFromDoc(doc) {
-    campaignDoc.value  = doc;
-    campaignName.value = doc.title;
+    letterDoc.value  = doc;
+    letterName.value = doc.title;
     emailWidth.value   = doc.email_width || 600;
     canvasBg.value     = doc.canvas_background || "#ffffff";
     _idCounter.value   = 0;
@@ -615,8 +615,8 @@ export const useEditorStore = defineStore("editor", () => {
   return {
     blocks,
     renderedHtml,
-    campaignName,
-    campaignDoc,
+    letterName,
+    letterDoc,
     emailWidth,
     canvasBg,
     selectedBlockId,

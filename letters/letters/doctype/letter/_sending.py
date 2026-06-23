@@ -33,20 +33,20 @@ class SendingMixin:
         return {"sent_to": email}
 
     def schedule(self, scheduled_at: str):
-        """Mark this campaign to be sent at `scheduled_at` (ISO-8601, server timezone)."""
+        """Mark this letter to be sent at `scheduled_at` (ISO-8601, server timezone)."""
         frappe.has_permission("Letter", "write", doc=self, throw=True)
         from letters.letters.api.recipients import _recipient_args_from_config
 
         if self.status in ("Sent", "Sending"):
-            frappe.throw(_("This campaign has already been sent or is currently sending."))
+            frappe.throw(_("This letter has already been sent or is currently sending."))
         if not self.blocks_json:
-            frappe.throw(_("Campaign has no content to send."))
+            frappe.throw(_("Letter has no content to send."))
         if not self.subject:
-            frappe.throw(_("Campaign has no subject line."))
+            frappe.throw(_("Letter has no subject line."))
 
         recip = _recipient_args_from_config(self)
         if not any(recip):
-            frappe.throw(_("Choose recipients before scheduling this campaign."))
+            frappe.throw(_("Choose recipients before scheduling this letter."))
 
         dt = frappe.utils.get_datetime(scheduled_at)
         if dt <= frappe.utils.now_datetime():
@@ -59,13 +59,13 @@ class SendingMixin:
 
     def send(self, email_group=None, recipients=None, doctype_config=None):
         """
-        Compile and send this campaign to the given audience.
+        Compile and send this letter to the given audience.
 
         Pass one of:
           - email_group:    name of a Frappe Email Group (respects unsubscribes)
           - recipients:     JSON string or list of email addresses
           - doctype_config: JSON string/dict with keys: doctype, email_field, filters
-          - (none):         fall back to the campaign's saved recipient_config
+          - (none):         fall back to the letter's saved recipient_config
 
         The per-recipient loop is enqueued as a background job so large lists
         don't block the web request.
@@ -79,14 +79,14 @@ class SendingMixin:
         )
 
         if not self.blocks_json:
-            frappe.throw(_("Campaign has no content to send."))
+            frappe.throw(_("Letter has no content to send."))
         if not self.subject:
-            frappe.throw(_("Campaign has no subject line."))
+            frappe.throw(_("Letter has no subject line."))
 
         # Resume a prior partial/failed send instead of starting over
         existing = frappe.get_all(
             "Email Send",
-            filters={"campaign": self.name},
+            filters={"letter": self.name},
             fields=["name", "status"],
             order_by="creation desc",
             limit=1,
@@ -97,26 +97,26 @@ class SendingMixin:
         # Atomically claim the send: transition Draft/Scheduled → Sending only if
         # the campaign is still in a sendable state. rowcount==0 means another
         # request beat us to it (race condition) or the campaign is already sent.
-        campaign_qb = frappe.qb.DocType("Letter")
+        letter_qb = frappe.qb.DocType("Letter")
         (
-            frappe.qb.update(campaign_qb)
-            .set(campaign_qb.status, "Sending")
+            frappe.qb.update(letter_qb)
+            .set(letter_qb.status, "Sending")
             .where(
-                (campaign_qb.name == self.name)
-                & (campaign_qb.status.isin(["Draft", "Scheduled"]))
+                (letter_qb.name == self.name)
+                & (letter_qb.status.isin(["Draft", "Scheduled"]))
             )
         ).run()
         claimed = frappe.db._cursor.rowcount
         frappe.db.commit()
         if not claimed:
-            frappe.throw(_("This campaign has already been sent or is currently sending."))
+            frappe.throw(_("This letter has already been sent or is currently sending."))
         self.status = "Sending"
 
-        # Fall back to the campaign's saved audience when no explicit source is passed
+        # Fall back to the letter's saved audience when no explicit source is passed
         if not (email_group or doctype_config or recipients):
             recipients, email_group, doctype_config = _recipient_args_from_config(self)
             if not (email_group or doctype_config or recipients):
-                frappe.throw(_("This campaign has no saved recipients. Open it and choose an audience before sending."))
+                frappe.throw(_("This letter has no saved recipients. Open it and choose an audience before sending."))
 
         recipient_list, email_group, mode, invalid_count = _resolve_recipients(
             email_group, recipients, doctype_config, MAX_RECIPIENTS,
@@ -127,7 +127,7 @@ class SendingMixin:
         # change what recipients receive. _execute_send reads from the snapshot.
         send_doc = frappe.get_doc({
             "doctype": "Email Send",
-            "campaign": self.name,
+            "letter": self.name,
             "status": "Sending",
             "send_mode": mode,
             "email_group": email_group or "",
@@ -191,7 +191,7 @@ def _resolve_recipients(email_group, recipients, doctype_config, max_recipients,
     if suppressed:
         recipient_list = [e for e in recipient_list if e not in suppressed]
     if not recipient_list:
-        frappe.throw(_("All selected recipients have unsubscribed from this campaign."))
+        frappe.throw(_("All selected recipients have unsubscribed from this letter."))
 
     recipient_list, invalid_count = valid_fn(recipient_list)
     if not recipient_list:
@@ -200,7 +200,7 @@ def _resolve_recipients(email_group, recipients, doctype_config, max_recipients,
     if len(recipient_list) > max_recipients:
         frappe.throw(_(
             "This audience has more than {0} recipients, which is above the "
-            "per-campaign limit. Narrow your filters or split the send."
+            "per-letter limit. Narrow your filters or split the send."
         ).format(max_recipients))
 
     return recipient_list, email_group, mode, invalid_count

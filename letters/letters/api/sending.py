@@ -75,16 +75,16 @@ def track_open(recipient_email: str | None = None, reference_name: str | None = 
 
 
 @frappe.whitelist(methods=["GET", "POST"])
-def get_campaign_analytics(name: str):
-    """Open-rate analytics for a campaign, aggregated over its recipient rows."""
+def get_letter_analytics(name: str):
+    """Open-rate analytics for a letter, aggregated over its recipient rows."""
     doc = frappe.get_doc("Letter", name)
     frappe.has_permission("Letter", "read", doc=doc, throw=True)
     return doc.get_analytics()
 
 
 @frappe.whitelist(methods=["GET", "POST"])
-def get_campaign_recipients(name: str, limit: int = 200):
-    """Return the list of recipients for the most recent send of a campaign."""
+def get_letter_recipients(name: str, limit: int = 200):
+    """Return the list of recipients for the most recent send of a letter."""
     doc = frappe.get_doc("Letter", name)
     frappe.has_permission("Letter", "read", doc=doc, throw=True)
     return doc.get_recipients(limit=limit)
@@ -92,24 +92,24 @@ def get_campaign_recipients(name: str, limit: int = 200):
 
 @frappe.whitelist(methods=["GET", "POST"])
 def get_send_progress(name: str):
-    """Return live send progress for a campaign (polled from the frontend)."""
+    """Return live send progress for a letter (polled from the frontend)."""
     doc = frappe.get_doc("Letter", name)
     frappe.has_permission("Letter", "read", doc=doc, throw=True)
     return doc.get_send_progress()
 
 
 @frappe.whitelist(methods=["POST"])
-def schedule_campaign(name: str, scheduled_at: str):
-    """Mark a campaign to be sent at a future datetime (ISO-8601 string, server timezone)."""
+def schedule_letter(name: str, scheduled_at: str):
+    """Mark a letter to be sent at a future datetime (ISO-8601 string, server timezone)."""
     doc = frappe.get_doc("Letter", name)
     frappe.has_permission("Letter", "write", doc=doc, throw=True)
     return doc.schedule(scheduled_at)
 
 
 @frappe.whitelist(methods=["POST"])
-def send_campaign(name: str, recipients: str | None = None, email_group: str | None = None, doctype_config: str | None = None):
+def send_letter(name: str, recipients: str | None = None, email_group: str | None = None, doctype_config: str | None = None):
     """
-    Compile and send a campaign.
+    Compile and send a letter.
 
     Pass one of:
       - email_group:    name of a Frappe Email Group (respects unsubscribes)
@@ -126,7 +126,7 @@ def send_campaign(name: str, recipients: str | None = None, email_group: str | N
 
 
 def process_scheduled_sends():
-    """Scheduled task: fire any campaigns whose scheduled_at has passed."""
+    """Scheduled task: fire any letters whose scheduled_at has passed."""
     from frappe.utils import now_datetime
 
     due = frappe.get_all(
@@ -136,20 +136,20 @@ def process_scheduled_sends():
     )
     for row in due:
         try:
-            campaign = frappe.qb.DocType("Letter")
+            letter = frappe.qb.DocType("Letter")
             (
-                frappe.qb.update(campaign)
-                .set(campaign.status, "Draft")
-                .where((campaign.name == row.name) & (campaign.status == "Scheduled"))
+                frappe.qb.update(letter)
+                .set(letter.status, "Draft")
+                .where((letter.name == row.name) & (letter.status == "Scheduled"))
             ).run()
             claimed = frappe.db._cursor.rowcount
             frappe.db.commit()
             if not claimed:
                 continue
-            campaign_owner = frappe.db.get_value("Letter", row.name, "owner")
-            frappe.set_user(campaign_owner or frappe.session.user)
+            letter_owner = frappe.db.get_value("Letter", row.name, "owner")
+            frappe.set_user(letter_owner or frappe.session.user)
             try:
-                send_campaign(row.name)
+                send_letter(row.name)
             finally:
                 frappe.set_user("Administrator")
         except Exception:
@@ -163,9 +163,9 @@ def process_scheduled_sends():
 
 # ── Private helpers (not whitelist; used by doc methods and _execute_send) ───
 
-def _record_open(campaign_name, email):
+def _record_open(letter_name, email):
     """Mark recipient rows for `email` as opened; increment open_count."""
-    sends = frappe.get_all("Email Send", filters={"campaign": campaign_name}, pluck="name")
+    sends = frappe.get_all("Email Send", filters={"letter": letter_name}, pluck="name")
     if not sends:
         return
     rows = frappe.get_all(
@@ -182,17 +182,17 @@ def _record_open(campaign_name, email):
     frappe.db.commit()
 
 
-def _resume_send(send_doc_name, campaign_name, campaign_doc):
+def _resume_send(send_doc_name, letter_name, letter_doc):
     """Re-enqueue a partial/failed Email Send."""
     unsent = frappe.db.count(
         "Email Send Recipient",
         {"parent": send_doc_name, "status": ["!=", "Sent"]},
     )
     frappe.db.set_value("Email Send", send_doc_name, "status", "Sending")
-    campaign_doc.status = "Sending"
-    campaign_doc.save(ignore_permissions=True)
+    letter_doc.status = "Sending"
+    letter_doc.save(ignore_permissions=True)
     frappe.db.commit()
-    _enqueue_send(send_doc_name, campaign_name)
+    _enqueue_send(send_doc_name, letter_name)
     return {"queued": True, "count": unsent, "resumed": True}
 
 
@@ -214,21 +214,21 @@ def _bulk_insert_recipients(send_doc_name, recipient_list):
     frappe.db.bulk_insert("Email Send Recipient", fields=fields, values=values)
 
 
-def _enqueue_send(send_doc_name, campaign_name):
+def _enqueue_send(send_doc_name, letter_name):
     """Enqueue the per-recipient delivery loop as a background job."""
     frappe.enqueue(
         "letters.letters.api._execute_send",
         queue="long",
         timeout=SEND_JOB_TIMEOUT,
-        job_name=f"letters_send_{campaign_name}",
+        job_name=f"letters_send_{letter_name}",
         send_doc_name=send_doc_name,
-        campaign_name=campaign_name,
+        letter_name=letter_name,
     )
 
 
-def _execute_send(send_doc_name, campaign_name):
+def _execute_send(send_doc_name, letter_name):
     """
-    Background job: compile the campaign and send one email per recipient.
+    Background job: compile the letter and send one email per recipient.
 
     Recipients already marked Sent are skipped so a retry resumes from where
     a previous run stopped. Must NOT be decorated with @frappe.whitelist().
@@ -243,9 +243,9 @@ def _execute_send(send_doc_name, campaign_name):
         preview_text  = send_doc.snapshot_preview_text or ""
         email_width   = send_doc.snapshot_email_width or 600
 
-        # Fall back to live campaign for sends queued before snapshot was introduced
+        # Fall back to live letter for sends queued before snapshot was introduced
         if not blocks_json:
-            doc         = frappe.get_doc("Letter", campaign_name)
+            doc         = frappe.get_doc("Letter", letter_name)
             blocks_json = doc.blocks_json
             subject     = subject or doc.subject
             preview_text = preview_text or doc.preview_text or ""
@@ -268,7 +268,7 @@ def _execute_send(send_doc_name, campaign_name):
                     message=html,
                     now=False,
                     reference_doctype="Letter",
-                    reference_name=campaign_name,
+                    reference_name=letter_name,
                     unsubscribe_message=_("Unsubscribe") if send_doc.include_unsubscribe else None,
                     add_unsubscribe_link=1 if send_doc.include_unsubscribe else 0,
                     email_read_tracker_url="/api/method/letters.letters.api.track_open",
@@ -293,11 +293,11 @@ def _execute_send(send_doc_name, campaign_name):
                 frappe.db.commit()
 
         if failed == 0:
-            send_status = campaign_status = "Sent"
+            send_status = letter_status = "Sent"
         elif sent == 0:
-            send_status = campaign_status = "Failed"
+            send_status = letter_status = "Failed"
         else:
-            send_status, campaign_status = "Partial", "Partial"
+            send_status, letter_status = "Partial", "Partial"
 
         frappe.db.set_value(
             "Email Send", send_doc_name,
@@ -305,7 +305,7 @@ def _execute_send(send_doc_name, campaign_name):
             update_modified=False,
         )
         frappe.db.set_value(
-            "Letter", campaign_name, "status", campaign_status,
+            "Letter", letter_name, "status", letter_status,
             update_modified=False,
         )
         frappe.db.commit()
@@ -314,7 +314,7 @@ def _execute_send(send_doc_name, campaign_name):
         frappe.log_error(frappe.get_traceback(), "Letters _execute_send error")
         try:
             frappe.db.set_value("Email Send", send_doc_name, "status", "Failed")
-            frappe.db.set_value("Letter", campaign_name, "status", "Failed")
+            frappe.db.set_value("Letter", letter_name, "status", "Failed")
             recipient = frappe.qb.DocType("Email Send Recipient")
             (
                 frappe.qb.update(recipient)

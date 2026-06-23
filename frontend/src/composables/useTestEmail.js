@@ -32,8 +32,8 @@ export function useTestEmail(editorStore, { subject, previewText, flushSave }) {
       const res = await frappe.call({
         method: "letters.letters.api.send_test",
         args: {
-          name:         editorStore.campaignDoc?.name || null,
-          blocks:       editorStore.campaignDoc?.name ? null : JSON.stringify(editorStore.blocks.map(stripIds)),
+          name:         editorStore.letterDoc?.name || null,
+          blocks:       editorStore.letterDoc?.name ? null : JSON.stringify(editorStore.blocks.map(stripIds)),
           subject:      subject.value || "Test Email",
           preview_text: previewText.value,
           recipient:    email,

@@ -1,6 +1,6 @@
 frappe.ui.form.on("Letter", {
     refresh(frm) {
-        // Builder entry point (restored): available on new and saved campaigns.
+        // Builder entry point: available on new and saved letters.
         frm.add_custom_button(__("Open in Letters Builder"), () => {
             const path = frm.is_new()
                 ? "/app/letter-builder"
@@ -27,7 +27,7 @@ frappe.ui.form.on("Letter", {
 // (which shows the template picker instead of the blank Frappe form).
 frappe.listview_settings["Letter"] = {
     onload(listview) {
-        listview.page.set_primary_action(__("New Campaign"), () => {
+        listview.page.set_primary_action(__("New Letter"), () => {
             window.open("/app/letter-builder", "_blank");
         }, "plus");
     },

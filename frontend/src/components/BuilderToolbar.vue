@@ -46,7 +46,7 @@
         @click="emit('open-settings')"
       >
         <span class="truncate text-sm font-medium text-ink-gray-8">
-          {{ campaignName || "Untitled Letter" }}
+          {{ letterName || "Untitled Letter" }}
         </span>
       </Button>
       <Transition name="fade">
@@ -71,7 +71,7 @@
       <div class="w-px h-4 bg-outline-gray-2 mx-0.5" />
 
       <!-- Sending: inline progress bar -->
-      <template v-if="campaignStatus === 'Sending'">
+      <template v-if="letterStatus === 'Sending'">
         <div class="flex items-center gap-2 min-w-[180px]">
           <Progress
             :value="sendProgress.total ? Math.round(sendProgress.sent / sendProgress.total * 100) : 5"
@@ -83,19 +83,19 @@
       </template>
 
       <!-- Sent / Failed / Partial: status badge only -->
-      <template v-else-if="campaignStatus === 'Sent' || campaignStatus === 'Partial' || campaignStatus === 'Failed'">
+      <template v-else-if="letterStatus === 'Sent' || letterStatus === 'Partial' || letterStatus === 'Failed'">
         <Badge
-          :theme="campaignStatus === 'Sent' ? 'green' : campaignStatus === 'Partial' ? 'orange' : 'red'"
+          :theme="letterStatus === 'Sent' ? 'green' : letterStatus === 'Partial' ? 'orange' : 'red'"
           variant="subtle"
           size="md"
-          :icon="campaignStatus === 'Sent' ? 'lucide-circle-check' : 'lucide-circle-alert'"
+          :icon="letterStatus === 'Sent' ? 'lucide-circle-check' : 'lucide-circle-alert'"
         >
-          {{ campaignStatus === 'Sent' ? 'Sent' : campaignStatus === 'Partial' ? 'Partially sent' : 'Failed' }}
+          {{ letterStatus === 'Sent' ? 'Sent' : letterStatus === 'Partial' ? 'Partially sent' : 'Failed' }}
         </Badge>
       </template>
 
       <!-- Scheduled: status badge with time -->
-      <template v-else-if="campaignStatus === 'Scheduled'">
+      <template v-else-if="letterStatus === 'Scheduled'">
         <Badge theme="blue" variant="subtle" size="md" icon="lucide-clock">
           Scheduled{{ scheduledAt ? ` · ${formatScheduledAt(scheduledAt)}` : '' }}
         </Badge>
@@ -136,11 +136,11 @@ defineProps({
   menuOptions: { type: Array, default: () => [] },
   previewOptions: { type: Array, default: () => [] },
   sendOptions: { type: Array, default: () => [] },
-  campaignStatus: { type: String, default: null },
+  letterStatus: { type: String, default: null },
   sendProgress: { type: Object, default: () => ({ sent: 0, total: 0 }) },
   saving: Boolean,
   savedFlash: Boolean,
-  campaignName: { type: String, default: "" },
+  letterName: { type: String, default: "" },
   scheduledAt: { type: String, default: "" },
   canSend: Boolean,
 });

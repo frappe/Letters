@@ -9,7 +9,7 @@ class AnalyticsMixin:
         name = self.name
         sends = frappe.get_all(
             "Email Send",
-            filters={"campaign": name},
+            filters={"letter": name},
             fields=["name", "status", "total_recipients", "sent_count", "creation"],
             order_by="creation desc",
         )
@@ -52,7 +52,7 @@ class AnalyticsMixin:
     def get_recipients(self, limit=200):
         frappe.has_permission("Letter", "read", doc=self, throw=True)
         send = frappe.db.get_value(
-            "Email Send", {"campaign": self.name}, "name", order_by="creation desc"
+            "Email Send", {"letter": self.name}, "name", order_by="creation desc"
         )
         if not send:
             return []
@@ -68,11 +68,11 @@ class AnalyticsMixin:
         frappe.has_permission("Letter", "read", doc=self, throw=True)
         name = self.name
         statuses = ["Sending", "Sent", "Failed", "Partial"]
-        if not frappe.db.exists("Email Send", {"campaign": name, "status": ["in", statuses]}):
+        if not frappe.db.exists("Email Send", {"letter": name, "status": ["in", statuses]}):
             return {"status": "Queued", "sent": 0, "total": 0}
         send = frappe.get_last_doc(
             "Email Send",
-            filters={"campaign": name, "status": ["in", statuses]},
+            filters={"letter": name, "status": ["in", statuses]},
             order_by="creation desc",
         )
         return {

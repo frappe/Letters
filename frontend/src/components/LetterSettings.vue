@@ -50,11 +50,11 @@
               <!-- ── Details ── -->
               <div v-if="activeTab === 'details'" class="space-y-4">
                 <label class="block">
-                  <span class="block text-xs font-semibold text-ink-gray-6 uppercase tracking-wide mb-1.5">Campaign Name</span>
+                  <span class="block text-xs font-semibold text-ink-gray-6 uppercase tracking-wide mb-1.5">Letter Name</span>
                   <TextInput
-                    :model-value="campaignName"
+                    :model-value="letterName"
                     placeholder="e.g. June Newsletter"
-                    @update:model-value="(v) => emit('update:campaignName', v)"
+                    @update:model-value="(v) => emit('update:letterName', v)"
                   />
                 </label>
                 <label class="block">
@@ -139,7 +139,7 @@
                 <div v-else-if="!analytics || !analytics.sent_status" class="rounded border border-dashed border-outline-gray-2 px-4 py-10 text-center">
                   <span class="lucide-chart-bar size-6 text-ink-gray-4 mx-auto mb-2 block" aria-hidden="true" />
                   <p class="text-sm text-ink-gray-6 font-medium">No sends yet</p>
-                  <p class="text-xs text-ink-gray-5 mt-1">Analytics appear here once this campaign has been sent.</p>
+                  <p class="text-xs text-ink-gray-5 mt-1">Analytics appear here once this letter has been sent.</p>
                 </div>
 
                 <div v-else class="space-y-4">
@@ -214,15 +214,15 @@ import RecipientsPicker from "./RecipientsPicker.vue";
 
 const props = defineProps({
   modelValue:      { type: Boolean, default: false },
-  campaignName:    { type: String, default: "" },
+  letterName:    { type: String, default: "" },
   subject:         { type: String, default: "" },
   previewText:     { type: String, default: "" },
   recipientConfig:    { type: Object, default: null },
   includeUnsubscribe: { type: Boolean, default: false },
-  campaignDoc:        { type: Object, default: null },
+  letterDoc:        { type: Object, default: null },
 });
 const emit = defineEmits([
-  "update:modelValue", "update:campaignName", "update:subject",
+  "update:modelValue", "update:letterName", "update:subject",
   "update:previewText", "update:recipientConfig", "update:includeUnsubscribe",
 ]);
 
@@ -233,7 +233,7 @@ const sections = [
 ];
 const activeTab = ref("details");
 const activeSection = computed(() => sections.find(s => s.id === activeTab.value) || sections[0]);
-const isSent = computed(() => ["Sent", "Partial", "Failed", "Sending"].includes(props.campaignDoc?.status));
+const isSent = computed(() => ["Sent", "Partial", "Failed", "Sending"].includes(props.letterDoc?.status));
 
 function close() {
   emit("update:modelValue", false);
@@ -245,15 +245,15 @@ const recipients       = ref([]);
 const loadingRecipients = ref(false);
 
 async function loadAnalytics() {
-  if (!props.campaignDoc?.name) {
+  if (!props.letterDoc?.name) {
     analytics.value = null;
     return;
   }
   loadingAnalytics.value = true;
   try {
     const res = await frappe.call({
-      method: "letters.letters.api.get_campaign_analytics",
-      args: { name: props.campaignDoc.name },
+      method: "letters.letters.api.get_letter_analytics",
+      args: { name: props.letterDoc.name },
     });
     analytics.value = res.message || null;
   } catch {
@@ -264,12 +264,12 @@ async function loadAnalytics() {
 }
 
 async function loadRecipients() {
-  if (!props.campaignDoc?.name) return;
+  if (!props.letterDoc?.name) return;
   loadingRecipients.value = true;
   try {
     const res = await frappe.call({
-      method: "letters.letters.api.get_campaign_recipients",
-      args: { name: props.campaignDoc.name },
+      method: "letters.letters.api.get_letter_recipients",
+      args: { name: props.letterDoc.name },
     });
     recipients.value = res.message || [];
   } catch {

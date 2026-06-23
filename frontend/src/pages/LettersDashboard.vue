@@ -490,7 +490,7 @@ async function createNew() {
   creating.value = true;
   try {
     const res = await frappe.call({
-      method: "letters.letters.api.save_campaign",
+      method: "letters.letters.api.save_letter",
       args: activeFolder.value ? { folder: activeFolder.value } : {},
     });
     if (res.message?.name) openLetter(res.message.name);
@@ -502,7 +502,7 @@ async function createNew() {
 async function duplicateLetter(letter) {
   try {
     const res = await frappe.call({
-      method: "letters.letters.api.duplicate_campaign",
+      method: "letters.letters.api.duplicate_letter",
       args: { name: letter.name },
     });
     if (res.message?.name) { await load(); openLetter(res.message.name); }

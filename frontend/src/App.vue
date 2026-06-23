@@ -42,7 +42,7 @@ function openLetter(name) {
 
 // Called from dashboard's "New Letter" logo-dropdown shortcut
 async function createAndOpen() {
-  const res = await frappe.call({ method: "letters.letters.api.save_campaign", args: {} });
+  const res = await frappe.call({ method: "letters.letters.api.save_letter", args: {} });
   if (res.message?.name) openLetter(res.message.name);
 }
 
