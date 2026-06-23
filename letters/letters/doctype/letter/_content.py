@@ -22,6 +22,7 @@ class ContentMixin:
             "canvas_background": getattr(self, "canvas_background", None) or "#ffffff",
             "blocks": json.loads(self.blocks_json) if self.blocks_json else [],
             "recipient_config": _load_recipient_config(self),
+            "include_unsubscribe": bool(getattr(self, "include_unsubscribe", False)),
         }
 
     def render_preview_html(self, preview_text=None, email_width=None):

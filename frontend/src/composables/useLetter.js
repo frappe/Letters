@@ -11,7 +11,8 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
   const subject       = ref("");
   const previewText   = ref("");
   // { type, email_group | recipients | (doctype + email_field + filters) }
-  const recipientConfig = ref(null);
+  const recipientConfig    = ref(null);
+  const includeUnsubscribe = ref(false);
 
   const saving        = ref(false);
   const savedFlash    = ref(false);
@@ -58,6 +59,9 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
   watch(recipientConfig, () => {
     if (_suppressDirty === 0) editorStore.markDirty();
   }, { deep: true });
+  watch(includeUnsubscribe, () => {
+    if (_suppressDirty === 0) editorStore.markDirty();
+  });
 
   // ── Auto-save (debounced 800ms) ───────────────────────────────────────────────
   // The history debounce (editor.js, 600ms) and this autosave debounce (800ms)
@@ -116,7 +120,8 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
       editorStore.loadFromDoc(doc);
       subject.value         = doc.subject || "";
       previewText.value     = doc.preview_text || "";
-      recipientConfig.value = doc.recipient_config || null;
+      recipientConfig.value    = doc.recipient_config || null;
+      includeUnsubscribe.value = !!doc.include_unsubscribe;
       document.title = (doc.title || "Untitled Letter") + " · Letters";
       // Allow one Vue flush cycle before re-enabling dirty tracking
       await Promise.resolve();
@@ -176,8 +181,9 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
           preview_text: previewText.value,
           email_width:        editorStore.emailWidth,
           canvas_background:  editorStore.canvasBg,
-          blocks:             JSON.stringify(editorStore.blocks.map(stripIds)),
-          recipient_config: JSON.stringify(recipientConfig.value),
+          blocks:               JSON.stringify(editorStore.blocks.map(stripIds)),
+          recipient_config:     JSON.stringify(recipientConfig.value),
+          include_unsubscribe:  includeUnsubscribe.value,
         },
       });
       const saved = res.message;
@@ -366,7 +372,7 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
 
   return {
     // editable fields
-    subject, previewText, recipientConfig,
+    subject, previewText, recipientConfig, includeUnsubscribe,
     // ui visibility
     showSettings, showTemplatePicker, showScheduleModal,
     // status flags

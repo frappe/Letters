@@ -17,7 +17,7 @@ def get_campaign(name: str):
 
 
 @frappe.whitelist(methods=["POST"])
-def save_campaign(name: str | None = None, title: str | None = None, subject: str | None = None, preview_text: str | None = None, blocks: str | None = None, email_width: int | None = None, canvas_background: str | None = None, recipient_config: str | None = None, folder: str | None = None):
+def save_campaign(name: str | None = None, title: str | None = None, subject: str | None = None, preview_text: str | None = None, blocks: str | None = None, email_width: int | None = None, canvas_background: str | None = None, recipient_config: str | None = None, folder: str | None = None, include_unsubscribe: bool | None = None):
     blocks_json = json.dumps(blocks if isinstance(blocks, list) else json.loads(blocks or "[]"))
     normalized_config = _normalize_recipient_config(recipient_config)
 
@@ -41,6 +41,8 @@ def save_campaign(name: str | None = None, title: str | None = None, subject: st
             doc.recipient_config = normalized_config
         if folder is not None:
             doc.folder = folder
+        if include_unsubscribe is not None:
+            doc.include_unsubscribe = 1 if include_unsubscribe else 0
         doc.blocks_json = blocks_json
         doc.save()
     else:
@@ -56,6 +58,7 @@ def save_campaign(name: str | None = None, title: str | None = None, subject: st
             "blocks_json": blocks_json,
             "recipient_config": normalized_config or "",
             "folder": folder or "",
+            "include_unsubscribe": 1 if include_unsubscribe else 0,
         })
         doc.insert()
 

@@ -137,6 +137,7 @@ class SendingMixin:
             "snapshot_preview_text": self.preview_text or "",
             "snapshot_email_width":  getattr(self, "email_width", None) or 600,
             "snapshot_blocks":       self.blocks_json,
+            "include_unsubscribe":   1 if getattr(self, "include_unsubscribe", False) else 0,
         })
         send_doc.insert(ignore_permissions=True)
         _bulk_insert_recipients(send_doc.name, recipient_list)

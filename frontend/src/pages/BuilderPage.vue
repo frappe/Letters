@@ -181,6 +181,7 @@
     v-model:subject="subject"
     v-model:preview-text="previewText"
     v-model:recipient-config="recipientConfig"
+    v-model:include-unsubscribe="includeUnsubscribe"
     :campaign-doc="editorStore.campaignDoc"
   />
 
@@ -254,7 +255,7 @@ const editorStore = useEditorStore();
 const showShortcuts = ref(false);
 
 const {
-  subject, previewText, recipientConfig,
+  subject, previewText, recipientConfig, includeUnsubscribe,
   showSettings, showTemplatePicker, showScheduleModal,
   saving, savedFlash, loadingCampaign, duplicating, scheduling,
   scheduleDate, scheduleTime, minScheduleDate, openScheduleModal,

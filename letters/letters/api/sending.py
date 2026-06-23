@@ -269,6 +269,8 @@ def _execute_send(send_doc_name, campaign_name):
                     now=False,
                     reference_doctype="Letter",
                     reference_name=campaign_name,
+                    unsubscribe_message=_("Unsubscribe") if send_doc.include_unsubscribe else None,
+                    add_unsubscribe_link=1 if send_doc.include_unsubscribe else 0,
                     email_read_tracker_url="/api/method/letters.letters.api.track_open",
                 )
                 row.status = "Sent"

@@ -78,6 +78,21 @@
                     @update:model-value="(v) => emit('update:previewText', v)"
                   />
                 </label>
+
+                <div class="border-t border-outline-gray-1 pt-4">
+                  <label class="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      class="mt-0.5 accent-ink-gray-9"
+                      :checked="includeUnsubscribe"
+                      @change="emit('update:includeUnsubscribe', $event.target.checked)"
+                    />
+                    <div>
+                      <p class="text-sm font-medium text-ink-gray-8">Include unsubscribe link</p>
+                      <p class="text-xs text-ink-gray-4 mt-0.5">Recipients can opt out of future emails. Required for newsletters and marketing campaigns.</p>
+                    </div>
+                  </label>
+                </div>
               </div>
 
               <!-- ── Recipients ── -->
@@ -202,12 +217,13 @@ const props = defineProps({
   campaignName:    { type: String, default: "" },
   subject:         { type: String, default: "" },
   previewText:     { type: String, default: "" },
-  recipientConfig: { type: Object, default: null },
-  campaignDoc:     { type: Object, default: null },
+  recipientConfig:    { type: Object, default: null },
+  includeUnsubscribe: { type: Boolean, default: false },
+  campaignDoc:        { type: Object, default: null },
 });
 const emit = defineEmits([
   "update:modelValue", "update:campaignName", "update:subject",
-  "update:previewText", "update:recipientConfig",
+  "update:previewText", "update:recipientConfig", "update:includeUnsubscribe",
 ]);
 
 const sections = [

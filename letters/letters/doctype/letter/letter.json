@@ -82,6 +82,13 @@
       "options": "JSON",
       "description": "Saved audience selection (group / pasted list / doctype query) so scheduled sends and reloads know who to send to",
       "hidden": 1
+    },
+    {
+      "fieldname": "include_unsubscribe",
+      "fieldtype": "Check",
+      "label": "Include Unsubscribe Link",
+      "default": "0",
+      "hidden": 1
     }
   ],
   "permissions": [

@@ -85,6 +85,12 @@
       "read_only": 1
     },
     {
+      "fieldname": "include_unsubscribe",
+      "fieldtype": "Check",
+      "label": "Include Unsubscribe Link",
+      "read_only": 1
+    },
+    {
       "fieldname": "recipients_section",
       "fieldtype": "Section Break",
       "label": "Recipients"
