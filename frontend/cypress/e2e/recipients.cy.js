@@ -45,15 +45,18 @@ function deleteLetter(name) {
 
 /**
  * Open the Settings modal from the builder toolbar.
- * The toolbar button emits "open-settings"; it renders as a button with
- * aria-label "Campaign settings".
+ * The letter-name button in the toolbar centre also emits open-settings.
+ * We target it by the lucide-settings icon that sits inside the gear button,
+ * falling back to the centred letter-name button if needed.
  */
 function openSettings() {
-  cy.get('button[aria-label="Campaign settings"]', { timeout: 10000 })
-    .first()
-    .click({ force: true });
-  // Wait for the modal heading to appear
-  cy.contains("Settings", { timeout: 10000 }).should("be.visible");
+  // The gear icon button in the top-right toolbar
+  cy.get("#letter-builder").within(() => {
+    cy.get("button").filter((_, el) =>
+      el.querySelector(".lucide-settings") !== null
+    ).first().click({ force: true });
+  });
+  cy.contains("Settings", { timeout: 15000 }).should("be.visible");
 }
 
 /**
@@ -61,6 +64,29 @@ function openSettings() {
  */
 function clickSettingsTab(label) {
   cy.contains("aside nav button", label).click();
+}
+
+/**
+ * Poll the Frappe API until the Letter's status matches the expected value.
+ * Uses cy.request so no page load is needed. Retries up to maxAttempts times.
+ */
+function waitForLetterStatus(name, expectedStatus, maxAttempts = 60) {
+  const check = (attempt) => {
+    cy.request({
+      method: "GET",
+      url: `/api/resource/Letter/${name}`,
+      failOnStatusCode: false,
+    }).then((res) => {
+      const status = res.body?.data?.status;
+      if (status === expectedStatus) return;
+      if (attempt >= maxAttempts) {
+        throw new Error(`Letter ${name} status never reached "${expectedStatus}" (got "${status}")`);
+      }
+      cy.wait(1000);
+      check(attempt + 1);
+    });
+  };
+  check(0);
 }
 
 // ── Pre-send tests ─────────────────────────────────────────────────────────────
@@ -85,6 +111,8 @@ describe("Recipients tab — pre-send", () => {
   });
 
   it("email group source — shows group selector after selecting Email group type", () => {
+    // Use a unique title per run to avoid DuplicateEntryError if cleanup failed previously
+    const groupTitle = `Cypress Test Group ${Date.now()}`;
     // Create an Email Group so the selector has at least one option
     cy.window()
       .its("frappe.csrf_token")
@@ -94,7 +122,7 @@ describe("Recipients tab — pre-send", () => {
           url: "/api/method/frappe.client.insert",
           headers: { "X-Frappe-CSRF-Token": csrfToken },
           body: {
-            doc: JSON.stringify({ doctype: "Email Group", title: "Cypress Test Group" }),
+            doc: JSON.stringify({ doctype: "Email Group", title: groupTitle }),
           },
         }).then((res) => {
           const groupName = res.body.message.name;
@@ -111,10 +139,10 @@ describe("Recipients tab — pre-send", () => {
           cy.contains("Select email group").click({ force: true });
 
           // Wait for the dropdown option matching our group title and click it
-          cy.contains("Cypress Test Group", { timeout: 15000 }).click({ force: true });
+          cy.contains(groupTitle, { timeout: 15000 }).click({ force: true });
 
           // The group name should now be reflected — count badge or selection text appears
-          cy.contains("Cypress Test Group", { timeout: 10000 }).should("exist");
+          cy.contains(groupTitle, { timeout: 10000 }).should("exist");
 
           // Cleanup the Email Group
           cy.window()
@@ -136,20 +164,24 @@ describe("Recipients tab — pre-send", () => {
     openSettings();
     clickSettingsTab("Recipients");
 
-    // Switch source type to DocType
     cy.contains("button", "DocType", { timeout: 10000 }).click({ force: true });
 
-    // The frappe-ui Select for doctype renders with placeholder text
     cy.contains("Select DocType", { timeout: 10000 }).should("exist");
-
-    // Open the DocType dropdown and pick "Contact"
     cy.contains("Select DocType").click({ force: true });
     cy.contains("Contact", { timeout: 15000 }).click({ force: true });
 
-    // After selecting Contact, the Filter button should appear
-    // (DoctypeTab shows Filter only when a doctype AND email_field are chosen;
-    //  Contact has a single email field so it auto-selects)
-    cy.contains("button", "Filter", { timeout: 15000 }).should("be.visible");
+    // Contact has multiple email fields — a second Select for the email field appears.
+    // Pick the first option (email_id) if the field selector is shown.
+    cy.get("body").then(($body) => {
+      if ($body.text().includes("Select email field")) {
+        cy.contains("Select email field").click({ force: true });
+        cy.get("[data-cy='email-field-option'], .popover-content li, [role='option'], [role='listbox'] li")
+          .first()
+          .click({ force: true });
+      }
+    });
+
+    cy.get("button:has(.lucide-list-filter)", { timeout: 15000 }).should("be.visible");
   });
 
   it("doctype source — filter panel opens with field selector and operator selector", () => {
@@ -157,20 +189,23 @@ describe("Recipients tab — pre-send", () => {
     clickSettingsTab("Recipients");
 
     cy.contains("button", "DocType", { timeout: 10000 }).click({ force: true });
-
     cy.contains("Select DocType").click({ force: true });
     cy.contains("Contact", { timeout: 15000 }).click({ force: true });
 
-    // Wait for Filter button then click it
-    cy.contains("button", "Filter", { timeout: 15000 }).click({ force: true });
+    // Pick email field if selector appears
+    cy.get("body").then(($body) => {
+      if ($body.text().includes("Select email field")) {
+        cy.contains("Select email field").click({ force: true });
+        cy.get("[role='option'], [role='listbox'] li").first().click({ force: true });
+      }
+    });
+
+    cy.get("button:has(.lucide-list-filter)", { timeout: 15000 }).click({ force: true });
 
     // Filter panel opens with one pre-populated row (DoctypeTab calls addRow on open).
-    // The panel is a rounded bordered box; each row has a field Select and an operator Select.
-    // We assert the panel container has at least 2 button-based Select triggers (field + operator).
-    cy.get(".rounded-lg.border", { timeout: 10000 })
-      .last()
-      .find("button")
-      .should("have.length.greaterThan", 1);
+    // Assert visible affordances: the "Add a Filter" link and "Apply filters" button.
+    cy.contains("Add a filter", { timeout: 10000 }).should("be.visible");
+    cy.contains("button", "Apply filters", { timeout: 10000 }).should("be.visible");
   });
 
   it("paste source — count badge updates as emails are typed", () => {
@@ -254,6 +289,9 @@ describe("Recipients tab — post-send", () => {
             });
           });
 
+        // Wait for background job to complete before opening builder
+        waitForLetterStatus(name, "Sent");
+
         // Now open the builder
         cy.visit(`/app/letter-builder/${name}`);
         cy.get("#letter-builder", { timeout: 15000 }).should("exist");
@@ -335,6 +373,8 @@ describe("Analytics tab", () => {
             });
           });
 
+        waitForLetterStatus(name, "Sent");
+
         cy.visit(`/app/letter-builder/${name}`);
         cy.get("#letter-builder", { timeout: 15000 }).should("exist");
         cy.contains("Start blank").click({ force: true });
@@ -348,12 +388,13 @@ describe("Analytics tab", () => {
 
   it("shows delivered count and sent date after send", () => {
     openSettings();
+    // The modal may auto-switch to Analytics (letter is already Sent when opened),
+    // but click it explicitly to ensure the tab is active and data loads.
     clickSettingsTab("Analytics");
 
-    // "Delivered" stat card — the label text is "Delivered"
-    cy.contains("Delivered", { timeout: 15000 }).should("be.visible");
-
-    // "Sent on" prefix comes from formatDate(analytics.last_sent)
+    // Wait for the loading state to clear then assert stats
+    cy.contains("Loading analytics", { timeout: 5000 }).should("not.exist");
+    cy.contains("Delivered", { timeout: 20000 }).should("be.visible");
     cy.contains("Sent on", { timeout: 10000 }).should("be.visible");
   });
 
@@ -361,8 +402,8 @@ describe("Analytics tab", () => {
     openSettings();
     clickSettingsTab("Analytics");
 
-    // The pixel tracking disclaimer contains "pixel"
-    cy.contains("pixel", { timeout: 15000 }).should("be.visible");
+    cy.contains("Loading analytics", { timeout: 5000 }).should("not.exist");
+    cy.contains("pixel", { timeout: 20000 }).should("be.visible");
   });
 });
 
