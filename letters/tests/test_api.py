@@ -1256,3 +1256,778 @@ class TestBulkInsertRecipients:
         api_module._bulk_insert_recipients("SEND-XYZ", ["r@r.com"])
         values = self._get_values()
         assert values[0][7] == "SEND-XYZ"
+
+
+# ===========================================================================
+# NEW REGRESSION TESTS
+# ===========================================================================
+#
+# Import the modules under test.  frappe is already stubbed above so all
+# `import frappe` lines inside these modules resolve to the same MagicMock.
+# We also need the www page and the unsubscribe API.
+# ---------------------------------------------------------------------------
+import sys as _sys
+import os as _os
+
+# Ensure the letters package root is importable
+_pkg_root = _os.path.join(_os.path.dirname(__file__), "..", "..")
+if _pkg_root not in _sys.path:
+    _sys.path.insert(0, _pkg_root)
+
+from letters.letters.api.recipients import (
+    _suppressed_emails,
+    _resolve_single_source_emails,
+    _resolve_multi_source,
+    _load_recipient_config,
+    _normalize_recipient_config,
+)
+import letters.letters.api.unsubscribe as unsubscribe_module
+
+# www page lives outside the package — import by path
+import importlib.util as _ilu
+
+_www_path = _os.path.join(
+    _os.path.dirname(__file__), "..", "..", "letters", "www", "letters_unsubscribe.py"
+)
+_spec = _ilu.spec_from_file_location("letters_unsubscribe", _www_path)
+_www_mod = _ilu.module_from_spec(_spec)
+_spec.loader.exec_module(_www_mod)
+get_context = _www_mod.get_context
+
+
+# ---------------------------------------------------------------------------
+# Helpers shared across the new test classes
+# ---------------------------------------------------------------------------
+
+def _mk_dict(**kw):
+    """Tiny FrappeDict factory."""
+    return FrappeDict(**kw)
+
+
+# ===========================================================================
+# 1. _suppressed_emails
+# ===========================================================================
+#
+# Covers:
+#   - Without letter_name: only global unsubscribes are fetched
+#   - With letter_name: global + letter-specific + folder-specific
+#   - A user unsubscribed from Letter A does NOT appear in Letter B suppression
+#   - Returns empty set when no unsubscribes exist
+# ---------------------------------------------------------------------------
+
+class TestSuppressedEmails:
+    def setup_method(self):
+        _reset()
+
+    def test_no_letter_name_returns_only_globals(self):
+        """Calling without letter_name passes only the global_unsubscribe filter."""
+        GETALL["Email Unsubscribe"] = ["global@example.com"]
+        result = _suppressed_emails()
+        assert "global@example.com" in result
+        # Verify or_filters only contain the global clause (no letter/folder refs)
+        call_kwargs = frappe_stub.get_all.call_args.kwargs
+        or_filters = call_kwargs.get("or_filters", [])
+        assert len(or_filters) == 1
+        assert or_filters[0] == {"global_unsubscribe": 1}
+
+    def test_with_letter_name_includes_letter_and_folder(self):
+        """With letter_name the or_filters grow to include letter + folder refs."""
+        frappe_stub.db.get_value.return_value = "FOLDER-1"
+        GETALL["Email Unsubscribe"] = ["a@b.com", "b@c.com"]
+        result = _suppressed_emails("LETTER-001")
+        assert {"a@b.com", "b@c.com"} == result
+        or_filters = frappe_stub.get_all.call_args.kwargs.get("or_filters", [])
+        assert len(or_filters) == 3
+        types = [list(f.keys()) for f in or_filters]
+        flat = [k for keys in types for k in keys]
+        assert "global_unsubscribe" in flat
+        assert "reference_name" in flat
+
+    def test_unsubscribe_from_letter_a_not_in_letter_b_suppression(self):
+        """Letter-scoped suppression must NOT cross-contaminate other letters.
+
+        We verify this by confirming that when called with letter_name="LETTER-B"
+        the or_filters only reference "LETTER-B", never "LETTER-A".
+        """
+        frappe_stub.db.get_value.return_value = None  # no folder
+        frappe_stub.get_all.return_value = []
+
+        _suppressed_emails("LETTER-B")
+
+        or_filters = frappe_stub.get_all.call_args.kwargs.get("or_filters", [])
+        for f in or_filters:
+            ref_name = f.get("reference_name")
+            if ref_name:
+                assert ref_name != "LETTER-A", "Letter A's unsub leaked into Letter B query"
+
+    def test_returns_empty_set_when_no_unsubscribes(self):
+        frappe_stub.get_all.return_value = []
+        result = _suppressed_emails("LETTER-X")
+        assert result == set()
+
+
+# ===========================================================================
+# 2. _resolve_single_source_emails
+# ===========================================================================
+#
+# Covers:
+#   - group type: queries Email Group Member with unsubscribed=0
+#   - paste type: returns the recipients list as-is
+#   - doctype type: calls frappe.get_all with correct filters
+#   - unknown type: returns []
+# ---------------------------------------------------------------------------
+
+class TestResolveSingleSourceEmails:
+    def setup_method(self):
+        _reset()
+
+    def test_group_type_queries_email_group_member(self):
+        GETALL["Email Group Member"] = ["m1@x.com", "m2@x.com"]
+        result = _resolve_single_source_emails({"type": "group", "email_group": "GRP-1"})
+        assert result == ["m1@x.com", "m2@x.com"]
+        frappe_stub.get_all.assert_called()
+        call_kwargs = frappe_stub.get_all.call_args
+        # First positional arg is the doctype
+        assert call_kwargs.args[0] == "Email Group Member"
+        filters = call_kwargs.kwargs.get("filters", {})
+        assert filters.get("email_group") == "GRP-1"
+        assert filters.get("unsubscribed") == 0
+
+    def test_paste_type_returns_recipients_as_is(self):
+        emails = ["a@b.com", "c@d.com"]
+        result = _resolve_single_source_emails({"type": "paste", "recipients": emails})
+        assert result == emails
+
+    def test_doctype_type_calls_get_all_with_email_filter(self):
+        frappe_stub.has_permission.return_value = True
+        GETALL["Contact"] = ["doc1@x.com"]
+        result = _resolve_single_source_emails({
+            "type": "doctype",
+            "doctype": "Contact",
+            "email_field": "email_id",
+            "filters": {},
+        })
+        assert result == ["doc1@x.com"]
+        frappe_stub.get_all.assert_called()
+        call_args = frappe_stub.get_all.call_args
+        assert call_args.args[0] == "Contact"
+        filters = call_args.kwargs.get("filters", {})
+        # email_field != "" must be in filters
+        assert filters.get("email_id") == ["!=", ""]
+
+    def test_unknown_type_returns_empty_list(self):
+        result = _resolve_single_source_emails({"type": "fax_machine"})
+        assert result == []
+
+    def test_paste_type_with_empty_list_returns_empty(self):
+        result = _resolve_single_source_emails({"type": "paste", "recipients": []})
+        assert result == []
+
+
+# ===========================================================================
+# 3. _resolve_multi_source
+# ===========================================================================
+#
+# Covers:
+#   - Deduplicates emails across sources (case-insensitive)
+#   - Applies suppression correctly
+#   - Snapshots resolved_emails into recipient_config when letter_name provided
+#   - Each source's resolved_emails contains only that source's emails
+#   - Throws when no recipients remain after suppression
+#   - Throws when over MAX_RECIPIENTS
+#   - Throws when no valid emails
+# ---------------------------------------------------------------------------
+
+class TestResolveMultiSource:
+    def setup_method(self):
+        _reset()
+
+    def _identity_valid(self, emails):
+        """valid_fn that accepts all emails as-is."""
+        return emails, 0
+
+    def _no_suppression(self):
+        return set()
+
+    def test_deduplicates_across_sources_case_insensitive(self):
+        """The same address (different case) from two sources is counted once."""
+        sources = [
+            {"type": "paste", "recipients": ["Alice@X.com", "b@x.com"]},
+            {"type": "paste", "recipients": ["alice@x.com", "c@x.com"]},
+        ]
+        valid, invalid = _resolve_multi_source(
+            sources, 1000, self._no_suppression, self._identity_valid
+        )
+        # alice@x.com / Alice@X.com should appear only once
+        assert len(valid) == 3
+        lower = [e.lower() for e in valid]
+        assert lower.count("alice@x.com") == 1
+
+    def test_suppression_removes_matching_emails(self):
+        sources = [{"type": "paste", "recipients": ["keep@x.com", "gone@x.com"]}]
+        valid, _ = _resolve_multi_source(
+            sources, 1000,
+            lambda: {"gone@x.com"},
+            self._identity_valid,
+        )
+        assert "keep@x.com" in valid
+        assert not any(e.lower() == "gone@x.com" for e in valid)
+
+    def test_throws_when_no_recipients_after_suppression(self):
+        sources = [{"type": "paste", "recipients": ["gone@x.com"]}]
+        with pytest.raises(FrappeValidationError):
+            _resolve_multi_source(
+                sources, 1000,
+                lambda: {"gone@x.com"},
+                self._identity_valid,
+            )
+
+    def test_throws_when_over_max_recipients(self):
+        big_list = [f"u{i}@x.com" for i in range(10)]
+        sources = [{"type": "paste", "recipients": big_list}]
+        with pytest.raises(FrappeValidationError, match="above the per-letter limit"):
+            _resolve_multi_source(
+                sources, 5,
+                self._no_suppression,
+                self._identity_valid,
+            )
+
+    def test_throws_when_no_valid_emails(self):
+        sources = [{"type": "paste", "recipients": ["bad"]}]
+        with pytest.raises(FrappeValidationError):
+            _resolve_multi_source(
+                sources, 1000,
+                self._no_suppression,
+                lambda emails: ([], len(emails)),
+            )
+
+    def test_snapshots_resolved_emails_to_db_when_letter_name_given(self):
+        sources = [
+            {"type": "paste", "recipients": ["a@x.com"]},
+            {"type": "paste", "recipients": ["b@x.com"]},
+        ]
+        _resolve_multi_source(
+            sources, 1000,
+            self._no_suppression,
+            self._identity_valid,
+            letter_name="LETTER-SNAP",
+        )
+        frappe_stub.db.set_value.assert_called()
+        call_args = frappe_stub.db.set_value.call_args
+        assert call_args.args[0] == "Letter"
+        assert call_args.args[1] == "LETTER-SNAP"
+        assert call_args.args[2] == "recipient_config"
+        saved = json.loads(call_args.args[3])
+        assert isinstance(saved, list)
+        assert len(saved) == 2
+
+    def test_each_source_resolved_emails_contains_only_own_emails(self):
+        """Per-source resolved_emails must NOT include emails from other sources."""
+        sources = [
+            {"type": "paste", "recipients": ["a@x.com"]},
+            {"type": "paste", "recipients": ["b@x.com"]},
+        ]
+        _resolve_multi_source(
+            sources, 1000,
+            self._no_suppression,
+            self._identity_valid,
+            letter_name="LETTER-PER-SRC",
+        )
+        saved_json = frappe_stub.db.set_value.call_args.args[3]
+        saved = json.loads(saved_json)
+        src0_emails = saved[0]["resolved_emails"]
+        src1_emails = saved[1]["resolved_emails"]
+        assert "a@x.com" in src0_emails
+        assert "b@x.com" not in src0_emails
+        assert "b@x.com" in src1_emails
+        assert "a@x.com" not in src1_emails
+
+    def test_no_snapshot_when_letter_name_is_none(self):
+        sources = [{"type": "paste", "recipients": ["a@x.com"]}]
+        _resolve_multi_source(
+            sources, 1000,
+            self._no_suppression,
+            self._identity_valid,
+            letter_name=None,
+        )
+        frappe_stub.db.set_value.assert_not_called()
+
+
+# ===========================================================================
+# 4. AnalyticsMixin.get_recipients
+# ===========================================================================
+#
+# Covers:
+#   - Returns sent recipients with correct status fields
+#   - Appends suppressed emails with status="Excluded"
+#   - Does not double-list an email that is both sent and suppressed
+#   - Scopes suppression query to letter + folder
+# ---------------------------------------------------------------------------
+
+class TestAnalyticsMixinGetRecipients:
+    def setup_method(self):
+        _reset()
+        # frappe._dict must build real attribute-dicts, not MagicMocks,
+        # so the excluded-row comparison works.
+        frappe_stub._dict.side_effect = lambda **kw: FrappeDict(**kw)
+
+    def _doc(self, name="CAMP-001", folder=None):
+        doc = _letter_doc(name=name)
+        doc.folder = folder
+        doc.get_recipients = _types.MethodType(AnalyticsMixin.get_recipients, doc)
+        return doc
+
+    def test_returns_empty_when_no_send(self):
+        doc = self._doc()
+        frappe_stub.db.get_value.return_value = None
+        result = doc.get_recipients()
+        assert result == []
+
+    def test_returns_sent_recipients(self):
+        doc = self._doc()
+        frappe_stub.db.get_value.return_value = "SD-001"
+        # sent rows
+        GETALL["Email Send Recipient"] = [
+            _mk_dict(email="a@b.com", status="Sent", opened=1, opened_on="2024-01-01")
+        ]
+        # No unsubscribes for suppressed list
+        def _route(doctype, *a, **kw):
+            if doctype == "Email Send Recipient":
+                return GETALL.get("Email Send Recipient", [])
+            if doctype == "Email Unsubscribe":
+                return []
+            return GETALL.get(doctype, [])
+        frappe_stub.get_all.side_effect = _route
+        frappe_stub.db.get_value.side_effect = lambda dt, filters, field, **kw: (
+            "SD-001" if dt == "Email Send" else None
+        )
+
+        result = doc.get_recipients()
+        assert len(result) == 1
+        assert result[0].email == "a@b.com"
+        assert result[0].status == "Sent"
+
+    def test_appends_suppressed_emails_as_excluded(self):
+        doc = self._doc()
+        frappe_stub.db.get_value.side_effect = lambda dt, filters, field, **kw: (
+            "SD-001" if dt == "Email Send" else None
+        )
+        GETALL["Email Send Recipient"] = []
+
+        def _route(doctype, *a, **kw):
+            if doctype == "Email Send Recipient":
+                return []
+            if doctype == "Email Unsubscribe":
+                return [_mk_dict(email="unsub@x.com")]
+            return []
+        frappe_stub.get_all.side_effect = _route
+
+        result = doc.get_recipients()
+        excluded = [r for r in result if r.status == "Excluded"]
+        assert len(excluded) == 1
+        assert excluded[0].email == "unsub@x.com"
+
+    def test_no_double_listing_for_email_both_sent_and_suppressed(self):
+        """If an email appears in both sent rows and unsubscribe, it must appear once."""
+        doc = self._doc()
+        frappe_stub.db.get_value.side_effect = lambda dt, filters, field, **kw: (
+            "SD-001" if dt == "Email Send" else None
+        )
+
+        def _route(doctype, *a, **kw):
+            if doctype == "Email Send Recipient":
+                return [_mk_dict(email="both@x.com", status="Sent", opened=0, opened_on=None)]
+            if doctype == "Email Unsubscribe":
+                return [_mk_dict(email="both@x.com")]
+            return []
+        frappe_stub.get_all.side_effect = _route
+
+        result = doc.get_recipients()
+        matching = [r for r in result if r.email == "both@x.com"]
+        assert len(matching) == 1
+        # Should be listed as Sent (from the send row), not Excluded
+        assert matching[0].status == "Sent"
+
+    def test_scopes_suppression_to_letter_and_folder(self):
+        """The unsubscribe query or_filters must include folder when doc has folder."""
+        doc = self._doc(folder="FOLDER-X")
+        frappe_stub.db.get_value.side_effect = lambda dt, filters, field, **kw: (
+            "SD-001" if dt == "Email Send" else "FOLDER-X"
+        )
+
+        captured_or_filters = []
+
+        def _route(doctype, *a, **kw):
+            if doctype == "Email Unsubscribe":
+                captured_or_filters.extend(kw.get("or_filters", []))
+                return []
+            return []
+        frappe_stub.get_all.side_effect = _route
+
+        doc.get_recipients()
+        ref_names = [f.get("reference_name") for f in captured_or_filters if "reference_name" in f]
+        assert "FOLDER-X" in ref_names
+
+
+# ===========================================================================
+# 5. _normalize_recipient_config
+# ===========================================================================
+#
+# Covers:
+#   - dict/list input → JSON string
+#   - empty/null strings → ""
+#   - None → None (leave unchanged)
+# ---------------------------------------------------------------------------
+
+class TestNormalizeRecipientConfig:
+    def test_dict_input_returns_json_string(self):
+        cfg = {"type": "group", "email_group": "G1"}
+        result = _normalize_recipient_config(cfg)
+        assert json.loads(result) == cfg
+
+    def test_list_input_returns_json_string(self):
+        cfg = [{"type": "paste", "recipients": ["a@b.com"]}]
+        result = _normalize_recipient_config(cfg)
+        assert json.loads(result) == cfg
+
+    def test_empty_string_returns_empty(self):
+        assert _normalize_recipient_config("") == ""
+
+    def test_null_string_returns_empty(self):
+        assert _normalize_recipient_config("null") == ""
+
+    def test_empty_object_string_returns_empty(self):
+        assert _normalize_recipient_config("{}") == ""
+
+    def test_none_returns_none(self):
+        assert _normalize_recipient_config(None) is None
+
+    def test_valid_json_string_returned_as_is(self):
+        raw = '{"type": "paste"}'
+        assert _normalize_recipient_config(raw) == raw
+
+
+# ===========================================================================
+# 6. _load_recipient_config
+# ===========================================================================
+#
+# Covers:
+#   - Old single-source dict format → wrapped in a list
+#   - New array format → returned as-is
+#   - Empty/null doc.recipient_config → None
+# ---------------------------------------------------------------------------
+
+class TestLoadRecipientConfig:
+    def _doc(self, config):
+        d = MagicMock()
+        d.recipient_config = config
+        return d
+
+    def test_old_single_source_dict_wrapped_in_list(self):
+        cfg = {"type": "group", "email_group": "G1"}
+        result = _load_recipient_config(self._doc(json.dumps(cfg)))
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert result[0]["email_group"] == "G1"
+
+    def test_new_array_format_returned_as_is(self):
+        cfg = [{"type": "paste", "recipients": ["a@b.com"]}, {"type": "group", "email_group": "G2"}]
+        result = _load_recipient_config(self._doc(json.dumps(cfg)))
+        assert isinstance(result, list)
+        assert len(result) == 2
+
+    def test_empty_string_returns_none(self):
+        assert _load_recipient_config(self._doc("")) is None
+
+    def test_none_value_returns_none(self):
+        assert _load_recipient_config(self._doc(None)) is None
+
+    def test_empty_array_returns_none(self):
+        assert _load_recipient_config(self._doc("[]")) is None
+
+    def test_invalid_json_returns_none(self):
+        assert _load_recipient_config(self._doc("not-json")) is None
+
+
+# ===========================================================================
+# 7. unsubscribe.py — save_preferences
+# ===========================================================================
+#
+# Covers:
+#   - global_unsubscribe=True: inserts Email Unsubscribe with global_unsubscribe=1
+#   - Folder unsubscribe: inserts Email Unsubscribe with reference_doctype="Letter Folder"
+#   - Removing a folder from the list deletes the existing unsubscribe record
+#   - global_unsubscribe=False with existing record: deletes global record
+# ---------------------------------------------------------------------------
+
+class TestSavePreferences:
+    def setup_method(self):
+        _reset()
+        frappe_stub.utils.cstr = lambda s: str(s) if s is not None else ""
+        frappe_stub.utils.cint = lambda s: int(s) if str(s).isdigit() else (1 if s == "1" else 0)
+        frappe_stub.local = MagicMock()
+        frappe_stub.local.response = {}
+
+    def _run(self, email="user@example.com", letter="", folders="", global_unsub="0"):
+        unsubscribe_module.save_preferences(
+            email=email, letter=letter,
+            unsubscribe_folders=folders,
+            global_unsubscribe=global_unsub,
+        )
+
+    def test_global_unsubscribe_inserts_record(self):
+        """global_unsubscribe=1 and no existing record → insert."""
+        frappe_stub.utils.validate_email_address.return_value = "user@example.com"
+        frappe_stub.db.exists.return_value = None
+        GETALL["Letter Folder"] = []  # no folders
+
+        inserted = {}
+        def get_doc_se(d):
+            m = MagicMock()
+            inserted.update(d)
+            return m
+        frappe_stub.get_doc.side_effect = get_doc_se
+
+        self._run(global_unsub="1")
+
+        assert inserted.get("global_unsubscribe") == 1
+        assert inserted.get("email") == "user@example.com"
+
+    def test_global_unsub_false_with_existing_record_deletes_it(self):
+        """global_unsubscribe=0 and existing global record → delete."""
+        frappe_stub.utils.validate_email_address.return_value = "user@example.com"
+        # First exists call (global check) returns truthy
+        frappe_stub.db.exists.side_effect = lambda dt, filters: (
+            "EU-GLOBAL" if filters.get("global_unsubscribe") else None
+        )
+        GETALL["Letter Folder"] = []  # no folders
+
+        self._run(global_unsub="0")
+
+        frappe_stub.db.delete.assert_called()
+        delete_filters = frappe_stub.db.delete.call_args[0][1]
+        assert delete_filters.get("global_unsubscribe") == 1
+
+    def test_folder_unsubscribe_inserts_folder_record(self):
+        """Selecting a folder creates an Email Unsubscribe for that folder."""
+        frappe_stub.utils.validate_email_address.return_value = "user@example.com"
+        frappe_stub.db.exists.return_value = None  # nothing exists yet
+        GETALL["Letter Folder"] = [_mk_dict(name="FOLDER-A")]
+
+        inserted = {}
+        def get_doc_se(d):
+            m = MagicMock()
+            inserted.update(d)
+            return m
+        frappe_stub.get_doc.side_effect = get_doc_se
+
+        self._run(folders="FOLDER-A", global_unsub="0")
+
+        assert inserted.get("reference_doctype") == "Letter Folder"
+        assert inserted.get("reference_name") == "FOLDER-A"
+
+    def test_removing_folder_deletes_existing_record(self):
+        """A folder NOT in the submitted list that has an existing record → delete."""
+        frappe_stub.utils.validate_email_address.return_value = "user@example.com"
+        # Global check returns None; folder check returns existing record
+        def exists_se(dt, filters):
+            if filters.get("global_unsubscribe"):
+                return None
+            if filters.get("reference_name") == "FOLDER-B":
+                return "EU-FOLDER-B"
+            return None
+        frappe_stub.db.exists.side_effect = exists_se
+        # Two folders exist; only FOLDER-A submitted — FOLDER-B should be removed
+        GETALL["Letter Folder"] = [_mk_dict(name="FOLDER-A"), _mk_dict(name="FOLDER-B")]
+
+        self._run(folders="FOLDER-A", global_unsub="0")
+
+        # At least one delete call must target FOLDER-B
+        delete_calls = frappe_stub.db.delete.call_args_list
+        folder_b_deleted = any(
+            c[0][1].get("reference_name") == "FOLDER-B"
+            for c in delete_calls
+        )
+        assert folder_b_deleted
+
+    def test_invalid_email_throws(self):
+        frappe_stub.utils.validate_email_address.return_value = None
+        with pytest.raises(FrappeValidationError, match="Invalid email"):
+            self._run(email="notanemail")
+
+
+# ===========================================================================
+# 8. letters_unsubscribe.py — get_context
+# ===========================================================================
+#
+# Covers:
+#   - No email: sets folders=[], is_globally_unsubscribed=False
+#   - With email: loads all Letter Folders, checks per-folder unsubscribe status
+#   - is_unsubscribed flag correct for each folder
+# ---------------------------------------------------------------------------
+
+class TestGetContext:
+    def setup_method(self):
+        _reset()
+        frappe_stub.utils.cstr = lambda s: str(s) if s is not None else ""
+        frappe_stub.utils.cint = lambda s: int(s) if str(s).lstrip("-").isdigit() else 0
+        frappe_stub.local = MagicMock()
+        frappe_stub.request = MagicMock()
+
+    def _ctx(self):
+        return FrappeDict()
+
+    def _set_args(self, email="", letter="", saved="0"):
+        frappe_stub.request.args = {"email": email, "letter": letter, "saved": saved}
+
+    def test_no_email_returns_empty_folders_and_not_globally_unsubscribed(self):
+        self._set_args(email="")
+        ctx = self._ctx()
+        get_context(ctx)
+        assert ctx.folders == []
+        assert ctx.is_globally_unsubscribed is False
+
+    def test_with_email_loads_all_folders(self):
+        self._set_args(email="user@x.com")
+        GETALL["Letter Folder"] = [
+            _mk_dict(name="F1", folder_name="Newsletter"),
+            _mk_dict(name="F2", folder_name="Updates"),
+        ]
+        frappe_stub.db.exists.return_value = None
+        ctx = self._ctx()
+        get_context(ctx)
+        assert len(ctx.folders) == 2
+
+    def test_folder_is_unsubscribed_flag_set_correctly(self):
+        self._set_args(email="user@x.com")
+        GETALL["Letter Folder"] = [
+            _mk_dict(name="F1", folder_name="Newsletter"),
+        ]
+        # exists returns truthy only for F1 folder unsubscribe check
+        def exists_se(dt, filters):
+            if filters.get("reference_name") == "F1" and filters.get("reference_doctype") == "Letter Folder":
+                return "EU-F1"
+            return None
+        frappe_stub.db.exists.side_effect = exists_se
+
+        ctx = self._ctx()
+        get_context(ctx)
+        assert ctx.folders[0]["is_unsubscribed"] is True
+
+    def test_folder_not_unsubscribed_flag_false(self):
+        self._set_args(email="user@x.com")
+        GETALL["Letter Folder"] = [
+            _mk_dict(name="F2", folder_name="Promos"),
+        ]
+        frappe_stub.db.exists.return_value = None
+        ctx = self._ctx()
+        get_context(ctx)
+        assert ctx.folders[0]["is_unsubscribed"] is False
+
+    def test_is_globally_unsubscribed_true_when_record_exists(self):
+        self._set_args(email="user@x.com")
+        GETALL["Letter Folder"] = []
+        frappe_stub.db.exists.side_effect = lambda dt, filters: (
+            "EU-GLOBAL" if filters.get("global_unsubscribe") else None
+        )
+        ctx = self._ctx()
+        get_context(ctx)
+        assert ctx.is_globally_unsubscribed is True
+
+    def test_no_email_does_not_query_db(self):
+        self._set_args(email="")
+        ctx = self._ctx()
+        get_context(ctx)
+        frappe_stub.get_all.assert_not_called()
+
+
+# ===========================================================================
+# 9. Sending path — multi-source snapshot (integration-style)
+# ===========================================================================
+#
+# Covers:
+#   - When send() is called with a multi-source recipient_config, resolved_emails
+#     is written back into recipient_config in the DB via frappe.db.set_value
+# ---------------------------------------------------------------------------
+
+class TestMultiSourceSnapshotOnSend:
+    def setup_method(self):
+        _reset()
+
+    def _make_send_doc(self):
+        sd = MagicMock()
+        sd.name = "SD-MULTI"
+        return sd
+
+    def test_multi_source_send_snapshots_resolved_emails(self):
+        """Sending with a two-source recipient_config must call db.set_value
+        to persist resolved_emails back into the Letter's recipient_config."""
+        doc = _letter_doc(name="MULTI-001")
+        doc.include_unsubscribe = False
+        # Two paste sources
+        doc.recipient_config = json.dumps([
+            {"type": "paste", "recipients": ["a@x.com"]},
+            {"type": "paste", "recipients": ["b@x.com"]},
+        ])
+        send_doc = self._make_send_doc()
+
+        def get_doc_se(arg, *a):
+            if isinstance(arg, dict):
+                return send_doc
+            return doc
+        frappe_stub.get_doc.side_effect = get_doc_se
+
+        # Claim succeeds (rowcount==1)
+        frappe_stub.db._cursor = MagicMock()
+        frappe_stub.db._cursor.rowcount = 1
+
+        # No suppression
+        frappe_stub.db.get_value.return_value = None  # no folder
+        frappe_stub.get_all.side_effect = lambda dt, *a, **kw: (
+            [] if dt == "Email Send" else
+            [] if dt == "Email Unsubscribe" else
+            []
+        )
+
+        doc.send()
+
+        # At least one set_value call must update recipient_config with resolved_emails
+        set_value_calls = frappe_stub.db.set_value.call_args_list
+        rc_calls = [
+            c for c in set_value_calls
+            if len(c.args) >= 3 and c.args[2] == "recipient_config"
+        ]
+        assert rc_calls, "Expected db.set_value to snapshot resolved_emails into recipient_config"
+        saved = json.loads(rc_calls[0].args[3])
+        assert isinstance(saved, list)
+        assert all("resolved_emails" in src for src in saved)
+
+    def test_single_source_send_does_not_call_multi_source_snapshot(self):
+        """A single-source send uses the legacy path and should NOT call
+        db.set_value with recipient_config (no per-source snapshot needed)."""
+        doc = _letter_doc(name="SINGLE-001")
+        doc.include_unsubscribe = False
+        doc.recipient_config = json.dumps({"type": "paste", "recipients": ["a@x.com"]})
+        send_doc = MagicMock()
+        send_doc.name = "SD-SINGLE"
+
+        def get_doc_se(arg, *a):
+            if isinstance(arg, dict):
+                return send_doc
+            return doc
+        frappe_stub.get_doc.side_effect = get_doc_se
+        frappe_stub.db._cursor = MagicMock()
+        frappe_stub.db._cursor.rowcount = 1
+        frappe_stub.db.get_value.return_value = None
+        frappe_stub.get_all.side_effect = lambda dt, *a, **kw: (
+            [] if dt in ("Email Send", "Email Unsubscribe", "Email Group Member") else []
+        )
+
+        doc.send()
+
+        set_value_calls = frappe_stub.db.set_value.call_args_list
+        rc_calls = [
+            c for c in set_value_calls
+            if len(c.args) >= 3 and c.args[2] == "recipient_config"
+        ]
+        assert not rc_calls, "Single-source send should not snapshot recipient_config"
