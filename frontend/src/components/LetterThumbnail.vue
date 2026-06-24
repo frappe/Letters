@@ -1,5 +1,5 @@
 <template>
-  <div ref="el" class="relative overflow-hidden bg-white w-full h-full">
+  <div ref="el" class="relative overflow-hidden w-full h-full">
     <iframe
       v-if="previewHtml"
       :srcdoc="previewHtml"
@@ -50,6 +50,7 @@ async function fetchPreview() {
     if (html) {
       const reset = `<style>
 html,body{margin:0!important;padding:0!important;background:transparent!important;}
+html{scrollbar-width:none!important;}html::-webkit-scrollbar{display:none!important;}
 table.body-wrap{background:transparent!important;}
 table.body-wrap>tbody>tr>td{padding:0!important;background:transparent!important;}
 </style>`;

@@ -188,6 +188,7 @@
   <TemplatePicker
     v-if="showTemplatePicker"
     :submit="onTemplateSubmit"
+    @close="onTemplateClose"
   />
 
   <ShortcutsDialog v-model="showShortcuts" />
@@ -260,7 +261,7 @@ const {
   saving, savedFlash, loadingLetter, duplicating, scheduling,
   scheduleDate, scheduleTime, minScheduleDate, openScheduleModal,
   sendProgress, letterStatus,
-  onTemplateSubmit, saveNow, saveLetter,
+  onTemplateSubmit, onTemplateClose, saveNow, saveLetter,
   sendLetter, scheduleLetter, duplicateLetter,
 } = useLetter(editorStore, { initialName: props.initialName, onClose: () => emit("close") });
 

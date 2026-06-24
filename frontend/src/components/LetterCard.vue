@@ -1,11 +1,11 @@
 <template>
   <div
-    class="group relative rounded-xl cursor-pointer transition-all duration-150 pt-3 px-3 pb-1"
+    class="group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-150 pt-3 px-3 pb-1"
     :class="props.isDark ? 'hover:bg-white/10' : 'hover:bg-surface-gray-2'"
     @click="$emit('open', letter.name)"
   >
     <!-- Thumbnail area -->
-    <div class="h-32 relative overflow-hidden rounded-lg" :class="props.isDark ? '' : 'border border-outline-gray-2 shadow-sm'">
+    <div class="h-32 relative [clip-path:inset(0_round_0.5rem)]" :class="props.isDark ? '' : 'border border-outline-gray-2 shadow-sm'">
       <LetterThumbnail :name="letter.name" icon-class="w-8 h-8" />
       <!-- Status badge -->
       <Badge

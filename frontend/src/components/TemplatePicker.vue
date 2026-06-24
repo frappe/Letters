@@ -3,9 +3,20 @@
     <div class="bg-surface-base border-outline-gray-2 border rounded-2xl shadow-2xl w-[900px] max-h-[85vh] flex flex-col overflow-hidden">
 
       <!-- Header -->
-      <div class="border-outline-gray-2 flex-shrink-0 px-8 pt-7 pb-5 border-b">
-        <h2 class="text-ink-gray-9 text-xl font-semibold">New Campaign</h2>
-        <p class="text-ink-gray-5 text-sm mt-1">Start from a template or begin with a blank canvas.</p>
+      <div class="border-outline-gray-2 flex-shrink-0 px-8 pt-7 pb-5 border-b flex items-start justify-between gap-4">
+        <div>
+          <h2 class="text-ink-gray-9 text-xl font-semibold">New Campaign</h2>
+          <p class="text-ink-gray-5 text-sm mt-1">Start from a template or begin with a blank canvas.</p>
+        </div>
+        <button
+          class="text-ink-gray-4 hover:text-ink-gray-7 transition-colors mt-0.5 flex-shrink-0"
+          aria-label="Close"
+          @click="$emit('close')"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
 
       <!-- Grid -->
@@ -52,13 +63,13 @@
             :key="tpl.name"
             class="group flex flex-col gap-0 rounded-xl border-2 border-outline-gray-2 overflow-hidden transition-all hover:border-blue-500"
           >
-            <div class="relative h-48 bg-white overflow-hidden">
+            <div ref="tileRef" class="relative h-48 bg-white overflow-hidden">
               <iframe
                 v-if="tpl.preview_html"
-                :srcdoc="tpl.preview_html"
+                :srcdoc="injectReset(tpl.preview_html)"
                 class="absolute top-0 left-0 border-none pointer-events-none"
                 sandbox="allow-same-origin"
-                :style="{ height: '1500px', transform: 'scale(0.46)', transformOrigin: 'top left', width: '217%' }"
+                :style="tileIframeStyle"
               />
               <div v-else class="w-full h-full bg-surface-gray-2 flex items-center justify-center">
                 <span class="text-xs text-ink-gray-4">Preview unavailable</span>
@@ -85,12 +96,41 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { Button } from "frappe-ui";
 
 const props = defineProps({
   submit: { type: Function, required: true },
 });
+defineEmits(["close"]);
+
+const IFRAME_WIDTH = 600;
+const tileRef = ref(null);
+
+const tileIframeStyle = computed(() => {
+  const containerW = tileRef.value?.offsetWidth || 265;
+  const scale = containerW / IFRAME_WIDTH;
+  return {
+    width: `${IFRAME_WIDTH}px`,
+    height: "1500px",
+    transform: `scale(${scale})`,
+    transformOrigin: "top left",
+  };
+});
+
+const PREVIEW_RESET = `<style>
+html,body{margin:0!important;padding:0!important;background:transparent!important;}
+html{scrollbar-width:none!important;}html::-webkit-scrollbar{display:none!important;}
+table.body-wrap{background:transparent!important;}
+table.body-wrap>tbody>tr>td{padding:0!important;background:transparent!important;}
+</style>`;
+
+function injectReset(html) {
+  if (!html) return html;
+  return html.includes("</head>")
+    ? html.replace("</head>", `${PREVIEW_RESET}</head>`)
+    : PREVIEW_RESET + html;
+}
 
 const loading = ref(true);
 const creating = ref(false);

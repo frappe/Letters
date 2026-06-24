@@ -134,6 +134,16 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
     }
   }
 
+  function onTemplateClose() {
+    if (editorStore.letterDoc?.name) {
+      // Editing an existing (empty) letter — just dismiss the picker.
+      showTemplatePicker.value = false;
+    } else {
+      // No letter created yet — go back to dashboard.
+      onClose?.();
+    }
+  }
+
   // Handles a template/blank choice from the picker. Two modes:
   //   - Existing campaign already loaded → apply blocks to it and save.
   //   - No campaign yet → create a new one, then load it.
@@ -386,7 +396,7 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
     // progress
     sendProgress, letterStatus,
     // actions
-    loadLetter, onTemplateSubmit, saveLetter, saveNow,
+    loadLetter, onTemplateSubmit, onTemplateClose, saveLetter, saveNow,
     sendLetter, scheduleLetter, duplicateLetter,
   };
 }
