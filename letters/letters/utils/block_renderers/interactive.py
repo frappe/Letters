@@ -36,7 +36,7 @@ class ButtonRenderer(BlockRenderer):
             f'<tr><td align="{align}" style="padding:{padding};">'
             f'<a href="{url}" style="display:inline-block;padding:{btn_padding};'
             f'background-color:{bg};color:{color};font-family:{font};'
-            f'font-size:{font_size};font-weight:500;text-decoration:none;'
+            f'font-size:{font_size};line-height:1.5;font-weight:500;text-decoration:none;'
             f'border-radius:{radius};{ls_style}">'
             f'{label}</a>'
             f'</td></tr></table>'

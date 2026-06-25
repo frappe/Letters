@@ -68,10 +68,11 @@ const imgStyle = computed(() => {
   const fit = props.block.props.image_fit || "cover";
   const h = props.block.props.image_height;
   const hasHeight = h && h !== "auto" && h !== "";
+  const objPos = props.block.props.object_position || "center";
   return {
     width: "100%",
     display: "block",
-    ...(hasHeight ? { height: h, objectFit: fit } : {}),
+    ...(hasHeight ? { height: h, objectFit: fit, objectPosition: objPos } : {}),
   };
 });
 </script>

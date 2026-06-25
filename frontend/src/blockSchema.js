@@ -147,12 +147,12 @@ export const BLOCK_SCHEMA = {
       image_align: "center",
       image_fit: "cover",
       image_height: "",
+      object_position: "center",
       background_color: "#ffffff",
       border: "none",
       border_radius: "0",
       padding_top: 16, padding_right: 16, padding_bottom: 16, padding_left: 16,
       spacing_top: 0, spacing_bottom: 0,
-      ...borderDefaults,
     },
     sections: [
       {
@@ -183,6 +183,12 @@ export const BLOCK_SCHEMA = {
             ],
             hint: "How the image fills its area when a fixed height is set",
           },
+          {
+            key: "object_position",
+            label: "Focus point",
+            type: "focuspoint",
+            hint: "Drag to choose which part stays in view when cropped to a fixed height",
+          },
         ],
       },
       {
@@ -192,7 +198,6 @@ export const BLOCK_SCHEMA = {
           { key: "background_color", label: "Background", type: "color" },
           { key: "border", label: "Image border", type: "text", placeholder: "1px solid #e5e7eb" },
           { key: "border_radius", label: "Image corners", type: "text", placeholder: "8px" },
-          ...borderFields,
         ],
       },
     ],
@@ -276,7 +281,7 @@ export const BLOCK_SCHEMA = {
       url: "#",
       color: "#111827",
       text_color: "#ffffff",
-      background_color: "#ffffff",
+      background_color: "transparent",
       align: "center",
       border_radius: "8px",
       font_family: "Arial",

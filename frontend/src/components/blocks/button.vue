@@ -1,6 +1,6 @@
 <template>
   <BlockWrapper :block="block" :index="index">
-    <div :style="paddingStyle">
+    <div :style="outerStyle">
       <div :class="alignClass">
         <span
           ref="labelRef"
@@ -33,6 +33,14 @@ function update(key, val) { store.updateBlockProps(props.block.id, { [key]: val 
 const blockProps = computed(() => props.block.props);
 const paddingStyle = usePadding(blockProps);
 
+const outerStyle = computed(() => {
+  const bg = props.block.props.background_color;
+  return {
+    ...paddingStyle.value,
+    ...(bg && bg !== 'transparent' ? { backgroundColor: bg } : {}),
+  };
+});
+
 const { elRef: labelRef, onFocus, onBlur, onPaste, onKeydown } = useContentEditable(
   () => props.block.props.label,
   (val) => update("label", val)
@@ -50,6 +58,7 @@ const buttonStyle = computed(() => ({
   borderRadius:    props.block.props.border_radius || "8px",
   fontFamily:      fontStack(props.block.props.font_family, "Arial, Helvetica, sans-serif"),
   fontSize:        props.block.props.font_size || "14px",
+  lineHeight:      "1.5",
   letterSpacing:   props.block.props.letter_spacing || undefined,
   padding:         PADDING_MAP[props.block.props.button_padding] || PADDING_MAP.normal,
 }));

@@ -112,6 +112,8 @@ class RichTextRenderer(BlockRenderer):
         letter_spacing = escape(str(p.get("letter_spacing", "")))
         font           = font_stack(p, "Arial,sans-serif")
         padding        = _padding(p, 20, 16, 20, 16)
+        bg             = escape(p.get("background_color", "") or "")
+        bg_style       = f"background-color:{bg};" if bg and bg != "transparent" else ""
 
         ls_style = f"letter-spacing:{letter_spacing};" if letter_spacing and letter_spacing != "normal" else ""
         # Normalise <p> tags: reset email-client default margins and apply text-align.
@@ -143,7 +145,8 @@ class RichTextRenderer(BlockRenderer):
                     + html_content[tag_end + 1:]
                 )
         html = (
-            f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
+            f'<table width="100%" cellpadding="0" cellspacing="0" border="0"'
+            f' style="{bg_style}">'
             f'<tr><td align="{align}" style="padding:{padding};'
             f'font-family:{font};font-size:{size};color:{color};'
             f'line-height:{line_height};font-weight:{weight};font-style:{font_style};{ls_style}">'

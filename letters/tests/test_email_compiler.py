@@ -65,3 +65,24 @@ class TestCompileRejectsUnknown:
     def test_unknown_type_raises(self):
         with pytest.raises(ValueError, match="Unknown block type"):
             EmailCompiler([{"type": "definitely_not_a_block"}]).compile()
+
+
+class TestHTMLWrapperStructure:
+    def test_email_card_td_has_zero_font_size_and_line_height(self):
+        # Regression: the <td> wrapping all block HTML must carry
+        # font-size:0;line-height:0; so that whitespace text nodes between
+        # adjacent table elements don't create a 1px gap in scaled previews.
+        # This style is also injected by PREVIEW_RESET (!important) so both
+        # the compiled email and the preview iframe enforce it.
+        html = EmailCompiler([{"type": "spacer", "props": {}}]).compile()
+        assert 'style="font-size:0;line-height:0;"' in html
+
+    def test_button_anchor_has_explicit_line_height(self):
+        # Regression: PREVIEW_RESET's line-height:0!important on the email-card
+        # td cascades to all descendants. The button <a> must override it with
+        # an explicit line-height so the text doesn't collapse and trigger the
+        # browser's default underline appearance.
+        html = EmailCompiler([
+            {"type": "button", "props": {"label": "Shop Now", "url": "https://example.com"}}
+        ]).compile()
+        assert "line-height:1.5" in html

@@ -135,11 +135,11 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
   }
 
   function onTemplateClose() {
-    if (editorStore.letterDoc?.name) {
-      // Editing an existing (empty) letter — just dismiss the picker.
+    if (editorStore.letterDoc?.name && editorStore.blocks.length) {
+      // Letter exists and has content — just dismiss the picker.
       showTemplatePicker.value = false;
     } else {
-      // No letter created yet — go back to dashboard.
+      // No letter yet, or letter is empty — go back to dashboard.
       onClose?.();
     }
   }

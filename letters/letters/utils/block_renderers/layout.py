@@ -18,7 +18,7 @@ def _render_child(child: dict) -> str:
 class ColumnsRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
         p             = block.get("props", {})
-        bg            = escape(p.get("background_color", "#ffffff"))
+        bg            = escape(p.get("background_color", "transparent"))
         show_dividers = p.get("show_dividers", False)
         divider_color = escape(p.get("divider_color", "#e5e7eb"))
         col_gap       = int(p.get("col_gap", 24))
@@ -59,9 +59,10 @@ class ColumnsRenderer(BlockRenderer):
                 f'</td>'
             )
 
+        bg_style = f"background-color:{bg};" if bg and bg != "transparent" else ""
         html = (
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0"'
-            f' style="background-color:{bg};">'
+            f' style="{bg_style}">'
             f'<tr><td style="padding:{outer_pad};">'
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0">'
             f'<tr>{cells}</tr>'
@@ -73,7 +74,7 @@ class ColumnsRenderer(BlockRenderer):
 class ContainerRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
         p             = block.get("props", {})
-        bg            = escape(p.get("background_color", "#f8fafc"))
+        bg            = escape(p.get("background_color", "transparent"))
         border_color  = escape(p.get("block_border_color") or p.get("border_color", ""))
         border_radius = escape(p.get("block_border_radius") or p.get("border_radius", "0"))
         layout        = p.get("layout", "column")
@@ -148,9 +149,10 @@ class ContainerRenderer(BlockRenderer):
 
         border_style = f"border:1px solid {border_color};" if border_color else ""
         radius_style = f"border-radius:{border_radius};" if border_radius and border_radius != "0" else ""
+        bg_style     = f"background-color:{bg};" if bg and bg != "transparent" else ""
         html = (
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0"'
-            f' style="background-color:{bg};{radius_style}">'
+            f' style="{bg_style}{radius_style}">'
             f'<tr><td style="padding:{padding};{border_style}{radius_style}">'
             f'{inner}'
             f'</td></tr></table>'

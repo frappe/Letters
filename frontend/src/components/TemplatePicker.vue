@@ -63,10 +63,10 @@
             :key="tpl.name"
             class="group flex flex-col gap-0 rounded-xl border-2 border-outline-gray-2 overflow-hidden transition-all hover:border-blue-500"
           >
-            <div ref="tileRef" class="relative h-48 bg-white overflow-hidden">
+            <div ref="tileRef" class="relative h-48 overflow-hidden">
               <iframe
                 v-if="tpl.preview_html"
-                :srcdoc="injectReset(tpl.preview_html)"
+                :srcdoc="injectReset(tpl.preview_html, firstBgColor(tpl))"
                 class="absolute top-0 left-0 border-none pointer-events-none"
                 sandbox="allow-same-origin"
                 :style="tileIframeStyle"
@@ -118,18 +118,47 @@ const tileIframeStyle = computed(() => {
   };
 });
 
-const PREVIEW_RESET = `<style>
-html,body{margin:0!important;padding:0!important;background:transparent!important;}
+// The preview iframe is CSS-scaled (transform: scale), which introduces a
+// sub-pixel seam between adjacent top-level block tables. That seam reveals
+// whatever sits *behind* the email content. To make it invisible, paint
+// html/body/body-wrap/email-card with the template's own dominant background
+// color so the bleed-through matches the email instead of the light modal.
+function previewReset(bg) {
+  return `<style>
+html,body{margin:0!important;padding:0!important;background:${bg}!important;}
 html{scrollbar-width:none!important;}html::-webkit-scrollbar{display:none!important;}
-table.body-wrap{background:transparent!important;}
-table.body-wrap>tbody>tr>td{padding:0!important;background:transparent!important;}
+table.body-wrap{background:${bg}!important;}
+table.body-wrap>tbody>tr>td{padding:0!important;background:${bg}!important;}
+table.email-card{background-color:${bg}!important;}
+table.email-card>tbody>tr>td{font-size:0!important;line-height:0!important;}
 </style>`;
+}
 
-function injectReset(html) {
+// Find the first block's background color (depth-first), defaulting to white.
+function firstBgColor(tpl) {
+  try {
+    const blocks = JSON.parse(tpl.blocks_json || "[]");
+    const walk = (list) => {
+      for (const b of list) {
+        const c = b?.props?.background_color;
+        if (c && c !== "transparent") return c;
+        const found = walk(b?.children || []);
+        if (found) return found;
+      }
+      return null;
+    };
+    return walk(blocks) || "#ffffff";
+  } catch {
+    return "#ffffff";
+  }
+}
+
+function injectReset(html, bg = "#ffffff") {
   if (!html) return html;
+  const reset = previewReset(bg);
   return html.includes("</head>")
-    ? html.replace("</head>", `${PREVIEW_RESET}</head>`)
-    : PREVIEW_RESET + html;
+    ? html.replace("</head>", `${reset}</head>`)
+    : reset + html;
 }
 
 const loading = ref(true);

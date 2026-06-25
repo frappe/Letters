@@ -48,11 +48,14 @@ async function fetchPreview() {
     });
     let html = res.message?.html || null;
     if (html) {
+      const bg = res.message?.first_bg || "#ffffff";
       const reset = `<style>
-html,body{margin:0!important;padding:0!important;background:transparent!important;}
+html,body{margin:0!important;padding:0!important;background:${bg}!important;}
 html{scrollbar-width:none!important;}html::-webkit-scrollbar{display:none!important;}
-table.body-wrap{background:transparent!important;}
-table.body-wrap>tbody>tr>td{padding:0!important;background:transparent!important;}
+table.body-wrap{background:${bg}!important;}
+table.body-wrap>tbody>tr>td{padding:0!important;background:${bg}!important;}
+table.email-card{background-color:${bg}!important;}
+table.email-card>tbody>tr>td{font-size:0!important;line-height:0!important;}
 </style>`;
       html = html.includes("</head>") ? html.replace("</head>", `${reset}</head>`) : reset + html;
     }

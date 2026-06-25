@@ -24,6 +24,7 @@ declare module 'vue' {
     DoctypeTab: typeof import('./src/components/DoctypeTab.vue')['default']
     EditableDiv: typeof import('./src/components/EditableDiv.vue')['default']
     FieldControl: typeof import('./src/components/FieldControl.vue')['default']
+    FocusPointPicker: typeof import('./src/components/FocusPointPicker.vue')['default']
     Footer: typeof import('./src/components/blocks/footer.vue')['default']
     Header: typeof import('./src/components/blocks/header.vue')['default']
     Hero: typeof import('./src/components/blocks/hero.vue')['default']

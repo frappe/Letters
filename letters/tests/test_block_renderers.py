@@ -259,6 +259,19 @@ class TestButtonRenderer:
         # transparent should not add a background-color on the outer table
         assert html.count("background-color") == 1  # only the button itself
 
+    def test_line_height_on_anchor(self):
+        # Regression: PREVIEW_RESET injects line-height:0!important on the
+        # email-card td, which cascades to all descendants. Without an explicit
+        # line-height on the <a>, the button text collapses and the browser's
+        # default underline appears at the baseline, making it look like a
+        # text-decoration bug. Every button <a> must carry line-height:1.5.
+        html = self._r({"label": "Buy"})
+        assert "line-height:1.5" in html
+
+    def test_text_decoration_none_on_anchor(self):
+        html = self._r({"label": "Buy", "url": "https://example.com"})
+        assert "text-decoration:none" in html
+
 
 # ── ColumnsRenderer ───────────────────────────────────────────────────────────
 
@@ -316,6 +329,14 @@ class TestColumnsRenderer:
         block = self._block([{"blocks": []}, {"blocks": []}], background_color="#f0f0f0")
         html = self.renderer.render(block)
         assert "background-color:#f0f0f0" in html
+
+    def test_default_no_background_color(self):
+        # Regression: ColumnsRenderer used to default to background-color:#ffffff,
+        # which produced a white box in the email even when the canvas showed no
+        # background. Transparent (no bg style) is the correct default.
+        block = self._block([{"blocks": [self._text_child("A")]}, {"blocks": []}])
+        html = self.renderer.render(block)
+        assert "background-color" not in html
 
     def test_child_block_xss_safe(self):
         child = {"type": "text", "props": {"html_content": "<script>evil()</script>"}}
@@ -509,6 +530,18 @@ class TestContainerRenderer:
         assert "Right" in html
         assert "<td" in html
 
+    def test_default_no_background_color(self):
+        # Regression: ContainerRenderer used to default to background-color:#f8fafc,
+        # producing a misty-blue tint in email that wasn't visible on the canvas
+        # (canvas defaults to transparent). Default should emit no bg style.
+        block = {
+            "type": "container",
+            "props": {},
+            "children": [{"type": "text", "props": {"html_content": "<p>hi</p>"}}],
+        }
+        html = ContainerRenderer().render(block)
+        assert "background-color" not in html
+
 
 # ── _sanitize_rich_html ───────────────────────────────────────────────────────
 
@@ -673,6 +706,18 @@ class TestRichTextRenderer:
         out = self.renderer.render(self._block("<p>hi</p>"))
         assert "<table" in out
         assert 'width="100%"' in out
+
+    def test_background_color_applied_to_outer_table(self):
+        # Regression: rich_text blocks used to silently ignore background_color —
+        # the canvas showed the tinted section but the compiled email was always
+        # white. The outer <table> must carry the background-color so the email
+        # matches the canvas.
+        out = self.renderer.render(self._block("<p>hi</p>", background_color="#F5F7F2"))
+        assert "background-color:#F5F7F2" in out
+
+    def test_no_background_color_when_transparent(self):
+        out = self.renderer.render(self._block("<p>hi</p>", background_color="transparent"))
+        assert "background-color:transparent" not in out
 
     def test_last_paragraph_has_zero_bottom_margin(self):
         # The last <p> must have margin:0 so it doesn't add trailing space beyond

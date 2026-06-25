@@ -41,7 +41,8 @@ class ImageRenderer(BlockRenderer):
         if image_height and image_height != "auto":
             h_num   = image_height.replace("px", "")
             h_attr  = f' height="{h_num}"'
-            h_style = f"height:{image_height};object-fit:{image_fit};"
+            obj_pos = escape(p.get("object_position", "center") or "center")
+            h_style = f"height:{image_height};object-fit:{image_fit};object-position:{obj_pos};"
         else:
             h_attr  = ""
             h_style = "height:auto;"

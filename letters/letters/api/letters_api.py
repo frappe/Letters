@@ -92,12 +92,24 @@ def render_preview(name: str | None = None, blocks: str | None = None, preview_t
     """Compile blocks to email-safe HTML."""
     from letters.letters.utils.email_compiler import EmailCompiler
 
+    def _first_bg(blocks_data):
+        """Return the first explicit background-color in the block tree (depth-first)."""
+        stack = list(blocks_data)
+        while stack:
+            node = stack.pop(0)
+            bg = (node.get("props") or {}).get("background_color", "")
+            if bg and bg != "transparent":
+                return bg
+            stack[:0] = node.get("children", [])
+        return "#ffffff"
+
     if name and not blocks:
         doc = frappe.get_doc("Letter", name)
         frappe.has_permission("Letter", "read", doc=doc, throw=True)
         try:
             html = doc.render_preview_html(preview_text=preview_text, email_width=email_width)
-            return {"html": html}
+            blocks_data = json.loads(doc.blocks_json or "[]")
+            return {"html": html, "first_bg": _first_bg(blocks_data)}
         except Exception as e:
             frappe.log_error(frappe.get_traceback(), "Letters render_preview error")
             frappe.throw(str(e))
@@ -105,7 +117,7 @@ def render_preview(name: str | None = None, blocks: str | None = None, preview_t
         blocks_data = blocks if isinstance(blocks, list) else json.loads(blocks or "[]")
         try:
             compiler = EmailCompiler(blocks_data, preview_text=preview_text or "", email_width=email_width or 600)
-            return {"html": compiler.compile()}
+            return {"html": compiler.compile(), "first_bg": _first_bg(blocks_data)}
         except Exception as e:
             frappe.log_error(frappe.get_traceback(), "Letters render_preview error")
             frappe.throw(str(e))

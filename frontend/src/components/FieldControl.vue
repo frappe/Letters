@@ -23,6 +23,14 @@
     @update:model-value="emit('change', $event)"
   />
 
+  <!-- focus point (draggable) -->
+  <FocusPointPicker
+    v-else-if="field.type === 'focuspoint'"
+    :value="value"
+    :block-props="blockProps"
+    @change="emit('change', $event)"
+  />
+
   <!-- alignment -->
   <TabButtons
     v-else-if="field.type === 'align'"
@@ -113,6 +121,7 @@
 import { computed } from "vue";
 import { TextInput, Select, Switch, TabButtons, Slider, Button } from "frappe-ui";
 import ColorPicker from "./ColorPicker.vue";
+import FocusPointPicker from "./FocusPointPicker.vue";
 
 const props = defineProps({
   field:      { type: Object, required: true },
