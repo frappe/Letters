@@ -22,6 +22,7 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
   const showSettings        = ref(false);
   const showTemplatePicker  = ref(false);
   const showScheduleModal   = ref(false);
+  const settingsInitialTab  = ref(null);
 
   const sending     = ref(false);
   const duplicating = ref(false);
@@ -98,6 +99,9 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
   }
 
   onMounted(async () => {
+    // Capture ?tab= before setRouteParam replaces the URL and strips query params.
+    const tabParam = new URLSearchParams(window.location.search).get("tab");
+
     // When launched from the dashboard, initialName is passed as a prop.
     // Otherwise fall back to the Frappe route / legacy query param.
     const name = initialName || getRouteParam();
@@ -108,6 +112,10 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
       if (ok) {
         setRouteParam(name);
         if (!editorStore.blocks.length) showTemplatePicker.value = true;
+        if (tabParam) {
+          settingsInitialTab.value = tabParam;
+          showSettings.value = true;
+        }
       } else if (!initialName) {
         if (window.frappe?.set_route) frappe.set_route("letter-builder");
         showTemplatePicker.value = true;
@@ -404,7 +412,7 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
     // editable fields
     subject, previewText, recipientConfig, includeUnsubscribe,
     // ui visibility
-    showSettings, showTemplatePicker, showScheduleModal,
+    showSettings, showTemplatePicker, showScheduleModal, settingsInitialTab,
     // status flags
     saving, savedFlash, loadingLetter, sending, duplicating, scheduling,
     // schedule modal

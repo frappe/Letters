@@ -26,12 +26,16 @@ scheduler_events = {
 
 page_js = {"letter-builder": "public/js/letter-builder.js"}
 
-doctype_js = {"Letter": "public/frappe_customizations/letter.js"}
+doctype_js = {
+    "Letter": "public/frappe_customizations/letter.js",
+    "Notification": "public/frappe_customizations/notification.js",
+}
 
 fixtures = ["Letters Template"]
 
 after_install = "letters.install.after_install"
 after_migrate = "letters.install.after_migrate"
 
-# Override standard DocType forms
-# override_doctype_class = {}
+override_doctype_class = {
+    "Notification": "letters.letters.overrides.notification.LettersNotification",
+}

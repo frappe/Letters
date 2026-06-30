@@ -186,6 +186,11 @@
                 />
               </div>
 
+              <!-- ── Notifications ── -->
+              <div v-else-if="activeTab === 'notifications'">
+                <NotificationsTab :letter-doc="letterDoc" />
+              </div>
+
               <!-- ── Analytics ── -->
               <div v-else-if="activeTab === 'analytics'" class="space-y-4">
                 <div v-if="loadingAnalytics" class="text-xs text-ink-gray-5 py-6 text-center">Loading analytics…</div>
@@ -246,6 +251,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { TextInput, Button } from "frappe-ui";
 import RecipientsPicker from "./RecipientsPicker.vue";
+import NotificationsTab from "./NotificationsTab.vue";
 
 const props = defineProps({
   modelValue:      { type: Boolean, default: false },
@@ -255,6 +261,7 @@ const props = defineProps({
   recipientConfig:    { type: Object, default: null },
   includeUnsubscribe: { type: Boolean, default: false },
   letterDoc:        { type: Object, default: null },
+  initialTab:       { type: String, default: null },
 });
 const emit = defineEmits([
   "update:modelValue", "update:letterName", "update:subject",
@@ -262,9 +269,10 @@ const emit = defineEmits([
 ]);
 
 const sections = [
-  { id: "details",    label: "Details",    icon: "settings" },
-  { id: "recipients", label: "Recipients", icon: "users" },
-  { id: "analytics",  label: "Analytics",  icon: "chart-bar" },
+  { id: "details",       label: "Details",       icon: "settings" },
+  { id: "recipients",    label: "Recipients",    icon: "users" },
+  { id: "notifications", label: "Notifications", icon: "bell" },
+  { id: "analytics",     label: "Analytics",     icon: "chart-bar" },
 ];
 const activeTab = ref("details");
 const activeSection = computed(() => sections.find(s => s.id === activeTab.value) || sections[0]);
@@ -407,6 +415,12 @@ async function loadGroupMembers() {
   }));
   groupMembers.value = result;
 }
+
+watch(() => props.modelValue, (open) => {
+  if (open && props.initialTab && sections.some(s => s.id === props.initialTab)) {
+    activeTab.value = props.initialTab;
+  }
+});
 
 watch(
   () => [props.modelValue, activeTab.value, props.letterDoc?.status],

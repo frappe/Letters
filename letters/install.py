@@ -3,10 +3,12 @@ import frappe
 
 def after_install():
     seed_templates()
+    _add_notification_letter_field()
 
 
 def after_migrate():
     seed_templates()
+    _add_notification_letter_field()
 
 
 def seed_templates():
@@ -31,4 +33,22 @@ def seed_templates():
             doc = frappe.get_doc({"doctype": "Letters Template", **tpl})
             doc.insert(ignore_permissions=True)
 
+    frappe.db.commit()
+
+
+def _add_notification_letter_field():
+    """Add a Letter link field to Frappe's Notification DocType (idempotent)."""
+    if frappe.db.exists("Custom Field", "Notification-letter"):
+        return
+    frappe.get_doc({
+        "doctype": "Custom Field",
+        "dt": "Notification",
+        "fieldname": "letter",
+        "fieldtype": "Link",
+        "options": "Letter",
+        "label": "Letter",
+        "description": "Use a visual Letter design as the email body for this notification",
+        "insert_after": "message",
+        "translatable": 0,
+    }).insert(ignore_permissions=True)
     frappe.db.commit()

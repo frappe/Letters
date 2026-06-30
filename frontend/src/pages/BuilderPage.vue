@@ -183,6 +183,7 @@
     v-model:recipient-config="recipientConfig"
     v-model:include-unsubscribe="includeUnsubscribe"
     :letter-doc="editorStore.letterDoc"
+    :initial-tab="settingsInitialTab"
   />
 
   <TemplatePicker
@@ -257,7 +258,7 @@ const showShortcuts = ref(false);
 
 const {
   subject, previewText, recipientConfig, includeUnsubscribe,
-  showSettings, showTemplatePicker, showScheduleModal,
+  showSettings, showTemplatePicker, showScheduleModal, settingsInitialTab,
   saving, savedFlash, loadingLetter, duplicating, scheduling,
   scheduleDate, scheduleTime, minScheduleDate, openScheduleModal,
   sendProgress, letterStatus,
