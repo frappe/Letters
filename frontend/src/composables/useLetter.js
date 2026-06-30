@@ -102,20 +102,33 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
     // Otherwise fall back to the Frappe route / legacy query param.
     const name = initialName || getRouteParam();
     if (name) {
-      await loadLetter(name);
-      setRouteParam(name);
-      if (!editorStore.blocks.length) showTemplatePicker.value = true;
+      // Route-based loads are silent: if the letter no longer exists (stale URL),
+      // clear the route and show the template picker without any error dialogs.
+      const ok = await loadLetter(name, { silent: !initialName });
+      if (ok) {
+        setRouteParam(name);
+        if (!editorStore.blocks.length) showTemplatePicker.value = true;
+      } else if (!initialName) {
+        if (window.frappe?.set_route) frappe.set_route("letter-builder");
+        showTemplatePicker.value = true;
+      }
     } else {
       showTemplatePicker.value = true;
     }
   });
   onUnmounted(() => clearInterval(_progressTimer));
 
-  async function loadLetter(name) {
+  async function loadLetter(name, { silent = false } = {}) {
     loadingLetter.value = true;
     _suppressDirty++;
     try {
-      const res = await frappe.call({ method: "letters.letters.api.get_letter", args: { name } });
+      // Silent mode uses the callback form so Frappe's auto error dialog is suppressed.
+      const res = await (silent
+        ? new Promise((resolve, reject) =>
+            frappe.call({ method: "letters.letters.api.get_letter", args: { name }, callback: resolve, error: reject })
+          )
+        : frappe.call({ method: "letters.letters.api.get_letter", args: { name } })
+      );
       const doc = res.message;
       editorStore.loadFromDoc(doc);
       subject.value         = doc.subject || "";
@@ -125,8 +138,10 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
       document.title = (doc.title || "Untitled Letter") + " · Letters";
       // Allow one Vue flush cycle before re-enabling dirty tracking
       await Promise.resolve();
+      return true;
     } catch (e) {
-      toast.error("Couldn't load letter: " + describeError(e));
+      if (!silent) toast.error("Couldn't load letter: " + describeError(e));
+      return false;
     } finally {
       // Always decrement, even on error, so the watcher is never permanently silenced
       _suppressDirty--;
