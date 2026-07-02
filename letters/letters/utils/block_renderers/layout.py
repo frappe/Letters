@@ -117,6 +117,13 @@ class ContainerRenderer(BlockRenderer):
             row_valign   = _va_map.get(p.get("vertical_align", ""), "top")
             valign_css   = {"top": "top", "middle": "middle", "bottom": "bottom"}.get(row_valign, "top")
 
+            # Narrow, uniform-width rows (4+ short items, e.g. a stat strip) waste
+            # most of the screen if each stacks to full width on mobile — a
+            # single number+label ends up alone on a 400px-wide line. Give those
+            # a 2-up grid instead; wider/fewer-column rows (image+text) still
+            # need the full line once stacked, so they keep ltr-stack.
+            stack_cls = "ltr-stack-2" if count >= 4 and all(w is None for w in explicit_widths) else "ltr-stack"
+
             cells = ""
             for idx, child in enumerate(children):
                 left_pad  = 0 if idx == 0 else half_gap
@@ -124,7 +131,7 @@ class ContainerRenderer(BlockRenderer):
                 w = explicit_widths[idx] or default_width
                 width_attr = f' width="{w}"'
                 cells += (
-                    f'<td class="ltr-stack"{width_attr} valign="{row_valign}"'
+                    f'<td class="{stack_cls}"{width_attr} valign="{row_valign}"'
                     f' style="padding:0 {right_pad}px 0 {left_pad}px;vertical-align:{valign_css};">'
                     f'{_render_child(child)}'
                     f'</td>'
