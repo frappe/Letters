@@ -144,6 +144,12 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
       recipientConfig.value    = doc.recipient_config || null;
       includeUnsubscribe.value = !!doc.include_unsubscribe;
       document.title = (doc.title || "Untitled Letter") + " · Letters";
+      // A send may still be in progress from a previous session (tab reopened,
+      // page reloaded) — resume live polling instead of leaving the toolbar stuck at 0/0.
+      if (doc.status === "Sending") {
+        sendProgress.value = { status: "Sending", sent: 0, delivered: 0, failed: 0, total: 0 };
+        _startProgressPolling();
+      }
       // Allow one Vue flush cycle before re-enabling dirty tracking
       await Promise.resolve();
       return true;
@@ -311,7 +317,7 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
 
   function _startProgressPolling() {
     clearInterval(_progressTimer);
-    _progressTimer = setInterval(async () => {
+    const tick = async () => {
       if (!editorStore.letterDoc?.name) { clearInterval(_progressTimer); return; }
       try {
         const r = await frappe.call({
@@ -328,7 +334,9 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
           toast[r.message.status === "Sent" ? "success" : "warning"](label);
         }
       } catch { clearInterval(_progressTimer); _progressTimer = null; }
-    }, 2000);
+    };
+    tick();
+    _progressTimer = setInterval(tick, 2000);
   }
 
   // ── Schedule send ─────────────────────────────────────────────────────────────
