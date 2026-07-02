@@ -28,10 +28,27 @@ class AnalyticsMixin:
             {"parent": latest.name, "opened": 1},
             "opened_on", order_by="opened_on desc",
         )
-        unsubscribed = frappe.db.count(
-            "Email Unsubscribe",
-            {"reference_doctype": "Letter", "reference_name": name},
+        # A recipient counts as unsubscribed if they opted out globally, or opted
+        # out of this letter's own folder (category-level opt-out) — Letters never
+        # writes an Email Unsubscribe row scoped to reference_doctype="Letter"
+        # itself, so that filter would always read zero.
+        recipient_emails = frappe.get_all(
+            "Email Send Recipient", filters={"parent": latest.name}, pluck="email"
         )
+        unsubscribed = 0
+        if recipient_emails:
+            folder = frappe.db.get_value("Letter", name, "folder")
+            or_filters = [{"global_unsubscribe": 1}]
+            if folder:
+                or_filters.append({"reference_doctype": "Letter Category", "reference_name": folder})
+            unsubscribed_emails = frappe.get_all(
+                "Email Unsubscribe",
+                filters={"email": ["in", recipient_emails]},
+                or_filters=or_filters,
+                pluck="email",
+                distinct=True,
+            )
+            unsubscribed = len(unsubscribed_emails)
         status_counts = {}
         for row in frappe.get_all("Email Send Recipient", filters={"parent": latest.name}, fields=["status"]):
             s = row.status or "Pending"
