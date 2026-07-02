@@ -31,19 +31,16 @@
 
         <div v-else class="grid grid-cols-3 gap-5">
           <!-- Blank tile -->
-          <div class="group flex flex-col gap-0 rounded-xl border-2 border-dashed border-outline-gray-2 overflow-hidden transition-all hover:border-blue-500">
-            <div class="relative bg-surface-gray-2 h-48 flex flex-col items-center justify-center gap-2 overflow-hidden">
+          <div class="flex flex-col gap-0 rounded-xl border-2 border-dashed border-outline-gray-2 overflow-hidden transition-colors hover:border-blue-500">
+            <div class="bg-surface-gray-2 h-48 flex flex-col items-center justify-center gap-2">
               <div class="bg-surface-base border-outline-gray-2 w-10 h-10 rounded-full border-2 flex items-center justify-center">
                 <span class="lucide-plus size-5 text-ink-gray-5" aria-hidden="true" />
               </div>
               <span class="text-ink-gray-5 text-xs">Blank canvas</span>
-              <!-- Hover overlay -->
-              <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <Button label="Start blank" :disabled="creating" @click="pick(blankBlocks)" />
-              </div>
             </div>
-            <div class="border-outline-gray-2 px-4 py-3 border-t">
+            <div class="border-outline-gray-2 px-4 py-3 border-t flex items-center justify-between gap-3">
               <p class="text-ink-gray-9 text-sm font-semibold">Blank</p>
+              <Button label="Start blank" size="sm" :disabled="creating" @click="pick(blankBlocks)" />
             </div>
           </div>
 
@@ -51,7 +48,7 @@
           <div
             v-for="tpl in templates"
             :key="tpl.name"
-            class="group flex flex-col gap-0 rounded-xl border-2 border-outline-gray-2 overflow-hidden transition-all hover:border-blue-500"
+            class="flex flex-col gap-0 rounded-xl border-2 border-outline-gray-2 overflow-hidden transition-colors hover:border-blue-500"
           >
             <div ref="tileRef" class="relative h-48 overflow-hidden">
               <iframe
@@ -64,13 +61,26 @@
               <div v-else class="w-full h-full bg-surface-gray-2 flex items-center justify-center">
                 <span class="text-xs text-ink-gray-4">Preview unavailable</span>
               </div>
-              <!-- Hover overlay -->
-              <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <Button label="Use template" :disabled="creating" @click="pick(JSON.parse(tpl.blocks_json || '[]'))" />
-              </div>
             </div>
-            <div class="border-outline-gray-2 px-4 py-3 border-t">
-              <p class="text-ink-gray-9 text-sm font-semibold">{{ tpl.title }}</p>
+            <div class="border-outline-gray-2 px-4 py-3 border-t space-y-2">
+              <p class="text-ink-gray-9 text-sm font-semibold truncate">{{ tpl.title }}</p>
+              <div class="flex items-center gap-2">
+                <Button
+                  label="Preview"
+                  size="sm"
+                  class="flex-1"
+                  :disabled="!tpl.preview_html"
+                  @click="previewTemplate = tpl"
+                />
+                <Button
+                  label="Use template"
+                  variant="solid"
+                  size="sm"
+                  class="flex-1"
+                  :disabled="creating"
+                  @click="pick(JSON.parse(tpl.blocks_json || '[]'))"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -80,6 +90,33 @@
       <div v-if="creating" class="border-outline-gray-2 flex-shrink-0 px-8 py-4 border-t flex items-center gap-3">
         <div class="w-4 h-4 border-2 border-outline-gray-3 border-t-blue-500 rounded-full animate-spin" />
         <span class="text-ink-gray-5 text-sm">Setting up your letter…</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full-size template preview -->
+  <div v-if="previewTemplate" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 px-4 py-8" @click.self="previewTemplate = null">
+    <div class="bg-surface-base border-outline-gray-2 border rounded-2xl shadow-2xl w-[720px] max-h-full flex flex-col overflow-hidden">
+      <div class="border-outline-gray-2 flex-shrink-0 px-6 py-4 border-b flex items-center justify-between gap-4">
+        <p class="text-ink-gray-9 text-base font-semibold">{{ previewTemplate.title }}</p>
+        <div class="flex items-center gap-2">
+          <Button
+            label="Use template"
+            variant="solid"
+            size="sm"
+            :disabled="creating"
+            @click="pick(JSON.parse(previewTemplate.blocks_json || '[]'))"
+          />
+          <Button variant="ghost" icon="lucide-x" size="sm" aria-label="Close preview" @click="previewTemplate = null" />
+        </div>
+      </div>
+      <div class="flex-1 overflow-y-auto">
+        <iframe
+          :srcdoc="injectReset(previewTemplate.preview_html, firstBgColor(previewTemplate))"
+          class="w-full border-none"
+          style="height: 80vh;"
+          sandbox="allow-same-origin"
+        />
       </div>
     </div>
   </div>
@@ -96,6 +133,7 @@ defineEmits(["close"]);
 
 const IFRAME_WIDTH = 600;
 const tileRef = ref(null);
+const previewTemplate = ref(null);
 
 const tileIframeStyle = computed(() => {
   const containerW = tileRef.value?.offsetWidth || 265;
