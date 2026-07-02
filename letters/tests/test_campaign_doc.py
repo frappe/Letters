@@ -126,8 +126,8 @@ class TestAsBuilderDict(LettersTestCase):
     def test_recipient_config_parsed_from_json(self):
         doc = self.new_letter(recipient_config=json.dumps({"type": "paste", "recipients": ["x@y.com"]}))
         result = doc.as_builder_dict()
-        self.assertIsInstance(result["recipient_config"], dict)
-        self.assertEqual(result["recipient_config"]["type"], "paste")
+        self.assertIsInstance(result["recipient_config"], list)
+        self.assertEqual(result["recipient_config"][0]["type"], "paste")
 
     def test_scheduled_at_is_none_when_not_set(self):
         doc = self.new_letter()

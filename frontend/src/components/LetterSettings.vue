@@ -23,7 +23,7 @@
         >
           <div
             v-if="isOpen"
-            class="relative w-full max-w-3xl rounded-xl bg-surface-modal shadow-xl overflow-hidden"
+            class="relative w-full max-w-3xl rounded-xl bg-surface-base shadow-xl overflow-hidden"
           >
             <!-- Header -->
             <div class="flex items-center justify-between px-8 pt-4 pb-0">
