@@ -233,6 +233,9 @@ def _resolve_link_check_args(blocks, name):
         preview_text = doc.preview_text or ""
         email_width = getattr(doc, "email_width", None) or 600
     else:
+        # No saved doc to check, so gate on Letter-create like the blocks path of
+        # send_test — otherwise any logged-in user could drive server-side probes.
+        frappe.has_permission("Letter", "create", throw=True)
         if not blocks:
             frappe.throw(_("No blocks provided."))
         blocks_data = json.loads(blocks) if isinstance(blocks, str) else blocks

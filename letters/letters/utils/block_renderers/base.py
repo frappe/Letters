@@ -21,10 +21,17 @@ def _safe_css_value(value: Any) -> str:
     return v if _CSS_VALUE_RE.match(v) else ""
 
 
+_URL_SCHEME_NOISE_RE = re.compile(r"[\x00-\x20]")
+
+
 def _safe_url(url: str) -> str:
     """Return an HTML-escaped URL, rejecting dangerous protocol schemes."""
     url = (url or "").strip()
-    if url.lower().lstrip("\x00\t\n\r\f ").startswith(("javascript:", "data:", "vbscript:")):
+    # Browsers ignore control chars and whitespace *anywhere* in the scheme
+    # (e.g. `java\tscript:` or `java\nscript:`), so strip them across the whole
+    # string before the check — lstrip alone only catches leading ones.
+    probe = _URL_SCHEME_NOISE_RE.sub("", url).lower()
+    if probe.startswith(("javascript:", "data:", "vbscript:")):
         return "#"
     return escape(url)
 
@@ -134,7 +141,7 @@ def _spacing_wrapper(inner_html: str, props: dict) -> str:
     right  = int(props.get("spacing_right",  0))
     if top == 0 and bottom == 0 and left == 0 and right == 0:
         return inner_html
-    bg       = props.get("background_color", "")
+    bg       = _safe_css_value(props.get("background_color", ""))
     bg_style = f"background-color:{bg};" if bg and bg not in ("transparent", "") else ""
     padding  = f"padding:{top}px {right}px {bottom}px {left}px;"
     # Wide left/right spacing also crowds a phone; trim it on mobile like padding.

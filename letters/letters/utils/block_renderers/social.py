@@ -130,7 +130,10 @@ _SOCIAL_ICONS: dict[str, tuple[str, str]] = {
 class SocialRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
         p       = block.get("props", {})
-        color   = p.get("color", "#374151")
+        # Sanitized: color flows into an SVG fill attr *and* into the cached icon
+        # filename (color.lstrip("#")), so an unsanitized "/" or ".." would allow
+        # a path-traversal .svg write. The whitelist keeps hex/named colors.
+        color   = _safe_css_value(p.get("color", "#374151")) or "#374151"
         bg      = _safe_css_value(p.get("background_color", "#ffffff"))
         align   = _safe_css_value(p.get("align", "center"))
         padding = _padding(p, 20, 16, 20, 16)

@@ -1131,6 +1131,42 @@ class TestSendTest:
             result = api_module.send_test(name="CAMP-001")
         assert result["sent_to"] == "user@frappe.io"
 
+    def test_blocks_path_gates_on_letter_create(self):
+        """M2: the no-name (raw blocks) path must check Letter-create permission."""
+        frappe_stub.session.user = "user@frappe.io"
+        with patch("letters.letters.utils.email_compiler.EmailCompiler") as C:
+            C.return_value.compile.return_value = "<html/>"
+            api_module.send_test(blocks=json.dumps([]), subject="Hi", recipient="user@frappe.io")
+        perm_calls = [c.args for c in frappe_stub.has_permission.call_args_list]
+        assert ("Letter", "create") in perm_calls
+
+    def test_blocks_path_denied_does_not_send(self):
+        """M2: without Letter-create permission, no mail is sent from the blocks path."""
+        frappe_stub.has_permission.side_effect = Exception("Forbidden")
+        with patch("letters.letters.utils.email_compiler.EmailCompiler") as C:
+            C.return_value.compile.return_value = "<html/>"
+            with pytest.raises(Exception):
+                api_module.send_test(blocks=json.dumps([]), subject="Hi", recipient="x@y.com")
+        frappe_stub.sendmail.assert_not_called()
+
+
+# ── check_links / start_link_check — M2 permission on the blocks path ─────────
+
+class TestLinkCheckPermissions:
+    def setup_method(self):
+        _reset()
+
+    def test_check_links_blocks_path_denied(self):
+        frappe_stub.has_permission.side_effect = Exception("Forbidden")
+        with pytest.raises(Exception):
+            api_module.check_links(blocks=json.dumps([]))
+
+    def test_start_link_check_blocks_path_denied_does_not_enqueue(self):
+        frappe_stub.has_permission.side_effect = Exception("Forbidden")
+        with pytest.raises(Exception):
+            api_module.start_link_check(blocks=json.dumps([]))
+        frappe_stub.enqueue.assert_not_called()
+
 
 # ── get_letter_analytics ────────────────────────────────────────────────────
 
@@ -1941,8 +1977,13 @@ class TestGetContext:
     def _ctx(self):
         return FrappeDict()
 
-    def _set_args(self, email="", letter="", saved="0"):
-        frappe_stub.request.args = {"email": email, "letter": letter, "saved": saved}
+    def _set_args(self, email="", letter="", saved="0", token=None):
+        # A valid token is now required to reveal an address's status. Default to
+        # the correctly-signed token so status-loading tests exercise the happy
+        # path; pass token="" (or a wrong value) to test the enumeration guard.
+        if token is None:
+            token = unsubscribe_module._sign_email(email.strip().lower()) if email else ""
+        frappe_stub.request.args = {"email": email, "letter": letter, "saved": saved, "token": token}
 
     def test_no_email_returns_empty_folders_and_not_globally_unsubscribed(self):
         self._set_args(email="")
@@ -1997,6 +2038,27 @@ class TestGetContext:
         ctx = self._ctx()
         get_context(ctx)
         assert ctx.is_globally_unsubscribed is True
+
+    def test_missing_token_does_not_leak_status(self):
+        """M3: without a valid token, status must not be revealed (no enumeration)."""
+        self._set_args(email="user@x.com", token="")
+        GETALL["Letter Category"] = [_mk_dict(name="F1", folder_name="Newsletter")]
+        frappe_stub.db.exists.return_value = "EU-GLOBAL"  # would leak if consulted
+        ctx = self._ctx()
+        get_context(ctx)
+        assert ctx.folders == []
+        assert ctx.is_globally_unsubscribed is False
+
+    def test_wrong_token_does_not_leak_status(self):
+        """M3: a token signed for a different address must not unlock this one."""
+        self._set_args(email="user@x.com",
+                       token=unsubscribe_module._sign_email("attacker@evil.com"))
+        GETALL["Letter Category"] = [_mk_dict(name="F1", folder_name="Newsletter")]
+        frappe_stub.db.exists.return_value = "EU-GLOBAL"
+        ctx = self._ctx()
+        get_context(ctx)
+        assert ctx.folders == []
+        assert ctx.is_globally_unsubscribed is False
 
     def test_no_email_does_not_query_db(self):
         self._set_args(email="")

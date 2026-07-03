@@ -27,7 +27,11 @@ def send_test(blocks: str | None = None, subject: str | None = None, preview_tex
             email_width=email_width,
         )
 
-    # Blocks passed directly (preview mode without a saved campaign)
+    # Blocks passed directly (preview mode without a saved campaign). No doc to
+    # check, so gate on the ability to create a Letter — otherwise any logged-in
+    # user could send arbitrary HTML mail from the site's default sender.
+    frappe.has_permission("Letter", "create", throw=True)
+
     from letters.letters.utils.email_compiler import EmailCompiler
 
     blocks_data = blocks if isinstance(blocks, list) else __import__("json").loads(blocks or "[]")

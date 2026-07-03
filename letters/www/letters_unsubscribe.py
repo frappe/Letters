@@ -1,5 +1,9 @@
+import hmac
+
 import frappe
 from frappe import _
+
+from letters.letters.api.unsubscribe import _sign_email
 
 no_cache = 1
 
@@ -18,8 +22,14 @@ def get_context(context):
     context.no_sidebar = 1
 
     context.csrf_token = frappe.session.data.csrf_token or ""
-    if not email:
-        context.folders           = []
+
+    # A valid HMAC token is required to reveal this address's subscription state.
+    # Without it we still render the form (real links always carry a token), but
+    # never expose per-category / global status — otherwise anyone could probe
+    # whether an arbitrary address is subscribed just by putting it in the URL.
+    token_ok = bool(email and token and hmac.compare_digest(token, _sign_email(email)))
+    if not token_ok:
+        context.folders                  = []
         context.is_globally_unsubscribed = False
         return
 
