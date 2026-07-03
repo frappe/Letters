@@ -4,15 +4,27 @@ from typing import Any
 from .base import BlockRenderer, _class_attr, _pad_class, _padding, _spacing_wrapper
 
 
-def _render_child(child: dict) -> str:
+def _render_child(child: dict, ctx_ref_width: int | None = None) -> str:
     """Render a nested block via the global registry.
 
     Imported lazily so layout renderers (which recurse into the registry that
     imports them) don't create a circular import at module load.
+
+    ctx_ref_width carries down the child's actual rendered width in pixels
+    (e.g. ~300px for a column inside a 2-up row within a 600px email) via a
+    private `_ctx_ref_width` prop. Renderers that need to reason about their
+    own on-screen size in absolute pixels — currently only ImageRenderer,
+    for its cover-fit aspect-ratio — read it instead of assuming the full
+    600px email body, which produces the wrong crop once nested narrower
+    than that.
     """
     from .registry import RENDERER_MAP
     renderer = RENDERER_MAP.get(child.get("type", ""))
-    return renderer.render(child) if renderer else ""
+    if not renderer:
+        return ""
+    if ctx_ref_width is not None:
+        child = {**child, "props": {**child.get("props", {}), "_ctx_ref_width": ctx_ref_width}}
+    return renderer.render(child)
 
 
 class ColumnsRenderer(BlockRenderer):
@@ -84,6 +96,11 @@ class ContainerRenderer(BlockRenderer):
         # Trim wide side padding on phones so content isn't squeezed into a
         # narrow strip; the head <style> media query owns the mobile value.
         pad_class     = _class_attr(_pad_class(p))
+        # This container's own actual rendered width, propagated down from
+        # its parent (see _render_child). Defaults to the full email body —
+        # correct for a top-level block, and for any container that isn't
+        # itself nested inside a narrower row column.
+        own_ref       = int(p.get("_ctx_ref_width", 600))
 
         if not children:
             return ""  # Don't render empty containers
@@ -155,6 +172,24 @@ class ContainerRenderer(BlockRenderer):
             else:
                 stack_cls = "ltr-stack"
 
+            def _cell_ref_width(w: str) -> int:
+                # Resolve this cell's own width (percent or px) against the
+                # container's actual rendered width, not a fixed 600px
+                # assumption — otherwise a narrow column's images compute
+                # their cover-fit aspect-ratio against too much width and
+                # end up over-cropped/zoomed.
+                if w.endswith("px"):
+                    try:
+                        return max(int(w[:-2]), 1)
+                    except ValueError:
+                        return own_ref
+                if w.endswith("%"):
+                    try:
+                        return max(round(own_ref * int(w[:-1]) / 100), 1)
+                    except ValueError:
+                        return own_ref
+                return own_ref
+
             cells = ""
             for idx, child in enumerate(children):
                 left_pad  = 0 if idx == 0 else half_gap
@@ -169,7 +204,7 @@ class ContainerRenderer(BlockRenderer):
                 cells += (
                     f'<td{_class_attr(cell_cls)}{width_attr} valign="{row_valign}"'
                     f' style="padding:0 {right_pad}px 0 {left_pad}px;vertical-align:{valign_css};">'
-                    f'{_render_child(child)}'
+                    f'{_render_child(child, _cell_ref_width(w))}'
                     f'</td>'
                 )
             inner = (
@@ -180,7 +215,7 @@ class ContainerRenderer(BlockRenderer):
             # Column (stacked) — each child is a full-width row in a single table.
             # We use table rows with a spacer row between children instead of
             # margin/div, because Outlook ignores margin on <div>.
-            rendered = [(_render_child(c), c) for c in children]
+            rendered = [(_render_child(c, own_ref), c) for c in children]
             rendered = [(html, c) for html, c in rendered if html]
             rows = ""
             for idx, (child_html, _) in enumerate(rendered):

@@ -1167,6 +1167,27 @@ class TestImageResponsiveHeight:
         assert "height:32px" in html
         assert "aspect-ratio" not in html
 
+    def test_cover_aspect_ratio_uses_nested_column_width_not_full_email(self):
+        # An image inside a 2-up row column is ~300px wide, not the full
+        # 600px email body — the aspect-ratio must be computed against its
+        # actual rendered width or object-fit:cover over-crops it.
+        html = ContainerRenderer().render({
+            "type": "container",
+            "props": {"layout": "row"},
+            "children": [
+                {"type": "image", "props": {
+                    "image_url": "https://x.com/a.png",
+                    "image_width": "100%", "image_height": "130px", "image_fit": "cover",
+                }},
+                {"type": "image", "props": {
+                    "image_url": "https://x.com/b.png",
+                    "image_width": "100%", "image_height": "130px", "image_fit": "cover",
+                }},
+            ],
+        })
+        assert html.count("aspect-ratio:300/130") == 2
+        assert "aspect-ratio:600/130" not in html
+
 
 class TestContainerRowStacks:
     def _row(self, children):

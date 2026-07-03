@@ -58,7 +58,14 @@ class ImageRenderer(BlockRenderer):
                 # the zoomed-in crop a frozen height produces when only the width
                 # scales down). The height attr stays for Outlook's Word engine,
                 # which ignores aspect-ratio.
-                ref_w   = _aspect_ref_width(image_width)
+                #
+                # A percent image_width is resolved against this block's own
+                # rendered width (propagated down via _ctx_ref_width by its
+                # parent container), not a blanket 600px email body — an image
+                # nested in a 300px column needs a 300px-based ratio, or the
+                # browser computes too short a box and over-crops.
+                ctx_ref = int(p.get("_ctx_ref_width", 600))
+                ref_w   = _aspect_ref_width(image_width, ref=ctx_ref)
                 h_style = (
                     f"height:auto;aspect-ratio:{ref_w}/{h_num};"
                     f"object-fit:cover;object-position:{obj_pos};"
