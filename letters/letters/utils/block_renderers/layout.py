@@ -117,16 +117,21 @@ class ContainerRenderer(BlockRenderer):
             row_valign   = _va_map.get(p.get("vertical_align", ""), "top")
             valign_css   = {"top": "top", "middle": "middle", "bottom": "bottom"}.get(row_valign, "top")
 
+            # A price/button (or similar short label + button) pair is meant to
+            # always sit on one line, even cramped, rather than break onto two
+            # rows on mobile. Detect that shape automatically — via an explicit
+            # mobile_stack=False, or a 2-cell row where one cell is a button —
+            # so existing saved letters get the fix without needing their
+            # stored block JSON re-saved from an updated preset.
+            has_button   = any(c.get("type") == "button" for c in children)
+            auto_no_stack = count == 2 and has_button
+
             # Narrow, uniform-width rows (4+ short items, e.g. a stat strip) waste
             # most of the screen if each stacks to full width on mobile — a
             # single number+label ends up alone on a 400px-wide line. Give those
             # a 2-up grid instead; wider/fewer-column rows (image+text) still
             # need the full line once stacked, so they keep ltr-stack.
-            #
-            # A row can also opt out of stacking entirely via mobile_stack=False
-            # — e.g. a price + button pair is meant to always sit on one line,
-            # even cramped, rather than break onto two rows on mobile.
-            if p.get("mobile_stack", True) is False:
+            if p.get("mobile_stack", not auto_no_stack) is False:
                 stack_cls = ""
             elif count >= 4 and all(w is None for w in explicit_widths):
                 stack_cls = "ltr-stack-2"
