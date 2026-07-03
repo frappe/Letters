@@ -42,7 +42,11 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
   let _lastDeliveredKey = null;
   let _lastProgressAt = 0;
   let _stallToastId = null;
-  const STALL_THRESHOLD_MS = 45000;
+  // Short window: the backend's resume_send has its own guard against
+  // double-queuing a send that's just slow (it checks RQ directly), so the
+  // frontend can afford to flag "no movement" quickly rather than making
+  // someone wait tens of seconds on every reload before Resume appears.
+  const STALL_THRESHOLD_MS = 12000;
 
   const letterStatus = computed(() => {
     // While actively polling use live sendProgress status, otherwise letterDoc
