@@ -16,13 +16,10 @@ class SendingMixin:
         )
         subj = subject or self.subject
 
-        session_email = frappe.session.user
         requested = (recipient or "").strip()
-        if requested and requested != session_email:
-            frappe.throw(_("Test emails can only be sent to your own account ({0}).").format(session_email))
-        email = session_email
+        email = requested or frappe.session.user
         if not frappe.utils.validate_email_address(email, throw=False):
-            frappe.throw(_("Your account does not have a valid email address."))
+            frappe.throw(_("{0} is not a valid email address.").format(email))
 
         frappe.sendmail(
             recipients=[email],
