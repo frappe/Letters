@@ -23,10 +23,13 @@ class ImageRenderer(BlockRenderer):
         bg            = _safe_css_value(p.get("background_color", "#ffffff"))
         border        = _safe_css_value(p.get("border", ""))
         border_radius = _safe_css_value(p.get("border_radius", "0"))
-        image_width   = p.get("image_width", "100%") or "100%"
-        image_height  = p.get("image_height", "") or ""
+        # These land in style="" (w_style/h_style below), so they need the same
+        # CSS-value sanitizing as bg/border — the whitelist keeps "100px",
+        # "100%", "auto", "cover", "contain" while dropping quotes/`;`/`(`.
+        image_width   = _safe_css_value(p.get("image_width", "100%")) or "100%"
+        image_height  = _safe_css_value(p.get("image_height", ""))
         image_align   = p.get("image_align", "center") or "center"
-        image_fit     = p.get("image_fit", "cover") or "cover"
+        image_fit     = _safe_css_value(p.get("image_fit", "cover")) or "cover"
 
         border_style = f"border:{border};" if border and border != "none" else ""
         radius_style = f"border-radius:{border_radius};" if border_radius and border_radius != "0" else ""

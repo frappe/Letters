@@ -62,6 +62,16 @@ class TestSafeUrl:
     def test_javascript_with_leading_whitespace_blocked(self):
         assert _safe_url("  \t\njavascript:alert(1)") == "#"
 
+    def test_javascript_with_embedded_tab_blocked(self):
+        # M1: browsers ignore control chars mid-scheme, so `java\tscript:` is live.
+        assert _safe_url("java\tscript:alert(1)") == "#"
+
+    def test_javascript_with_embedded_newline_blocked(self):
+        assert _safe_url("java\nscript:alert(1)") == "#"
+
+    def test_javascript_with_embedded_null_blocked(self):
+        assert _safe_url("java\x00script:alert(1)") == "#"
+
     def test_data_uri_blocked(self):
         assert _safe_url("data:text/html,<script>alert(1)</script>") == "#"
 
@@ -157,6 +167,18 @@ class TestSpacingWrapper:
         inner = "<p>hello</p>"
         assert _spacing_wrapper(inner, {"spacing_left": 0, "spacing_right": 0}) == inner
 
+    def test_valid_background_color_preserved(self):
+        result = _spacing_wrapper("<p>x</p>", {"spacing_top": 10, "background_color": "#ff0000"})
+        assert "background-color:#ff0000;" in result
+
+    def test_malicious_background_color_sanitized(self):
+        # H2: a background_color that breaks out of the style attribute must not
+        # reach the output — the CSS-value whitelist drops `"`, `;`, `<`, `(`.
+        payload = '#fff"><script>alert(document.domain)</script>'
+        result = _spacing_wrapper("<p>x</p>", {"spacing_top": 10, "background_color": payload})
+        assert "<script>" not in result
+        assert 'alert(document.domain)' not in result
+
 
 # ── HeroRenderer ──────────────────────────────────────────────────────────────
 
@@ -209,6 +231,21 @@ class TestImageRenderer:
         html = self._r({"image_url": "https://x.com/a.png"})
         # caption row has a specific class pattern; if no caption the <tr> for it is absent
         assert "My caption" not in html
+
+    def test_valid_dimensions_preserved(self):
+        html = self._r({"image_url": "https://x.com/a.png", "image_width": "300px",
+                        "image_height": "200px", "image_fit": "contain"})
+        assert "width:300px;" in html
+        assert "height:200px;" in html
+        assert "object-fit:contain;" in html
+
+    def test_malicious_dimensions_sanitized(self):
+        # H2 sibling: image_width/height/fit land in style="", so a breakout
+        # payload must be dropped by the CSS-value whitelist.
+        payload = '100px"><script>alert(1)</script>'
+        html = self._r({"image_url": "https://x.com/a.png", "image_width": payload,
+                        "image_height": payload, "image_fit": payload})
+        assert "<script>" not in html
 
 
 # ── ButtonRenderer ────────────────────────────────────────────────────────────
@@ -365,6 +402,13 @@ class TestSocialRenderer:
         assert "javascript:" not in html
         # When the only URL is dangerous, the rendered link uses '#'
         assert 'href="#"' in html
+
+    def test_malicious_color_sanitized(self):
+        # color feeds the cached icon filename (color.lstrip("#")), so path
+        # separators must be dropped to prevent a traversal .svg write.
+        html = self._r({"x_url": "https://x.com/a", "color": "../../evil"})
+        assert "../" not in html
+        assert "evil" not in html
 
     def test_label_only_no_emoji(self):
         """Social pills must be label-only — no unicode/emoji icons."""

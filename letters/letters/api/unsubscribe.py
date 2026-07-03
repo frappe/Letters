@@ -8,7 +8,16 @@ from frappe import _
 
 
 def _unsub_secret() -> bytes:
-    return frappe.utils.cstr(frappe.local.conf.get("secret") or "secret").encode()
+    # Mirror Frappe's own verified_command.get_secret(): the site's `secret`
+    # conf key is optional and normally absent, so fall back to the site's
+    # random encryption key — never a guessable literal. Import lazily so the
+    # fallback only pulls in frappe.utils.password when actually needed.
+    secret = frappe.local.conf.get("secret")
+    if not secret:
+        from frappe.utils.password import get_encryption_key
+
+        secret = get_encryption_key()
+    return frappe.utils.cstr(secret).encode()
 
 
 def _sign_email(email: str) -> str:
