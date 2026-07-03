@@ -166,8 +166,11 @@ function isDescendant(ancestorId, nodeId) {
 
 function getZone(ratio, isContainer) {
   if (!isContainer) return ratio < 0.5 ? "before" : "after";
-  if (ratio < 0.25) return "before";
-  if (ratio < 0.75) return "inside";
+  // A container's "before" edge often sits flush against its own parent row
+  // (zero gap above its first child), so keep before/after wide enough that
+  // users don't have to hit a razor-thin band to avoid popping a block out.
+  if (ratio < 0.35) return "before";
+  if (ratio < 0.65) return "inside";
   return "after";
 }
 
@@ -178,13 +181,38 @@ function getZone(ratio, isContainer) {
 const DRAG_THRESHOLD = 4;
 let dragStart = null; // { id, x, y } — pending drag before threshold is crossed
 
+// Nearest-row-by-distance instead of elementFromPoint: a point sitting in the
+// thin gap between a container's own row and its flush first child is
+// inherently ambiguous for point-based hit-testing (and fragile to whichever
+// DOM element happens to paint on top there). Picking the row whose rect is
+// closest to the cursor is robust regardless of nesting depth or row height.
+// Candidates that are the dragged block itself (or one of its own
+// descendants) are excluded from consideration entirely, rather than
+// rejected after the fact — otherwise a geometrically-nearest-but-invalid
+// candidate would null out the drop state and fall through to "append to
+// root" on release.
+function closestRow(y) {
+  if (!listWrapper.value) return null;
+  let containing = null; // last (deepest) row whose rect contains y — DOM order is pre-order, so ancestors precede descendants; keep overwriting to prefer the more specific match on boundary ties
+  let closest = null;
+  let closestDist = Infinity;
+  for (const el of listWrapper.value.querySelectorAll("[data-block-layer-id]")) {
+    const id = Number(el.dataset.blockLayerId);
+    if (id === dragId.value || isDescendant(dragId.value, id)) continue;
+
+    const rect = el.getBoundingClientRect();
+    if (y >= rect.top && y <= rect.bottom) { containing = el; continue; }
+    const dist = y < rect.top ? rect.top - y : y - rect.bottom;
+    if (dist < closestDist) { closestDist = dist; closest = el; }
+  }
+  return containing || closest;
+}
+
 function updateDropState(x, y) {
-  const rowEl = document.elementFromPoint(x, y)?.closest("[data-block-layer-id]");
+  const rowEl = closestRow(y);
   if (!rowEl) { dropState.value = null; return; }
 
   const id = Number(rowEl.dataset.blockLayerId);
-  if (id === dragId.value || isDescendant(dragId.value, id)) { dropState.value = null; return; }
-
   const meta = blockMeta.value.get(id);
   const rect = rowEl.getBoundingClientRect();
   const ratio = (y - rect.top) / rect.height;
