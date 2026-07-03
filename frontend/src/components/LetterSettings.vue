@@ -87,18 +87,21 @@
                   <label class="block">
                     <span class="block text-xs font-semibold text-ink-gray-6 mb-1.5">Sender Name</span>
                     <TextInput
-                      :model-value="senderName"
+                      :model-value="localSenderName"
                       placeholder="e.g. Acme Team"
-                      @update:model-value="(v) => emit('update:senderName', v)"
+                      @update:model-value="localSenderName = $event"
+                      @focusout="commitSenderName"
+                      @keydown.enter.prevent="commitSenderName"
                     />
                   </label>
                   <label class="block">
                     <span class="block text-xs font-semibold text-ink-gray-6 mb-1.5">Sender Email</span>
                     <TextInput
-                      type="email"
-                      :model-value="senderEmail"
+                      :model-value="localSenderEmail"
                       placeholder="e.g. hello@acme.com (leave blank for system default)"
-                      @update:model-value="(v) => emit('update:senderEmail', v)"
+                      @update:model-value="localSenderEmail = $event"
+                      @focusout="commitSenderEmail"
+                      @keydown.enter.prevent="commitSenderEmail"
                     />
                   </label>
                 </div>
@@ -330,6 +333,13 @@ const isOpen = computed({
 
 const activeTab = ref("details");
 const isSent = computed(() => ["Sent", "Partial", "Failed", "Sending", "Scheduled"].includes(props.letterDoc?.status));
+
+const localSenderName  = ref(props.senderName);
+const localSenderEmail = ref(props.senderEmail);
+watch(() => props.senderName,  (v) => { localSenderName.value  = v; });
+watch(() => props.senderEmail, (v) => { localSenderEmail.value = v; });
+function commitSenderName()  { emit("update:senderName",  localSenderName.value); }
+function commitSenderEmail() { emit("update:senderEmail", localSenderEmail.value); }
 
 const OP_LABEL = { "=": "=", "!=": "≠", "like": "contains", "not like": "doesn't contain", ">": ">", "<": "<", ">=": "≥", "<=": "≤", "is": "is", "in": "in", "not in": "not in", "Between": "between", "Timespan": "timespan" };
 
