@@ -98,11 +98,12 @@
                     <span class="block text-xs font-semibold text-ink-gray-6 mb-1.5">Sender Email</span>
                     <TextInput
                       :model-value="localSenderEmail"
-                      placeholder="e.g. hello@acme.com (leave blank for system default)"
+                      placeholder="Leave blank to use system default"
                       @update:model-value="localSenderEmail = $event"
                       @focusout="commitSenderEmail"
                       @keydown.enter.prevent="commitSenderEmail"
                     />
+                    <p class="mt-1.5 text-xs text-ink-gray-4">Must match a configured outgoing Email Account in Frappe. The sender name is used as the display name for that account.</p>
                   </label>
                 </div>
 
