@@ -10,6 +10,8 @@ import { describeError, stripIds } from "../utils/builderHelpers";
 export function useLetter(editorStore, { initialName = null, onClose = null } = {}) {
   const subject       = ref("");
   const previewText   = ref("");
+  const senderName    = ref("");
+  const senderEmail   = ref("");
   // { type, email_group | recipients | (doctype + email_field + filters) }
   const recipientConfig    = ref(null);
   const includeUnsubscribe = ref(false);
@@ -67,7 +69,7 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
   // each hold their own increment and don't accidentally re-enable dirty
   // tracking while another load is still in flight.
   let _suppressDirty = 0;
-  watch([subject, previewText, () => editorStore.letterName], () => {
+  watch([subject, previewText, senderName, senderEmail, () => editorStore.letterName], () => {
     if (_suppressDirty === 0) editorStore.markDirty();
   });
   // Recipient selection is persisted on the letter (so scheduled sends and
@@ -156,6 +158,8 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
       editorStore.loadFromDoc(doc);
       subject.value         = doc.subject || "";
       previewText.value     = doc.preview_text || "";
+      senderName.value      = doc.sender_name || "";
+      senderEmail.value     = doc.sender_email || "";
       recipientConfig.value    = doc.recipient_config || null;
       includeUnsubscribe.value = !!doc.include_unsubscribe;
       document.title = (doc.title || "Untitled Letter") + " · Letters";
@@ -233,6 +237,8 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
           title:        editorStore.letterName || "Untitled Letter",
           subject:      subject.value,
           preview_text: previewText.value,
+          sender_name:  senderName.value,
+          sender_email: senderEmail.value,
           email_width:        editorStore.emailWidth,
           canvas_background:  editorStore.canvasBg,
           blocks:               JSON.stringify(editorStore.blocks.map(stripIds)),
@@ -485,7 +491,7 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
 
   return {
     // editable fields
-    subject, previewText, recipientConfig, includeUnsubscribe,
+    subject, previewText, senderName, senderEmail, recipientConfig, includeUnsubscribe,
     // ui visibility
     showSettings, showTemplatePicker, showScheduleModal, settingsInitialTab,
     // status flags

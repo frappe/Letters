@@ -83,6 +83,26 @@
                   />
                 </label>
 
+                <div class="border-t border-outline-gray-1 pt-4 space-y-4">
+                  <label class="block">
+                    <span class="block text-xs font-semibold text-ink-gray-6 mb-1.5">Sender Name</span>
+                    <TextInput
+                      :model-value="senderName"
+                      placeholder="e.g. Acme Team"
+                      @update:model-value="(v) => emit('update:senderName', v)"
+                    />
+                  </label>
+                  <label class="block">
+                    <span class="block text-xs font-semibold text-ink-gray-6 mb-1.5">Sender Email</span>
+                    <TextInput
+                      type="email"
+                      :model-value="senderEmail"
+                      placeholder="e.g. hello@acme.com (leave blank for system default)"
+                      @update:model-value="(v) => emit('update:senderEmail', v)"
+                    />
+                  </label>
+                </div>
+
                 <div v-if="!isNotification" class="border-t border-outline-gray-1 pt-4">
                   <label class="flex items-start gap-3 cursor-pointer">
                     <input
@@ -275,6 +295,8 @@ const props = defineProps({
   letterName:    { type: String, default: "" },
   subject:         { type: String, default: "" },
   previewText:     { type: String, default: "" },
+  senderName:      { type: String, default: "" },
+  senderEmail:     { type: String, default: "" },
   recipientConfig:    { type: Object, default: null },
   includeUnsubscribe: { type: Boolean, default: false },
   letterDoc:        { type: Object, default: null },
@@ -282,7 +304,8 @@ const props = defineProps({
 });
 const emit = defineEmits([
   "update:modelValue", "update:letterName", "update:subject",
-  "update:previewText", "update:recipientConfig", "update:includeUnsubscribe",
+  "update:previewText", "update:senderName", "update:senderEmail",
+  "update:recipientConfig", "update:includeUnsubscribe",
 ]);
 
 const isNotification = computed(() => !!props.letterDoc?.has_notification);

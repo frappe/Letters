@@ -38,13 +38,9 @@ def send_test(blocks: str | None = None, subject: str | None = None, preview_tex
         frappe.log_error(frappe.get_traceback(), "Letters send_test compile error")
         frappe.throw(str(e))
 
-    session_email = frappe.session.user
-    requested = (recipient or "").strip()
-    if requested and requested != session_email:
-        frappe.throw(_("Test emails can only be sent to your own account ({0}).").format(session_email))
-    email = session_email
+    email = (recipient or "").strip() or frappe.session.user
     if not frappe.utils.validate_email_address(email, throw=False):
-        frappe.throw(_("Your account does not have a valid email address."))
+        frappe.throw(_("'{0}' is not a valid email address.").format(email))
 
     frappe.sendmail(
         recipients=[email],
@@ -416,9 +412,18 @@ def _queue_recipients(send_doc, letter_name, emails, subject, html):
     else:
         unsubscribe_method = None
 
+    letter = frappe.get_cached_doc("Letter", letter_name)
+    sender_email = (letter.sender_email or "").strip()
+    sender_name  = (letter.sender_name or "").strip()
+    sender = None
+    if sender_email:
+        frappe.utils.validate_email_address(sender_email, throw=True)
+        sender = f"{sender_name} <{sender_email}>" if sender_name else sender_email
+
     frappe.sendmail(
         recipients=emails,
         subject=subject,
+        sender=sender,
         message=html,
         now=False,
         queue_separately=True,

@@ -183,6 +183,8 @@
     @update:letter-name="(v) => (editorStore.letterName = v)"
     v-model:subject="subject"
     v-model:preview-text="previewText"
+    v-model:sender-name="senderName"
+    v-model:sender-email="senderEmail"
     v-model:recipient-config="recipientConfig"
     v-model:include-unsubscribe="includeUnsubscribe"
     :letter-doc="editorStore.letterDoc"
@@ -261,7 +263,7 @@ const editorStore = useEditorStore();
 const showShortcuts = ref(false);
 
 const {
-  subject, previewText, recipientConfig, includeUnsubscribe,
+  subject, previewText, senderName, senderEmail, recipientConfig, includeUnsubscribe,
   showSettings, showTemplatePicker, showScheduleModal, settingsInitialTab,
   saving, savedFlash, loadingLetter, duplicating, scheduling,
   scheduleDate, scheduleTime, minScheduleDate, openScheduleModal,

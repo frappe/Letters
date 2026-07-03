@@ -28,7 +28,7 @@ def get_letter(name: str):
 
 
 @frappe.whitelist(methods=["POST"])
-def save_letter(name: str | None = None, title: str | None = None, subject: str | None = None, preview_text: str | None = None, blocks: str | None = None, email_width: int | None = None, canvas_background: str | None = None, recipient_config: str | None = None, folder: str | None = None, include_unsubscribe: bool | None = None):
+def save_letter(name: str | None = None, title: str | None = None, subject: str | None = None, preview_text: str | None = None, sender_name: str | None = None, sender_email: str | None = None, blocks: str | None = None, email_width: int | None = None, canvas_background: str | None = None, recipient_config: str | None = None, folder: str | None = None, include_unsubscribe: bool | None = None):
     blocks_json = json.dumps(blocks if isinstance(blocks, list) else json.loads(blocks or "[]"))
     normalized_config = _normalize_recipient_config(recipient_config)
 
@@ -41,6 +41,10 @@ def save_letter(name: str | None = None, title: str | None = None, subject: str 
             doc.subject = subject
         if preview_text is not None:
             doc.preview_text = preview_text
+        if sender_name is not None:
+            doc.sender_name = sender_name
+        if sender_email is not None:
+            doc.sender_email = sender_email
         if email_width is not None:
             try:
                 doc.email_width = int(email_width)
@@ -65,6 +69,8 @@ def save_letter(name: str | None = None, title: str | None = None, subject: str 
             "title": _unique_letter_title(title or "Untitled Letter"),
             "subject": subject or "",
             "preview_text": preview_text or "",
+            "sender_name": sender_name or "",
+            "sender_email": sender_email or "",
             "status": "Draft",
             "email_width": int(email_width) if email_width else 600,
             "canvas_background": canvas_background or "#ffffff",

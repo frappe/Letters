@@ -33,6 +33,17 @@
    "label": "Preview Text"
   },
   {
+   "fieldname": "sender_name",
+   "fieldtype": "Data",
+   "label": "Sender Name"
+  },
+  {
+   "fieldname": "sender_email",
+   "fieldtype": "Data",
+   "label": "Sender Email",
+   "options": "Email"
+  },
+  {
    "fieldname": "status",
    "fieldtype": "Select",
    "label": "Status",
