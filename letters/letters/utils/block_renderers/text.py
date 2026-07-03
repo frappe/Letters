@@ -2,19 +2,19 @@ from html import escape
 from typing import Any
 
 from letters.letters.utils.fonts import font_stack
-from .base import BlockRenderer, _abs_image_src, _class_attr, _font_scale_class, _pad_class, _padding, _spacing_wrapper
+from .base import BlockRenderer, _abs_image_src, _class_attr, _font_scale_class, _pad_class, _padding, _safe_css_value, _spacing_wrapper
 
 
 class HeroRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
         p = block.get("props", {})
-        bg              = escape(p.get("background_color", "#ffffff"))
+        bg              = _safe_css_value(p.get("background_color", "#ffffff"))
         heading         = escape(p.get("heading", ""))
         subheading      = escape(p.get("subheading", ""))
-        heading_color   = escape(p.get("heading_color", "#111827"))
-        heading_size    = escape(p.get("heading_size", "30px"))
-        subheading_color = escape(p.get("subheading_color", "#6b7280"))
-        text_align      = escape(p.get("text_align", "center"))
+        heading_color   = _safe_css_value(p.get("heading_color", "#111827"))
+        heading_size    = _safe_css_value(p.get("heading_size", "30px"))
+        subheading_color = _safe_css_value(p.get("subheading_color", "#6b7280"))
+        text_align      = _safe_css_value(p.get("text_align", "center"))
         heading_font    = font_stack(p, "Georgia,'Times New Roman',serif")
         subheading_font = font_stack(p, "Arial,sans-serif")
         padding         = _padding(p, 40, 16, 40, 16)
@@ -46,14 +46,14 @@ class SectionLabelRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
         p = block.get("props", {})
         label          = escape(p.get("label", ""))
-        text_color     = escape(p.get("text_color", "#383838"))
-        line_color     = escape(p.get("line_color", "#ededed"))
+        text_color     = _safe_css_value(p.get("text_color", "#383838"))
+        line_color     = _safe_css_value(p.get("line_color", "#ededed"))
         line_thickness = p.get("line_thickness", 0.5)
         line_position  = p.get("line_position", "below")
-        align          = escape(p.get("align", "left"))
-        font_size      = escape(p.get("font_size", "11px"))
-        font_weight    = escape(str(p.get("font_weight", "600")))
-        letter_spacing = escape(p.get("letter_spacing", "0.15em"))
+        align          = _safe_css_value(p.get("align", "left"))
+        font_size      = _safe_css_value(p.get("font_size", "11px"))
+        font_weight    = _safe_css_value(str(p.get("font_weight", "600")))
+        letter_spacing = _safe_css_value(p.get("letter_spacing", "0.15em"))
         font           = font_stack(p, "Arial,sans-serif")
 
         line_html = f'<hr style="border:0;border-top:{line_thickness}px solid {line_color};margin:8px 0 0;" />'
@@ -78,8 +78,8 @@ class FooterRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
         p = block.get("props", {})
         text  = escape(p.get("text", ""))
-        bg    = escape(p.get("background_color", "#f9fafb"))
-        color = escape(p.get("text_color", "#6b7280"))
+        bg    = _safe_css_value(p.get("background_color", "#f9fafb"))
+        color = _safe_css_value(p.get("text_color", "#6b7280"))
         font  = font_stack(p, "Arial,sans-serif")
 
         padding = _padding(p, 20, 16, 20, 16)
@@ -98,11 +98,11 @@ class HeaderRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
         p             = block.get("props", {})
         logo_url      = _abs_image_src(p.get("logo_url", ""))
-        logo_height   = escape(p.get("logo_height", "40px"))
+        logo_height   = _safe_css_value(p.get("logo_height", "40px"))
         tagline       = escape(p.get("tagline", ""))
-        bg            = escape(p.get("background_color", "#ffffff"))
-        align         = escape(p.get("align", "center"))
-        tagline_color = escape(p.get("tagline_color", "#6b7280"))
+        bg            = _safe_css_value(p.get("background_color", "#ffffff"))
+        align         = _safe_css_value(p.get("align", "center"))
+        tagline_color = _safe_css_value(p.get("tagline_color", "#6b7280"))
         border_bottom = p.get("border_bottom", True)
         font          = font_stack(p, "Arial,sans-serif")
         padding       = _padding(p, 20, 16, 20, 16)
@@ -146,10 +146,10 @@ class QuoteRenderer(BlockRenderer):
         author       = escape(p.get("author", ""))
         role         = escape(p.get("role", ""))
         style        = p.get("style", "left-border")
-        quote_color  = escape(p.get("quote_color", "#111827"))
-        author_color = escape(p.get("author_color", "#6b7280"))
-        border_color = escape(p.get("border_color", "#e5e7eb"))
-        bg           = escape(p.get("background_color", "#f9fafb"))
+        quote_color  = _safe_css_value(p.get("quote_color", "#111827"))
+        author_color = _safe_css_value(p.get("author_color", "#6b7280"))
+        border_color = _safe_css_value(p.get("border_color", "#e5e7eb"))
+        bg           = _safe_css_value(p.get("background_color", "#f9fafb"))
         quote_font   = font_stack(p, "Georgia,'Times New Roman',serif")
         meta_font    = font_stack(p, "Arial,sans-serif")
         padding      = _padding(p, 24, 16, 24, 16)

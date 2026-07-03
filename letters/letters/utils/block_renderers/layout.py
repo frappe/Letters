@@ -1,7 +1,7 @@
 from html import escape
 from typing import Any
 
-from .base import BlockRenderer, _class_attr, _pad_class, _padding, _spacing_wrapper
+from .base import BlockRenderer, _class_attr, _pad_class, _padding, _safe_css_value, _spacing_wrapper
 
 
 def _render_child(child: dict, ctx_ref_width: int | None = None) -> str:
@@ -30,9 +30,9 @@ def _render_child(child: dict, ctx_ref_width: int | None = None) -> str:
 class ColumnsRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
         p             = block.get("props", {})
-        bg            = escape(p.get("background_color", "transparent"))
+        bg            = _safe_css_value(p.get("background_color", "transparent"))
         show_dividers = p.get("show_dividers", False)
-        divider_color = escape(p.get("divider_color", "#e5e7eb"))
+        divider_color = _safe_css_value(p.get("divider_color", "#e5e7eb"))
         col_gap       = int(p.get("col_gap", 24))
         columns       = block.get("columns", [])
 
@@ -86,9 +86,9 @@ class ColumnsRenderer(BlockRenderer):
 class ContainerRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
         p             = block.get("props", {})
-        bg            = escape(p.get("background_color", "transparent"))
-        border_color  = escape(p.get("block_border_color") or p.get("border_color", ""))
-        border_radius = escape(p.get("block_border_radius") or p.get("border_radius", "0"))
+        bg            = _safe_css_value(p.get("background_color", "transparent"))
+        border_color  = _safe_css_value(p.get("block_border_color") or p.get("border_color", ""))
+        border_radius = _safe_css_value(p.get("block_border_radius") or p.get("border_radius", "0"))
         layout        = p.get("layout", "column")
         gap           = int(p.get("gap", 12))
         padding       = _padding(p, 16, 16, 16, 16)
@@ -255,9 +255,9 @@ class ContainerRenderer(BlockRenderer):
 class DividerRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
         p = block.get("props", {})
-        color       = escape(p.get("border_color", "#e0e0e0"))
+        color       = _safe_css_value(p.get("border_color", "#e0e0e0"))
         thickness   = int(p.get("thickness", 1))
-        style       = escape(p.get("style", "solid"))
+        style       = _safe_css_value(p.get("style", "solid"))
         orientation = p.get("orientation", "horizontal")
         padding     = _padding(p, 16, 16, 16, 16)
 
@@ -275,7 +275,7 @@ class DividerRenderer(BlockRenderer):
                 f'</td></tr></table>'
             )
         else:
-            width      = escape(p.get("width", "100%"))
+            width      = _safe_css_value(p.get("width", "100%"))
             align      = p.get("align", "center")
             text_align = "left" if align == "left" else "right" if align == "right" else "center"
             html = (
@@ -292,7 +292,7 @@ class SpacerRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
         p = block.get("props", {})
         h  = int(p.get("height", 32))
-        bg = escape(p.get("background_color", "transparent"))
+        bg = _safe_css_value(p.get("background_color", "transparent"))
         bg_style = f"background-color:{bg};" if bg and bg != "transparent" else ""
         return (
             f'<table width="100%" cellpadding="0" cellspacing="0" border="0"'

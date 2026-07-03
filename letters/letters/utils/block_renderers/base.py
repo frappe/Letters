@@ -1,6 +1,24 @@
+import re
 from abc import ABC, abstractmethod
 from html import escape
 from typing import Any
+
+_CSS_VALUE_RE = re.compile(r"^[#a-zA-Z0-9%.,\-\s]*$")
+
+
+def _safe_css_value(value: Any) -> str:
+    """Constrain a CSS value (color, size, font-weight, alignment, spacing) to
+    a safe character set before it is interpolated into a style="" attribute.
+
+    HTML-escaping alone does not stop CSS-declaration injection: `;` and `(`
+    aren't special to HTML, so an attacker-controlled color/size prop could
+    append extra declarations (e.g. `red;background:url(https://evil/track.gif)`)
+    that `html.escape` lets straight through. Anything outside the whitelist
+    (hex colors, alphanumerics, `%`, `.`, `,`, `-`, spaces) is dropped rather
+    than passed through, which only costs that one declaration.
+    """
+    v = str(value or "").strip()
+    return v if _CSS_VALUE_RE.match(v) else ""
 
 
 def _safe_url(url: str) -> str:

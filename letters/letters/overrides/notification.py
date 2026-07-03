@@ -46,6 +46,16 @@ class LettersNotification(Notification):
             super().send_an_email(doc, context)
 
     def _compile_letter(self) -> str:
+        """Compile the linked Letter's blocks into the HTML `send_an_email` sends.
+
+        Trust boundary: the returned HTML still passes through Frappe's own
+        `send_an_email` -> `frappe.render_template`, which resolves any
+        `{{ doc.x }}` a Letters author wrote. That render already runs inside
+        jinja2's SandboxedEnvironment with `safe_render=True` (blocks `.__`
+        attribute access) — see `frappe/utils/jinja.py`. The exposure this
+        leaves is limited to a lower-privileged Letters author needing a
+        System Manager to knowingly link + enable the Notification first.
+        """
         import json
 
         from letters.letters.utils.email_compiler import EmailCompiler

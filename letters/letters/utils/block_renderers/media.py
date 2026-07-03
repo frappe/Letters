@@ -9,6 +9,7 @@ from .base import (
     _class_attr,
     _pad_class,
     _padding,
+    _safe_css_value,
     _safe_url,
     _spacing_wrapper,
 )
@@ -19,9 +20,9 @@ class ImageRenderer(BlockRenderer):
         p = block.get("props", {})
         image_url     = _abs_image_src(p.get("image_url", ""))
         alt           = escape(p.get("alt", ""))
-        bg            = escape(p.get("background_color", "#ffffff"))
-        border        = escape(p.get("border", ""))
-        border_radius = escape(p.get("border_radius", "0"))
+        bg            = _safe_css_value(p.get("background_color", "#ffffff"))
+        border        = _safe_css_value(p.get("border", ""))
+        border_radius = _safe_css_value(p.get("border_radius", "0"))
         image_width   = p.get("image_width", "100%") or "100%"
         image_height  = p.get("image_height", "") or ""
         image_align   = p.get("image_align", "center") or "center"
@@ -50,7 +51,7 @@ class ImageRenderer(BlockRenderer):
         if image_height and image_height != "auto":
             h_num   = image_height.replace("px", "")
             h_attr  = f' height="{h_num}"'
-            obj_pos = escape(p.get("object_position", "center") or "center")
+            obj_pos = _safe_css_value(p.get("object_position", "center") or "center")
             if image_fit == "cover":
                 # Preserve the crop proportionally on small screens: give the box
                 # a fixed aspect-ratio instead of a frozen pixel height, so width
@@ -118,14 +119,14 @@ class ImageTextRenderer(BlockRenderer):
         image_url     = _abs_image_src(p.get("image_url", ""))
         text          = escape(p.get("text", ""))
         heading_text  = escape(p.get("heading", ""))
-        heading_color = escape(p.get("heading_color", "#111827"))
+        heading_color = _safe_css_value(p.get("heading_color", "#111827"))
         position      = p.get("image_position", "left")
         img_width     = p.get("image_width", "160px")
         layout_mode   = p.get("layout_mode", "side")
         font          = font_stack(p, "Arial,sans-serif")
 
         img_px = img_width.replace("px", "") if img_width.endswith("px") else "160"
-        bg     = escape(p.get("background_color", ""))
+        bg     = _safe_css_value(p.get("background_color", ""))
         bg_style = f"background-color:{bg};" if bg and bg not in ("transparent", "") else ""
 
         pt = int(p.get("padding_top",    20))
@@ -149,7 +150,7 @@ class ImageTextRenderer(BlockRenderer):
                 f'<p style="margin:0 0 6px;font-family:{font};font-size:16px;'
                 f'font-weight:700;color:{heading_color};line-height:1.3;">{heading_text}</p>'
             ) if heading_text else ""
-            text_color = escape(p.get("text_color", "#555555"))
+            text_color = _safe_css_value(p.get("text_color", "#555555"))
             html = (
                 f'<table width="100%" cellpadding="0" cellspacing="0" border="0"'
                 f' style="{bg_style}">'
@@ -165,7 +166,7 @@ class ImageTextRenderer(BlockRenderer):
             # Block padding wraps the outer table; inner cells only need the gap between image and text.
             gap          = 20
             outer_pad    = f"{pt}px {pr}px {pb}px {pl}px"
-            text_color   = escape(p.get("text_color", "#555555"))
+            text_color   = _safe_css_value(p.get("text_color", "#555555"))
             img_pad      = f"0 {gap}px 0 0" if position == "left" else f"0 0 0 {gap}px"
             text_pad_str = "0" if position == "left" else "0"
             img_cell = (
@@ -214,12 +215,12 @@ class ProductCardRenderer(BlockRenderer):
         price         = escape(p.get("price", ""))
         button_label  = escape(p.get("button_label", ""))
         button_url    = _safe_url(p.get("button_url", "#"))
-        bg            = escape(p.get("background_color", "#ffffff"))
-        border_color  = escape(p.get("border_color", "#e5e7eb"))
-        border_radius = escape(p.get("border_radius", "12px"))
-        button_color  = escape(p.get("button_color", "#111827"))
-        title_color   = escape(p.get("title_color", "#111827"))
-        text_color    = escape(p.get("text_color", "#6b7280"))
+        bg            = _safe_css_value(p.get("background_color", "#ffffff"))
+        border_color  = _safe_css_value(p.get("border_color", "#e5e7eb"))
+        border_radius = _safe_css_value(p.get("border_radius", "12px"))
+        button_color  = _safe_css_value(p.get("button_color", "#111827"))
+        title_color   = _safe_css_value(p.get("title_color", "#111827"))
+        text_color    = _safe_css_value(p.get("text_color", "#6b7280"))
         font          = font_stack(p, "Arial,sans-serif")
 
         pt = int(p.get("padding_top", 20))
@@ -274,7 +275,7 @@ class VideoThumbRenderer(BlockRenderer):
         thumbnail_url = _abs_image_src(p.get("thumbnail_url", ""))
         video_url     = _safe_url(p.get("video_url", "#"))
         caption       = escape(p.get("caption", ""))
-        border_radius = escape(p.get("border_radius", "8px"))
+        border_radius = _safe_css_value(p.get("border_radius", "8px"))
         padding       = _padding(p, 16, 16, 16, 16)
 
         if not thumbnail_url:

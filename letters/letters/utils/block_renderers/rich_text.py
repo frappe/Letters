@@ -3,7 +3,7 @@ from html.parser import HTMLParser
 from typing import Any, List, Optional, Tuple
 
 from letters.letters.utils.fonts import font_stack
-from .base import BlockRenderer, _class_attr, _font_scale_class, _pad_class, _padding, _safe_url, _spacing_wrapper
+from .base import BlockRenderer, _class_attr, _font_scale_class, _pad_class, _padding, _safe_css_value, _safe_url, _spacing_wrapper
 
 
 # ── Rich-text HTML sanitizer ─────────────────────────────────────────────────
@@ -103,16 +103,16 @@ class RichTextRenderer(BlockRenderer):
         if not html_content:
             return ""
 
-        align          = escape(p.get("align", "left"))
-        size           = escape(p.get("font_size", "15px"))
-        weight         = escape(str(p.get("font_weight", "400")))
-        font_style     = escape(p.get("font_style", "normal"))
-        color          = escape(p.get("text_color", "#374151"))
-        line_height    = escape(str(p.get("line_height", "1.6")))
-        letter_spacing = escape(str(p.get("letter_spacing", "")))
+        align          = _safe_css_value(p.get("align", "left"))
+        size           = _safe_css_value(p.get("font_size", "15px"))
+        weight         = _safe_css_value(str(p.get("font_weight", "400")))
+        font_style     = _safe_css_value(p.get("font_style", "normal"))
+        color          = _safe_css_value(p.get("text_color", "#374151"))
+        line_height    = _safe_css_value(str(p.get("line_height", "1.6")))
+        letter_spacing = _safe_css_value(str(p.get("letter_spacing", "")))
         font           = font_stack(p, "Arial,sans-serif")
         padding        = _padding(p, 20, 16, 20, 16)
-        bg             = escape(p.get("background_color", "") or "")
+        bg             = _safe_css_value(p.get("background_color", "") or "")
         bg_style       = f"background-color:{bg};" if bg and bg != "transparent" else ""
 
         ls_style = f"letter-spacing:{letter_spacing};" if letter_spacing and letter_spacing != "normal" else ""

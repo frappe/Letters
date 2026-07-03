@@ -3,7 +3,7 @@ from html import escape
 from pathlib import Path
 from typing import Any
 
-from .base import BlockRenderer, _class_attr, _pad_class, _padding, _safe_url, _spacing_wrapper
+from .base import BlockRenderer, _class_attr, _pad_class, _padding, _safe_css_value, _safe_url, _spacing_wrapper
 
 
 @lru_cache(maxsize=256)
@@ -131,8 +131,8 @@ class SocialRenderer(BlockRenderer):
     def render(self, block: dict[str, Any]) -> str:
         p       = block.get("props", {})
         color   = p.get("color", "#374151")
-        bg      = escape(p.get("background_color", "#ffffff"))
-        align   = escape(p.get("align", "center"))
+        bg      = _safe_css_value(p.get("background_color", "#ffffff"))
+        align   = _safe_css_value(p.get("align", "center"))
         padding = _padding(p, 20, 16, 20, 16)
         icon_size = int(p.get("icon_size", 32))
 

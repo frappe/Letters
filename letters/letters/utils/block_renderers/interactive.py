@@ -2,7 +2,7 @@ from html import escape
 from typing import Any
 
 from letters.letters.utils.fonts import font_stack
-from .base import BlockRenderer, _class_attr, _pad_class, _padding, _safe_url, _spacing_wrapper
+from .base import BlockRenderer, _class_attr, _pad_class, _padding, _safe_css_value, _safe_url, _spacing_wrapper
 
 
 class ButtonRenderer(BlockRenderer):
@@ -16,17 +16,17 @@ class ButtonRenderer(BlockRenderer):
         p = block.get("props", {})
         label          = escape(p.get("label", "Click here"))
         url            = _safe_url(p.get("url", "#"))
-        bg             = escape(p.get("color", "#111827"))
-        color          = escape(p.get("text_color", "#ffffff"))
-        align          = escape(p.get("align", "center"))
-        radius         = escape(p.get("border_radius", "8px"))
-        font_size      = escape(p.get("font_size", "14px"))
+        bg             = _safe_css_value(p.get("color", "#111827"))
+        color          = _safe_css_value(p.get("text_color", "#ffffff"))
+        align          = _safe_css_value(p.get("align", "center"))
+        radius         = _safe_css_value(p.get("border_radius", "8px"))
+        font_size      = _safe_css_value(p.get("font_size", "14px"))
         font           = font_stack(p, "Arial,sans-serif")
         btn_padding_key = p.get("button_padding", "normal")
         btn_padding    = self._BTN_PADDING.get(btn_padding_key, self._BTN_PADDING["normal"])
-        letter_spacing = escape(p.get("letter_spacing", ""))
+        letter_spacing = _safe_css_value(p.get("letter_spacing", ""))
         ls_style       = f"letter-spacing:{letter_spacing};" if letter_spacing and letter_spacing != "normal" else ""
-        outer_bg       = escape(p.get("background_color", ""))
+        outer_bg       = _safe_css_value(p.get("background_color", ""))
         outer_bg_style = f"background-color:{outer_bg};" if outer_bg and outer_bg not in ("transparent", "") else ""
 
         padding = _padding(p, 20, 16, 20, 16)
@@ -51,10 +51,10 @@ class LinkListRenderer(BlockRenderer):
         heading     = escape(p.get("heading", ""))
         items       = p.get("items", [])
         style       = p.get("style", "bullet")
-        link_color  = escape(p.get("link_color", "#2563eb"))
-        text_color  = escape(p.get("text_color", "#6b7280"))
-        accent_color = escape(p.get("accent_color", "#9ca3af"))
-        bg          = escape(p.get("background_color", "#ffffff"))
+        link_color  = _safe_css_value(p.get("link_color", "#2563eb"))
+        text_color  = _safe_css_value(p.get("text_color", "#6b7280"))
+        accent_color = _safe_css_value(p.get("accent_color", "#9ca3af"))
+        bg          = _safe_css_value(p.get("background_color", "#ffffff"))
         font        = font_stack(p, "Arial,sans-serif")
         padding     = _padding(p, 20, 16, 20, 16)
 
