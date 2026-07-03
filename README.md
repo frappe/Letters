@@ -1,13 +1,15 @@
+
 # Letters
 
-Visual email design and campaign/letter sending system for [Frappe](https://frappeframework.com/). Build emails with a drag-and-drop block editor, preview them on desktop and mobile, and send to manual recipients or anyone pulled from any DocType in your site — all from within Frappe Desk.
+Visual email design and letter sending system for [Frappe](https://frappeframework.com/). Build emails with a drag-and-drop block editor, preview them on desktop and mobile, and send to manual recipients or anyone pulled from any DocType in your site — all from within Frappe Desk.
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 
+<img width="1470" height="839" alt="Screenshot 2026-07-03 at 7 43 30 PM" src="https://github.com/user-attachments/assets/8dbe9ed0-f4b1-4b82-8204-39db4a1e742a" />
+
 ## Features
 
-- **Drag-and-drop editor** — build emails from blocks (hero, text, image + text, button, divider, footer) with a live layers panel for reordering and nesting.
-- **Desktop & mobile preview** — toggle between viewports while you design.
+- **Drag-and-drop editor** — build emails from blocks (hero, text, button, divider and other pre-sets) with a live layers panel for reordering and nesting.
 - **Clean HTML output** — a table-based, inline-styled compiler with no MJML dependency, so emails render consistently across inboxes.
 - **Flexible recipients** — send to a manual list or dynamically source recipients from any DocType on your site.
 - **Delivery tracking** — every send creates an Email Send record with per-recipient status via Email Send Recipient.
@@ -15,10 +17,6 @@ Visual email design and campaign/letter sending system for [Frappe](https://frap
 - **Templates** — start from a Letters Template instead of a blank canvas.
 - **Inbox preheader** — set custom preview text shown in the recipient's inbox.
 - **Role-based access** — access control follows standard Frappe roles/permissions.
-
-## Screenshots
-
-_Add screenshots or a short GIF of the builder here before publishing._
 
 ## Requirements
 
@@ -73,14 +71,6 @@ bench --site your-site.local run-tests --app letters
   - `Email Send` / `Email Send Recipient` — a send record and its per-recipient delivery status.
 - **Rendering** — the design tree is compiled to inline-styled, table-based HTML server-side before sending, so output is consistent regardless of the recipient's email client.
 - **Scheduling** — `letters.letters.api.process_scheduled_sends` and `letters.letters.api.reconcile_active_sends` run every 5 minutes via Frappe's cron scheduler to handle scheduled and in-flight bulk sends.
-
-## Contributing
-
-Issues and pull requests are welcome. Before opening a PR:
-
-1. Run `npm run lint` and `npm run test` in `frontend/`.
-2. Run the Python test suite via `bench --site your-site.local run-tests --app letters`.
-3. Keep changes scoped — smaller, focused PRs are easier to review.
 
 ## License
 
