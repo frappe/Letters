@@ -158,6 +158,12 @@ def resume_send(name: str):
     if send.status != "Sending":
         frappe.throw(_("This letter isn't in a resumable state."))
 
+    if _has_pending_jobs(name):
+        frappe.throw(_(
+            "This send still has background jobs in progress — it's just slow, "
+            "not stuck. Check back shortly instead of resuming."
+        ))
+
     all_emails = frappe.get_all("Email Send Recipient", filters={"parent": send.name}, pluck="email")
     queued_emails = {
         r[0] for r in frappe.db.sql(
@@ -184,6 +190,32 @@ def resume_send(name: str):
     _queue_recipients(send_doc, name, missing, send.snapshot_subject or "", html)
     frappe.db.commit()
     return {"resumed": True, "requeued": len(missing)}
+
+
+def _has_pending_jobs(letter_name):
+    """True if any queued/started RQ job (this letter's own outer job, or one of
+    core's per-1000-batch fan-out jobs) hasn't finished yet. Guards resume_send
+    against re-queuing recipients whose batch simply hasn't run yet, which
+    would otherwise double-send them once that batch eventually executes.
+    """
+    from rq.job import Job
+    from rq.registry import StartedJobRegistry
+
+    from frappe.utils.background_jobs import get_queue, get_redis_conn
+
+    needles = [f"letters_send_{letter_name}", f"send_bulk_emails_for_Letter_{letter_name}"]
+    conn = get_redis_conn()
+    for queue_name in ("long", "default", "short"):
+        q = get_queue(queue_name)
+        job_ids = set(q.job_ids) | set(StartedJobRegistry(queue=q).get_job_ids())
+        for job_id in job_ids:
+            if not Job.exists(job_id, connection=conn):
+                continue
+            job = Job.fetch(job_id, connection=conn)
+            job_name = (job.kwargs or {}).get("job_name")
+            if job_name and any(n in job_name for n in needles):
+                return True
+    return False
 
 
 def process_scheduled_sends():
