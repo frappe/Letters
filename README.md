@@ -1,8 +1,11 @@
+
 # Letters
 
 Visual email design and campaign/letter sending system for [Frappe](https://frappeframework.com/). Build emails with a drag-and-drop block editor, preview them on desktop and mobile, and send to manual recipients or anyone pulled from any DocType in your site — all from within Frappe Desk.
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
+
+<img width="1470" height="839" alt="Screenshot 2026-07-03 at 7 43 30 PM" src="https://github.com/user-attachments/assets/8dbe9ed0-f4b1-4b82-8204-39db4a1e742a" />
 
 ## Features
 
@@ -17,10 +20,6 @@ Visual email design and campaign/letter sending system for [Frappe](https://frap
 - **Role-based access** — access control follows standard Frappe roles/permissions.
 
 See [ROADMAP.md](ROADMAP.md) for what's shipped, what's next, and the reasoning behind prioritization.
-
-## Screenshots
-
-_Add screenshots or a short GIF of the builder here before publishing._
 
 ## Requirements
 
