@@ -16,8 +16,6 @@ Visual email design and campaign/letter sending system for [Frappe](https://frap
 - **Inbox preheader** — set custom preview text shown in the recipient's inbox.
 - **Role-based access** — access control follows standard Frappe roles/permissions.
 
-See [ROADMAP.md](ROADMAP.md) for what's shipped, what's next, and the reasoning behind prioritization.
-
 ## Screenshots
 
 _Add screenshots or a short GIF of the builder here before publishing._
