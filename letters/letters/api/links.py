@@ -20,6 +20,9 @@ _LINK_CHECK_TIMEOUT = 5  # per-request, seconds
 _LINK_CHECK_TIME_BUDGET = 25  # total wall-clock across all requests, seconds
 
 
+_LINK_CHECK_CONCURRENCY = 10  # HEAD requests in flight at once
+
+
 
 
 def _ip_is_public(ip):
@@ -99,7 +102,7 @@ def _url_safety_error(url):
 
 
 
-def _head_pinned(url, timeout):
+def _head_pinned(url, timeout, resolved=None):
     """Issue a HEAD request to ``url`` connecting to the pre-validated pinned IP.
 
     Redirects are NOT followed (a 3xx Location could point back at an internal
@@ -107,15 +110,22 @@ def _head_pinned(url, timeout):
     SNI and certificate verification even though the socket targets the pinned
     IP, so security is preserved without a second DNS lookup.
 
+    ``resolved`` is an optional pre-computed ``(host, ip, port, scheme)`` tuple
+    from ``_resolve_safe_target`` — pass it when the caller already validated
+    the URL, to avoid resolving DNS twice per link.
+
     Returns the HTTP status code (int). Raises on connection/HTTP errors."""
     import http.client
     import socket
     import ssl
     from urllib.parse import urlsplit
 
-    host, ip, port, scheme, error = _resolve_safe_target(url)
-    if error:
-        raise ValueError(error)
+    if resolved is None:
+        host, ip, port, scheme, error = _resolve_safe_target(url)
+        if error:
+            raise ValueError(error)
+    else:
+        host, ip, port, scheme = resolved
 
     parts = urlsplit(url)
     path = parts.path or "/"
@@ -156,40 +166,60 @@ def _run_link_check(blocks_data, preview_text, email_width):
     http(s) hosts are probed (see _resolve_safe_target). The probe connects to
     the exact IP that passed validation (no second DNS lookup), so DNS
     rebinding cannot redirect us to an internal host. Internal/loopback/cloud-
-    metadata targets are reported as blocked, never requested."""
+    metadata targets are reported as blocked, never requested.
+
+    HEAD requests run concurrently (bounded by _LINK_CHECK_CONCURRENCY) so a
+    slow or dead link only costs its own timeout, not N x timeout."""
+    import concurrent.futures
     import re
     import time
 
-    from .utils.email_compiler import EmailCompiler
+    from ..utils.email_compiler import EmailCompiler
     html = EmailCompiler(blocks_data, preview_text=preview_text, email_width=email_width).compile()
 
     urls = list(dict.fromkeys(re.findall(r'href=["\']([^"\'#][^"\']*)["\']', html)))
-    results = []
+    results = {}
     deadline = time.monotonic() + _LINK_CHECK_TIME_BUDGET
-    checked = 0
+
+    to_check = []  # (url, host, ip, port, scheme)
     for url in urls:
         if not url.startswith("http"):
-            results.append({"url": url, "status": "skipped", "code": None})
+            results[url] = {"url": url, "status": "skipped", "code": None}
             continue
-        if checked >= _LINK_CHECK_MAX_URLS or time.monotonic() >= deadline:
-            results.append({"url": url, "status": "skipped", "code": None})
-            continue
-
-        if _url_safety_error(url):
-            results.append({"url": url, "status": "blocked", "code": None})
+        if len(to_check) >= _LINK_CHECK_MAX_URLS:
+            results[url] = {"url": url, "status": "skipped", "code": None}
             continue
 
-        checked += 1
+        host, ip, port, scheme, error = _resolve_safe_target(url)
+        if error:
+            results[url] = {"url": url, "status": "blocked", "code": None}
+            continue
+        to_check.append((url, host, ip, port, scheme))
+
+    def _probe(item):
+        url, host, ip, port, scheme = item
         try:
-            code = _head_pinned(url, _LINK_CHECK_TIMEOUT)
-            if code >= 400:
-                results.append({"url": url, "status": "error", "code": code})
-            else:
-                results.append({"url": url, "status": "ok", "code": code})
+            code = _head_pinned(url, _LINK_CHECK_TIMEOUT, resolved=(host, ip, port, scheme))
+            status = "error" if code >= 400 else "ok"
+            return url, {"url": url, "status": status, "code": code}
         except Exception:
-            results.append({"url": url, "status": "error", "code": None})
+            return url, {"url": url, "status": "error", "code": None}
 
-    return results
+    if to_check:
+        max_workers = min(_LINK_CHECK_CONCURRENCY, len(to_check))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_url = {executor.submit(_probe, item): item[0] for item in to_check}
+            remaining = max(0.1, deadline - time.monotonic())
+            done, not_done = concurrent.futures.wait(future_to_url, timeout=remaining)
+            for future in done:
+                url, result = future.result()
+                results[url] = result
+            for future in not_done:
+                future.cancel()
+                url = future_to_url[future]
+                results[url] = {"url": url, "status": "skipped", "code": None}
+
+    return [results[url] for url in urls]
 
 
 
