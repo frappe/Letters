@@ -55,9 +55,8 @@
 
     <div
       v-else
+      ref="listWrapper"
       class="flex-1 overflow-y-auto py-1 flex flex-col"
-      @dragover.prevent
-      @drop.prevent="onDropAtEnd"
     >
       <LayerNode
         v-for="block in store.blocks"
@@ -152,22 +151,9 @@ function finishRename(id, value) {
   editingId.value = null;
 }
 
-const dragId    = ref(null);
-const dropState = ref(null);
-
-function onDragStart(id, e) {
-  dragId.value = id;
-  e.dataTransfer.effectAllowed = "move";
-}
-
-function getZone(e, isContainer) {
-  const rect  = e.currentTarget.getBoundingClientRect();
-  const ratio = (e.clientY - rect.top) / rect.height;
-  if (!isContainer) return ratio < 0.5 ? "before" : "after";
-  if (ratio < 0.3) return "before";
-  if (ratio < 0.7) return "inside";
-  return "after";
-}
+const dragId      = ref(null);
+const dropState   = ref(null);
+const listWrapper = ref(null);
 
 function isDescendant(ancestorId, nodeId) {
   let cur = blockMeta.value.get(nodeId);
@@ -178,41 +164,87 @@ function isDescendant(ancestorId, nodeId) {
   return false;
 }
 
-function onDragOver(id, e) {
-  if (dragId.value == null || dragId.value === id || isDescendant(dragId.value, id)) {
-    dropState.value = null; return;
-  }
-  const meta = blockMeta.value.get(id);
-  dropState.value = { targetId: id, zone: getZone(e, meta?.isContainer) };
+function getZone(ratio, isContainer) {
+  if (!isContainer) return ratio < 0.5 ? "before" : "after";
+  if (ratio < 0.25) return "before";
+  if (ratio < 0.75) return "inside";
+  return "after";
 }
 
-function onDrop(id) {
+// Mouse-event-driven drag (not native HTML5 drag/drop): native dragover only
+// fires a handful of times per second and its coordinates are unreliable in
+// Safari, which made the layers panel undraggable there. mousemove fires
+// continuously and consistently across browsers.
+const DRAG_THRESHOLD = 4;
+let dragStart = null; // { id, x, y } — pending drag before threshold is crossed
+
+function updateDropState(x, y) {
+  const rowEl = document.elementFromPoint(x, y)?.closest("[data-block-layer-id]");
+  if (!rowEl) { dropState.value = null; return; }
+
+  const id = Number(rowEl.dataset.blockLayerId);
+  if (id === dragId.value || isDescendant(dragId.value, id)) { dropState.value = null; return; }
+
+  const meta = blockMeta.value.get(id);
+  const rect = rowEl.getBoundingClientRect();
+  const ratio = (y - rect.top) / rect.height;
+  dropState.value = { targetId: id, zone: getZone(ratio, meta?.isContainer) };
+}
+
+function onRowMouseDown(id, e) {
+  if (e.button !== 0) return;
+  dragStart = { id, x: e.clientX, y: e.clientY };
+  document.addEventListener("mousemove", onDocumentMouseMove);
+  document.addEventListener("mouseup", onDocumentMouseUp);
+}
+
+function onDocumentMouseMove(e) {
+  if (dragId.value == null) {
+    if (!dragStart) return;
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+    if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+    dragId.value = dragStart.id;
+    document.body.classList.add("select-none");
+  }
+  updateDropState(e.clientX, e.clientY);
+}
+
+function onDocumentMouseUp(e) {
+  document.removeEventListener("mousemove", onDocumentMouseMove);
+  document.removeEventListener("mouseup", onDocumentMouseUp);
+  document.body.classList.remove("select-none");
+  dragStart = null;
+
   const from  = dragId.value;
   const state = dropState.value;
   clearDrag();
-  if (from == null || from === id || !state || isDescendant(from, id)) return;
+  if (from == null) return;
+
+  if (!state) {
+    if (listWrapper.value?.contains(e.target)) {
+      store.moveBlockTo(from, null, store.blocks.length);
+    }
+    return;
+  }
+
+  const { targetId: id, zone } = state;
+  if (from === id) return;
   const meta = blockMeta.value.get(id);
   if (!meta) return;
 
-  if (state.zone === "inside" && meta.isContainer) {
+  if (zone === "inside" && meta.isContainer) {
     store.moveBlockTo(from, id, meta.childrenCount);
     return;
   }
 
-  const insertOffset = state.zone === "before" ? 0 : 1;
+  const insertOffset = zone === "before" ? 0 : 1;
 
   if (meta.colIndex !== null) {
     store.moveBlockToColumn(from, meta.parentId, meta.colIndex, meta.index + insertOffset);
   } else {
     store.moveBlockTo(from, meta.parentId, meta.index + insertOffset);
   }
-}
-
-function onDropAtEnd() {
-  const from = dragId.value;
-  clearDrag();
-  if (from == null) return;
-  store.moveBlockTo(from, null, store.blocks.length);
 }
 
 function clearDrag() { dragId.value = null; dropState.value = null; }
@@ -282,14 +314,11 @@ const LayerNode = defineComponent({
       const row = h("div", {
         class: "group relative flex items-center gap-1.5 pr-2 py-1.5 mx-1 rounded cursor-pointer select-none transition-colors " + rowClass(b),
         style: { paddingLeft: rowPaddingLeft + "px" },
-        draggable: true,
+        "data-block-layer-id": b.id,
         onClick:        (e) => handleLayerClick(b.id, e),
         onDblclick:     (e) => { e.stopPropagation(); startRename(b.id); },
         onContextmenu:  (e) => openContextMenu(b.id, e),
-        onDragstart:    (e) => { e.stopPropagation(); onDragStart(b.id, e); },
-        onDragover:     (e) => { e.stopPropagation(); e.preventDefault(); onDragOver(b.id, e); },
-        onDrop:         (e) => { e.stopPropagation(); e.preventDefault(); onDrop(b.id); },
-        onDragend:      ()  => clearDrag(),
+        onMousedown:    (e) => onRowMouseDown(b.id, e),
       }, [
         dState?.targetId === b.id && dState.zone === "before"
           ? h("div", { class: "absolute inset-x-1 -top-px h-0.5 bg-blue-500 rounded-full pointer-events-none z-10" }) : null,
@@ -321,9 +350,9 @@ const LayerNode = defineComponent({
                 if (e.key === "Enter")  { e.preventDefault(); editingId.value = null; }
                 if (e.key === "Escape") { e.preventDefault(); editingId.value = null; }
               },
-              onClick:    (e) => e.stopPropagation(),
-              onDblclick: (e) => e.stopPropagation(),
-              onDragstart:(e) => { e.stopPropagation(); e.preventDefault(); },
+              onClick:     (e) => e.stopPropagation(),
+              onDblclick:  (e) => e.stopPropagation(),
+              onMousedown: (e) => e.stopPropagation(),
               onVnodeMounted: ({ el }) => { el?.querySelector("input")?.focus(); el?.querySelector("input")?.select(); },
             })
           : h("span", { class: "flex-1 text-sm text-ink-gray-6 truncate" }, b.label || blockLabel(b.type)),
@@ -377,7 +406,7 @@ const LayerNode = defineComponent({
 
       const childrenSection = h("div", { class: "relative" }, [
         h("div", {
-          class: "absolute top-0 bottom-0 w-px bg-outline-gray-2",
+          class: "absolute top-0 bottom-0 w-px bg-outline-gray-2 pointer-events-none",
           style: { left: lineLeft + "px" },
         }),
         ...children.map((child) =>

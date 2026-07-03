@@ -267,7 +267,7 @@ export const useEditorStore = defineStore("editor", () => {
   // ── Cross-level move (layers panel drag) ─────────────────────────────────────
   function moveBlockTo(blockId, targetParentId, targetIndex) {
     _pushHistory(true);
-    if (targetParentId !== null && _isDescendant(blockId, targetParentId)) return;
+    if (targetParentId !== null && _isDescendant(targetParentId, blockId)) return;
 
     let moved = null;
     function detach(list) {
