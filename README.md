@@ -1,7 +1,7 @@
 
 # Letters
 
-Visual email design and campaign/letter sending system for [Frappe](https://frappeframework.com/). Build emails with a drag-and-drop block editor, preview them on desktop and mobile, and send to manual recipients or anyone pulled from any DocType in your site — all from within Frappe Desk.
+Visual email design and letter sending system for [Frappe](https://frappeframework.com/). Build emails with a drag-and-drop block editor, preview them on desktop and mobile, and send to manual recipients or anyone pulled from any DocType in your site — all from within Frappe Desk.
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 
@@ -9,8 +9,7 @@ Visual email design and campaign/letter sending system for [Frappe](https://frap
 
 ## Features
 
-- **Drag-and-drop editor** — build emails from blocks (hero, text, image + text, button, divider, footer) with a live layers panel for reordering and nesting.
-- **Desktop & mobile preview** — toggle between viewports while you design.
+- **Drag-and-drop editor** — build emails from blocks (hero, text, button, divider and other pre-sets) with a live layers panel for reordering and nesting.
 - **Clean HTML output** — a table-based, inline-styled compiler with no MJML dependency, so emails render consistently across inboxes.
 - **Flexible recipients** — send to a manual list or dynamically source recipients from any DocType on your site.
 - **Delivery tracking** — every send creates an Email Send record with per-recipient status via Email Send Recipient.
