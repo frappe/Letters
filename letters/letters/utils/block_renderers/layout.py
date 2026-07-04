@@ -49,7 +49,12 @@ def _fluid_columns(cols: list[tuple[str, int, bool, str]], gap: int, valign_css:
     half = max(gap // 2, 0)
     div_pad = max(gap, 20)   # roomier gutter on either side of a divider rule
     up_cls = f"ltr-col-{up}up"
-    col_w  = round(100 / up)
+    # Per-column width proportional to its actual px share (gw), not a uniform
+    # 100/up split — a 15%/85% icon+text row was rendering as 50/50 in Gmail
+    # (which uses this div/table-cell path) because every column shared the
+    # same inline width, even though the mso ghost table below got the real
+    # px split right. That's why Outlook looked correct but Gmail didn't.
+    total_gw = sum(gw for _, gw, _, _ in cols) or 1
     parts = [
         # table-layout:fixed keeps the row exactly the container's width — content
         # (e.g. an image) can't expand it past 100%. Without it Gmail can widen
@@ -63,6 +68,7 @@ def _fluid_columns(cols: list[tuple[str, int, bool, str]], gap: int, valign_css:
         next_div = idx + 1 < n and cols[idx + 1][2]
         left  = 0 if idx == 0     else (div_pad if div_before else half)
         right = 0 if idx == n - 1 else (div_pad if next_div  else half)
+        col_w = round(100 * gw / total_gw)
         cls = up_cls + (" ltr-coldiv" if div_before else "")
         # Border colour+style on all sides, width only on the left: a full-height
         # vertical rule between the side-by-side cells. The media query flips the

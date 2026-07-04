@@ -23,3 +23,6 @@ letters/public/_tpl_preview/
 # pytest artifact: renderers mkdir a MagicMock() get_site_path() when frappe is
 # mocked outside a bench (see block_renderers/social.py)
 MagicMock/
+
+# local Python 3.11 venv (system python3 is 3.9, repo requires >=3.10)
+.venv311/
