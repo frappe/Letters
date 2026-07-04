@@ -63,16 +63,26 @@ const innerWrapStyle = computed(() => ({
   lineHeight: 0,
 }));
 
-// Apply fixed height + object-fit directly on the img so no % chain needed
+// Apply fixed height + object-fit directly on the img so no % chain needed.
+// When a fixed height is set, width must be "auto" (not "100%"): a percentage
+// width on a flex item whose own width is also "auto" is an indeterminate
+// chain some browsers resolve by stretching the <img>'s layout box to the
+// full available width, so a small object-fit:contain logo ends up visually
+// centered inside that oversized box regardless of the block's own
+// image_align — the box was left-aligned, it was just much wider than the
+// logo. "auto" lets the browser size the box from the fixed height + the
+// image's intrinsic aspect ratio instead, so the box actually matches the
+// logo and left/right/center alignment works as expected.
 const imgStyle = computed(() => {
   const fit = props.block.props.image_fit || "cover";
   const h = props.block.props.image_height;
   const hasHeight = h && h !== "auto" && h !== "";
   const objPos = props.block.props.object_position || "center";
   return {
-    width: "100%",
     display: "block",
-    ...(hasHeight ? { height: h, objectFit: fit, objectPosition: objPos } : {}),
+    ...(hasHeight
+      ? { width: "auto", height: h, objectFit: fit, objectPosition: objPos }
+      : { width: "100%" }),
   };
 });
 </script>
