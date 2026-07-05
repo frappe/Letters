@@ -7,7 +7,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, watch, onMounted, onUnmounted } from "vue";
 import { FrappeUIProvider } from "frappe-ui";
 import { useDark, useToggle } from "@vueuse/core";
 import LettersDashboard from "./pages/LettersDashboard.vue";
@@ -25,6 +25,18 @@ const isDark = useDark({
   initialValue: "dark",
 });
 const toggleDark = useToggle(isDark);
+
+// frappe-ui's Dropdown/Dialog render via <Teleport to="body">, landing outside
+// #letter-builder in the DOM — so Tailwind's dark-mode selector
+// ([data-theme="dark"], scoped to #letter-builder above) never matches them,
+// and every dropdown/modal stayed stuck in light mode regardless of the
+// toggle. Mirror the same attribute onto <body>, the actual teleport target,
+// and strip it back off on unmount so it doesn't leak into the rest of Desk
+// once you navigate away — the exact leak the #letter-builder scoping above
+// was already written to prevent.
+watch(isDark, (dark) => {
+  document.body.setAttribute("data-theme", dark ? "dark" : "light");
+}, { immediate: true });
 
 const activeLetter = ref(null);
 const showNewLetterPicker = ref(false);
@@ -84,5 +96,8 @@ onMounted(() => {
   syncFromRoute();
   window.addEventListener("letters:page-show", syncFromRoute);
 });
-onUnmounted(() => window.removeEventListener("letters:page-show", syncFromRoute));
+onUnmounted(() => {
+  window.removeEventListener("letters:page-show", syncFromRoute);
+  document.body.removeAttribute("data-theme");
+});
 </script>
