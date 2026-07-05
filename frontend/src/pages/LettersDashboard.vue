@@ -694,6 +694,7 @@ async function switchSection(section) {
   viewSection.value = section;
   sessionStorage.setItem("letters_dashboard_section", section);
   search.value = "";
+  activeFolder.value = null;
   if (section === "notifications" && !notifications.value.length) {
     await loadNotifications();
   }
