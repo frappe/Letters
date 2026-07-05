@@ -60,6 +60,7 @@ def create_notification_for_letter(letter: str):
         "event": "New",
         "channel": "Email",
         "message": "",
+        "letter_message_type": "Letter Builder",
         "enabled": 0,
         "letter": letter,
     })
@@ -101,6 +102,7 @@ def create_notification_pair():
         "event": "New",
         "channel": "Email",
         "message": "",
+        "letter_message_type": "Letter Builder",
         "enabled": 0,
         "letter": letter.name,
     })
@@ -244,8 +246,15 @@ def _pick_sample_record(document_type: str, html: str) -> str | None:
     one where all referenced fields are non-empty, falling back to the single
     most recently modified record if none qualify (or if the html has no
     merge tags to check against).
+
+    Tags referencing a field that doesn't exist on `document_type` (e.g. an
+    author left a template's placeholder merge tag like
+    `{{ doc.your_recipient_field }}` unedited) are dropped rather than passed
+    to the query — an unknown column would otherwise raise a raw DB error.
     """
-    fieldnames = sorted(set(_MERGE_TAG_RE.findall(html)) - {"name"})
+    meta = frappe.get_meta(document_type)
+    tags = set(_MERGE_TAG_RE.findall(html)) - {"name"}
+    fieldnames = sorted(f for f in tags if meta.has_field(f))
     if not fieldnames:
         return frappe.db.get_value(document_type, {}, "name", order_by="modified desc")
 
@@ -294,6 +303,21 @@ def resolve_merge_tags_for_preview(html: str, letter_name: str | None) -> str:
         return frappe.render_template(html, context)
     except Exception:
         return html
+
+
+def neutralize_unresolved_merge_tags(text: str) -> str:
+    """Replace any `{{ doc.field }}` tag still left in `text` with `[field]`.
+
+    `resolve_merge_tags_for_preview` leaves tags untouched whenever it can't
+    find a real document to merge in (no linked Notification yet, or the
+    Notification's document type has no records). Frappe's own
+    `frappe.sendmail` runs its message through Jinja too, even for a plain
+    test send with no triggering document — so an untouched `{{ doc.x }}`
+    reaching it blows up with `'doc' is undefined` instead of just sending.
+    Turning it into single-bracket text keeps the tag readable without
+    Jinja treating it as an expression.
+    """
+    return _MERGE_TAG_RE.sub(lambda m: f"[{m.group(1)}]", text)
 
 
 @frappe.whitelist()

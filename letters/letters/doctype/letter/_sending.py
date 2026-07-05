@@ -16,6 +16,19 @@ class SendingMixin:
         )
         subj = subject or self.subject
 
+        # A test send has no triggering document, but Frappe still runs the
+        # message (and subject) through Jinja before mailing it — an
+        # unresolved `{{ doc.field }}` merge tag (left over from a
+        # notification-linked Letter) would otherwise crash the send with
+        # "'doc' is undefined". Fill in real values from a sample record
+        # where we can, then neutralize anything left so it can't reach Jinja.
+        from letters.letters.api.notifications import (
+            neutralize_unresolved_merge_tags, resolve_merge_tags_for_preview,
+        )
+        html = neutralize_unresolved_merge_tags(resolve_merge_tags_for_preview(html, self.name))
+        if subj:
+            subj = neutralize_unresolved_merge_tags(resolve_merge_tags_for_preview(subj, self.name))
+
         requested = (recipient or "").strip()
         email = requested or frappe.session.user
         if not frappe.utils.validate_email_address(email, throw=False):

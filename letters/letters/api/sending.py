@@ -42,6 +42,13 @@ def send_test(blocks: str | None = None, subject: str | None = None, preview_tex
         frappe.log_error(frappe.get_traceback(), "Letters send_test compile error")
         frappe.throw(str(e))
 
+    # No saved Letter here to look up a linked Notification, so there's no
+    # sample document to merge in — just neutralize any `{{ doc.field }}` tag
+    # so it can't reach Frappe's own Jinja pass and crash with "'doc' is undefined".
+    from letters.letters.api.notifications import neutralize_unresolved_merge_tags
+    html = neutralize_unresolved_merge_tags(html)
+    subject = neutralize_unresolved_merge_tags(subject) if subject else subject
+
     email = (recipient or "").strip() or frappe.session.user
     if not frappe.utils.validate_email_address(email, throw=False):
         frappe.throw(_("'{0}' is not a valid email address.").format(email))
