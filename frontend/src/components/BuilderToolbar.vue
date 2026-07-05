@@ -11,7 +11,7 @@
           class="flex-shrink-0 !gap-1 !px-0.5 focus-visible:!ring-0"
         >
           <template #prefix>
-            <span class="w-6 h-6 rounded-md bg-[var(--ink-gray-9)] text-ink-white flex items-center justify-center text-xs font-bold flex-shrink-0">L</span>
+            <img :src="faviconUrl" alt="Letters" class="w-6 h-6 flex-shrink-0" />
           </template>
           <template #suffix>
             <span :class="`lucide-${open ? 'chevron-up' : 'chevron-down'} size-3.5 text-ink-gray-4`" aria-hidden="true" />
@@ -156,6 +156,8 @@
 import { computed } from "vue";
 import { Button, Dropdown, Tooltip, Progress, Badge } from "frappe-ui";
 import { formatScheduledAt } from "../utils/builderHelpers";
+
+const faviconUrl = "/assets/letters/images/favicon/favicon.svg";
 
 const props = defineProps({
   menuOptions: { type: Array, default: () => [] },

@@ -9,13 +9,11 @@
     >
       <!-- App header -->
       <div class="flex items-center gap-2.5 px-4 py-3.5 border-b border-outline-gray-1 h-[53px]">
-        <div
-          class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-sm font-bold"
-          :class="props.isDark ? '' : 'bg-surface-gray-3 text-ink-gray-6'"
-          :style="props.isDark ? 'background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.55)' : ''"
-        >
-          L
-        </div>
+        <img
+          :src="faviconUrl"
+          alt="Letters"
+          class="w-7 h-7 flex-shrink-0"
+        />
         <span
           class="text-sm font-semibold flex-1"
           :class="props.isDark ? '' : 'text-ink-gray-7'"
@@ -519,6 +517,8 @@ const props = defineProps({
   toggleDark: { type: Function, default: () => {} },
 });
 const emit = defineEmits(["open-letter", "new-letter"]);
+
+const faviconUrl = "/assets/letters/images/favicon/favicon.svg";
 
 const letters = ref([]);
 const allFolders = ref([]);
