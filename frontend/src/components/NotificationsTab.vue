@@ -309,6 +309,8 @@ const CONDITION_TYPE_OPTIONS = [
 
 const props = defineProps({
   letterDoc: { type: Object, default: null },
+  subject:   { type: String, default: "" },
+  flushSave: { type: Function, default: null },
 });
 
 const loading    = ref(false);
@@ -610,12 +612,17 @@ async function saveNotification() {
 // ── Notification creation ─────────────────────────────────────────────────────
 
 async function createNotification() {
-  if (!props.letterDoc?.subject?.trim()) {
+  if (!props.subject?.trim()) {
     toast.error("Set a subject line in the Details tab before creating a notification.");
     return;
   }
   creating.value = true;
   try {
+    // The backend reads the Letter's saved subject, not what's live in the
+    // editor — flush any unsaved edits (including a subject typed seconds
+    // ago) before creating, or the notification could be created against a
+    // stale/blank subject despite the field looking filled in on screen.
+    await props.flushSave?.();
     const res = await frappe.call({
       method: "letters.letters.api.notifications.create_notification_for_letter",
       args: { letter: props.letterDoc.name },

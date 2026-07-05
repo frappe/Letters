@@ -60,15 +60,23 @@ export function usePreview(editorStore, previewText) {
 <meta charset="utf-8" />
 <title>${letterTitle} · Preview</title>
 <style>
-  html, body { margin: 0; width: 100%; height: 100%; background: #e5e7eb; overflow-x: hidden; }
+  html, body { margin: 0; width: 100%; height: 100%; background: #e5e7eb; }
   #__preview-stage {
     width: 100%; height: 100vh; display: flex; justify-content: center; align-items: stretch;
-    overflow: hidden;
+    /* Horizontal scroll (not hidden) so a narrow tab/window doesn't squeeze
+       the iframe below the email's true design width — the compiled email
+       uses percentage-based table columns (no flexbox in inboxes), so
+       shrinking the iframe shrinks every column proportionally, including
+       fixed-looking elements like a 140px image. min-width on the iframe
+       below keeps "Desktop" mode honest even in a small window; the page
+       just gains a scrollbar instead of silently rendering the design small. */
+    overflow-x: auto; overflow-y: hidden;
   }
   #__preview-frame {
-    width: 100%; height: 100%; border: 0; background: #f3f4f6;
+    width: 100%; min-width: 650px; height: 100%; border: 0; background: #f3f4f6;
     transition: width .2s ease; box-shadow: 0 0 0 1px rgba(0,0,0,.08);
   }
+  #__preview-frame.mobile { min-width: 0; }
   #__preview-toolbar {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
     display: flex; align-items: center; gap: 4px;
@@ -104,7 +112,9 @@ export function usePreview(editorStore, previewText) {
     // Resizing the IFRAME (not the body) narrows its viewport, so the email's
     // @media (max-width:600px) rules evaluate as mobile and the responsive
     // layout (stacked columns, scaled headings, fluid images) kicks in.
-    document.getElementById('__preview-frame').style.width = mode === 'mobile' ? '390px' : '100%';
+    var frame = document.getElementById('__preview-frame');
+    frame.style.width = mode === 'mobile' ? '390px' : '100%';
+    frame.classList.toggle('mobile', mode === 'mobile');
   }
 <\/script>
 </body>

@@ -37,10 +37,13 @@ export function useBlockPicker(editorStore) {
     { type: "quote",         label: "Quote",        icon: "message-square" },
     { type: "video_thumb",   label: "Video",        icon: "play-circle" },
     { type: "link_list",     label: "Link List",    icon: "list" },
+    { type: "icon_list",     label: "Icon List",    icon: "list-checks" },
     { type: "section_label", label: "Section Label", icon: "tag" },
     { type: "footer",        label: "Footer",       icon: "align-justify" },
     { section: "Other" },
     { type: "social",        label: "Social",       icon: "share-2" },
+    { section: "Advanced" },
+    { type: "custom_html",   label: "Custom HTML",  icon: "code" },
   ];
 
   function onAddBlock() {
@@ -207,6 +210,9 @@ export function useBlockPicker(editorStore) {
         previewBlock.props.github_url = "https://github.com";
         previewBlock.props.color = "#9ca3af";
         previewBlock.props.icon_size = 20;
+      }
+      if (type === "custom_html") {
+        previewBlock.props.html = "<p style=\"font-family:sans-serif;font-size:13px;color:#374151;margin:0\">Raw HTML, rendered as-is.</p>";
       }
       if (type === "spacer") {
         previewBlock.props.background_color = "#f3f4f6";

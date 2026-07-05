@@ -35,7 +35,12 @@ function getRouteParam() {
 
 function openLetter(name) {
   activeLetter.value = name;
+  // replace_route: this only syncs the URL for bookmarking — the dashboard →
+  // builder switch already happened client-side via activeLetter above, so a
+  // real pushState here would add a history entry the user never perceives as
+  // a distinct page, making the browser back button take two presses to leave.
   if (typeof frappe !== "undefined" && frappe.set_route) {
+    frappe.route_flags.replace_route = true;
     frappe.set_route("letter-builder", name);
   }
 }
@@ -61,6 +66,7 @@ async function onNewLetterSubmit(blocks) {
 function closeLetter() {
   activeLetter.value = null;
   if (typeof frappe !== "undefined" && frappe.set_route) {
+    frappe.route_flags.replace_route = true;
     frappe.set_route("letter-builder");
   }
 }

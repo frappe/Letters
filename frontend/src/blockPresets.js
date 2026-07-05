@@ -5,7 +5,7 @@
 // each section gets its own inner container so it can be styled and expanded independently.
 
 export const BLOCK_PRESET_TYPES = new Set([
-  "header", "hero", "image_text", "product_card", "quote", "link_list", "footer",
+  "header", "hero", "image_text", "product_card", "quote", "link_list", "icon_list", "footer",
   "two_col", "three_col", "text_cols", "video_thumb",
 ]);
 
@@ -252,6 +252,61 @@ export const BLOCK_PRESET_DEFS = {
           { type: "text", label: "Link 3",
             props: { html_content: '<p><a href="#" style="color:#2563eb;text-decoration:none">→ One more link for the reader</a></p>',
                      font_size: "15px", text_color: "#111827", line_height: "1.5",
+                     background_color: "transparent", ...noPad } },
+        ],
+      },
+    ],
+  },
+
+  // ── Icon List ──────────────────────────────────────────────────────────────
+  // Outer column container → repeated row containers, each a small icon image
+  // + a text label. No dedicated block type — just existing image/text/container
+  // primitives, so every row is independently editable (swap icon, edit copy,
+  // add/remove rows) like any other block.
+  icon_list: {
+    type: "container", label: "Icon List",
+    props: { layout: "column", background_color: "#ffffff", gap: 12,
+             padding_top: 20, padding_right: 24, padding_bottom: 20, padding_left: 24 },
+    children: [
+      {
+        type: "container", label: "Detail row",
+        props: { layout: "row", background_color: "transparent", vertical_align: "center", gap: 10, mobile_stack: false, ...noPad },
+        children: [
+          { type: "image", label: "Icon",
+            props: { image_url: "", alt: "", image_width: "80px", image_height: "20px",
+                     block_width: "80px", image_fit: "contain", background_color: "transparent",
+                     border_radius: "0", compact: true, ...noPad } },
+          { type: "text", label: "Label",
+            props: { html_content: "<p>Detail line one</p>", font_size: "14px",
+                     text_color: "#111827", line_height: "1.5",
+                     background_color: "transparent", ...noPad } },
+        ],
+      },
+      {
+        type: "container", label: "Detail row",
+        props: { layout: "row", background_color: "transparent", vertical_align: "center", gap: 10, mobile_stack: false, ...noPad },
+        children: [
+          { type: "image", label: "Icon",
+            props: { image_url: "", alt: "", image_width: "80px", image_height: "20px",
+                     block_width: "80px", image_fit: "contain", background_color: "transparent",
+                     border_radius: "0", compact: true, ...noPad } },
+          { type: "text", label: "Label",
+            props: { html_content: "<p>Detail line two</p>", font_size: "14px",
+                     text_color: "#111827", line_height: "1.5",
+                     background_color: "transparent", ...noPad } },
+        ],
+      },
+      {
+        type: "container", label: "Detail row",
+        props: { layout: "row", background_color: "transparent", vertical_align: "center", gap: 10, mobile_stack: false, ...noPad },
+        children: [
+          { type: "image", label: "Icon",
+            props: { image_url: "", alt: "", image_width: "80px", image_height: "20px",
+                     block_width: "80px", image_fit: "contain", background_color: "transparent",
+                     border_radius: "0", compact: true, ...noPad } },
+          { type: "text", label: "Label",
+            props: { html_content: "<p>Detail line three</p>", font_size: "14px",
+                     text_color: "#111827", line_height: "1.5",
                      background_color: "transparent", ...noPad } },
         ],
       },

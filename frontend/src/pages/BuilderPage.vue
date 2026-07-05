@@ -189,6 +189,7 @@
     v-model:include-unsubscribe="includeUnsubscribe"
     :letter-doc="editorStore.letterDoc"
     :initial-tab="settingsInitialTab"
+    :flush-save="saveLetter"
   />
 
   <TemplatePicker

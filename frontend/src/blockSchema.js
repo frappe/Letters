@@ -559,6 +559,34 @@ export const BLOCK_SCHEMA = {
     ],
   },
 
+  custom_html: {
+    label: "Custom HTML",
+    icon: "code",
+    defaults: {
+      html: "",
+      padding_top: 0, padding_right: 0, padding_bottom: 0, padding_left: 0,
+      ...borderDefaults,
+    },
+    sections: [
+      {
+        id: "content",
+        title: "Content",
+        fields: [
+          {
+            key: "html", label: "HTML", type: "code", rows: 12,
+            placeholder: "<!-- Raw HTML, passed through unmodified. Supports {{ doc.field }} merge tags on Notification letters. -->",
+            hint: "Advanced: rendered as-is, not sanitized. Only paste HTML you trust.",
+          },
+        ],
+      },
+      {
+        id: "style",
+        title: "Style",
+        fields: [...borderFields],
+      },
+    ],
+  },
+
   spacer: {
     label: "Spacer",
     icon: "minus",

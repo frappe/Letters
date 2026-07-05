@@ -108,6 +108,16 @@
     @update:model-value="onImageUrlChange"
   />
 
+  <!-- code — raw HTML/text, monospace, multi-line -->
+  <Textarea
+    v-else-if="field.type === 'code'"
+    class="w-full font-mono !text-xs"
+    :rows="field.rows || 8"
+    :placeholder="field.placeholder || ''"
+    :model-value="value"
+    @update:model-value="emit('change', $event)"
+  />
+
   <!-- default: text -->
   <TextInput
     v-else
@@ -121,7 +131,7 @@
 
 <script setup>
 import { computed, nextTick, ref, watch } from "vue";
-import { TextInput, Select, Switch, TabButtons, Slider, Button, toast } from "frappe-ui";
+import { TextInput, Select, Switch, TabButtons, Slider, Textarea, Button, toast } from "frappe-ui";
 import ColorPicker from "./ColorPicker.vue";
 import FocusPointPicker from "./FocusPointPicker.vue";
 

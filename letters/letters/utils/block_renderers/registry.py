@@ -1,4 +1,5 @@
 from .base import BlockRenderer
+from .custom_html import CustomHtmlRenderer
 from .interactive import ButtonRenderer, LinkListRenderer
 from .layout import ColumnsRenderer, ContainerRenderer, DividerRenderer, SpacerRenderer
 from .media import ImageRenderer, ImageTextRenderer, ProductCardRenderer, VideoThumbRenderer
@@ -32,4 +33,5 @@ RENDERER_MAP: dict[str, BlockRenderer] = {
     "header":        HeaderRenderer(),
     "rich_text":     RichTextRenderer(),
     "link_list":     LinkListRenderer(),
+    "custom_html":   CustomHtmlRenderer(),
 }

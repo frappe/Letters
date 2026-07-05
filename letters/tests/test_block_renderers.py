@@ -914,7 +914,7 @@ class TestRendererMap:
         "hero", "text", "image", "image_text", "button", "columns",
         "container", "section_label", "divider", "footer", "spacer",
         "quote", "social", "product_card", "video_thumb",
-        "header", "rich_text", "link_list",
+        "header", "rich_text", "link_list", "custom_html",
     }
 
     def test_all_expected_types_present(self):

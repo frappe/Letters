@@ -110,6 +110,10 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
 
   function setRouteParam(name) {
     if (window.frappe?.set_route) {
+      // replace_route: syncing the URL after a load, not a new navigation —
+      // pushState here would stack a redundant history entry on top of
+      // App.vue's own route sync, breaking the browser back button.
+      frappe.route_flags.replace_route = true;
       frappe.set_route("letter-builder", name);
     } else {
       const url = new URL(window.location.href);
@@ -137,7 +141,10 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
           showSettings.value = true;
         }
       } else if (!initialName) {
-        if (window.frappe?.set_route) frappe.set_route("letter-builder");
+        if (window.frappe?.set_route) {
+          frappe.route_flags.replace_route = true;
+          frappe.set_route("letter-builder");
+        }
         showTemplatePicker.value = true;
       }
     } else {

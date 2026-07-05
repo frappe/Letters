@@ -16,7 +16,7 @@
               v-if="url"
               :src="url"
               class="w-full object-cover block"
-              style="height: 208px"
+              :style="{ height: thumbnailHeight }"
             />
           </template>
         </ImageUploader>
@@ -63,4 +63,12 @@ function update(key, val) { store.updateBlockProps(props.block.id, { [key]: val 
 
 const blockProps = computed(() => props.block.props);
 const paddingStyle = usePadding(blockProps);
+
+// The "Height" field in the Size panel sets block_height (BlockWrapper applies
+// it as minHeight on the outer wrapper); mirror it onto the thumbnail image
+// itself so the image actually grows instead of just leaving empty space.
+const thumbnailHeight = computed(() => {
+  const h = props.block.props.block_height;
+  return h && h !== "auto" ? h : "208px";
+});
 </script>

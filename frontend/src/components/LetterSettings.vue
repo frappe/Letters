@@ -254,7 +254,7 @@
 
               <!-- ── Notifications ── -->
               <div v-else-if="activeTab === 'notifications'">
-                <NotificationsTab :letter-doc="letterDoc" />
+                <NotificationsTab :letter-doc="letterDoc" :subject="subject" :flush-save="flushSave" />
               </div>
 
               <!-- ── Analytics ── -->
@@ -343,6 +343,7 @@ const props = defineProps({
   includeUnsubscribe: { type: Boolean, default: false },
   letterDoc:        { type: Object, default: null },
   initialTab:       { type: String, default: null },
+  flushSave:        { type: Function, default: null },
 });
 const emit = defineEmits([
   "update:modelValue", "update:letterName", "update:subject",

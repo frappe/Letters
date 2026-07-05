@@ -23,10 +23,25 @@ def _safe_css_value(value: Any) -> str:
 
 _URL_SCHEME_NOISE_RE = re.compile(r"[\x00-\x20]")
 
+# A URL/src field whose *entire* value is one Jinja expression, e.g.
+# "{{ frappe.get_doc('Events', doc.event).image }}". html.escape() would
+# mangle the quotes inside it (' -> &#x27;) before frappe.render_template ever
+# sees the string at Notification send time, breaking the expression. These
+# are trusted the same way {{ doc.field }} merge tags already are — anyone who
+# can type one into a block prop already has write access to the Letter — so
+# the whole value is passed through untouched instead of escaped/validated.
+_MERGE_TAG_EXPR_RE = re.compile(r"^\{\{.*\}\}$", re.S)
+
+
+def _is_merge_tag_expr(value: str) -> bool:
+    return bool(_MERGE_TAG_EXPR_RE.match((value or "").strip()))
+
 
 def _safe_url(url: str) -> str:
     """Return an HTML-escaped URL, rejecting dangerous protocol schemes."""
     url = (url or "").strip()
+    if _is_merge_tag_expr(url):
+        return url
     # Browsers ignore control chars and whitespace *anywhere* in the scheme
     # (e.g. `java\tscript:` or `java\nscript:`), so strip them across the whole
     # string before the check — lstrip alone only catches leading ones.
@@ -86,6 +101,8 @@ def _abs_image_src(url: str) -> str:
     url = (url or "").strip()
     if not url:
         return ""
+    if _is_merge_tag_expr(url):
+        return url
     if _is_svg_src(url) or _is_private_file_src(url):
         return ""
     if url.startswith(("http://", "https://", "//", "data:")):

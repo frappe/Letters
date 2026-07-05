@@ -63,12 +63,37 @@ def _fluid_columns(cols: list[tuple[str, int, bool, str]], gap: int, valign_css:
     half = max(gap // 2, 0)
     div_pad = max(gap, 20)   # roomier gutter on either side of a divider rule
     up_cls = f"ltr-col-{up}up"
+
+    # Precompute each column's left/right gap padding up front — needed below
+    # to size its OWN percentage width, not just to render the padding itself.
+    def _pad_for(idx: int) -> tuple[int, int]:
+        div_before = cols[idx][2]
+        next_div   = idx + 1 < n and cols[idx + 1][2]
+        left  = 0 if idx == 0     else (div_pad if div_before else half)
+        right = 0 if idx == n - 1 else (div_pad if next_div  else half)
+        return left, right
+
     # Per-column width proportional to its actual px share (gw), not a uniform
     # 100/up split — a 15%/85% icon+text row was rendering as 50/50 in Gmail
     # (which uses this div/table-cell path) because every column shared the
     # same inline width, even though the mso ghost table below got the real
     # px split right. That's why Outlook looked correct but Gmail didn't.
-    total_gw = sum(gw for _, gw, _, _ in cols) or 1
+    #
+    # gw is a column's true CONTENT width (what its inner table/image should
+    # actually render at), but the div carrying that percentage is
+    # box-sizing:border-box with gap padding added on the very same box — so
+    # a plain gw/total_gw% share left that padding to eat INTO the declared
+    # width, silently shrinking the visible content by however much gap
+    # padding that column received (a 140px fixed image column lost its
+    # padding's-worth of pixels, e.g. 20px, off its real rendered size — small
+    # for flexible text columns, glaring for a small fixed-width image).
+    # Folding each column's own padding into the percentage basis (both the
+    # per-column numerator and the shared total) cancels this out: the
+    # percentage now represents content+padding, so subtracting that same
+    # padding back out at render time returns exactly the intended content
+    # width, matching the canvas's flex:0 0 <px> (gap-neutral) sizing.
+    padded_gw = [gw + sum(_pad_for(i)) for i, (_, gw, _, _) in enumerate(cols)]
+    total_gw  = sum(padded_gw) or 1
     parts = [
         # table-layout:fixed keeps the row exactly the container's width — content
         # (e.g. an image) can't expand it past 100%. Without it Gmail can widen
@@ -79,10 +104,8 @@ def _fluid_columns(cols: list[tuple[str, int, bool, str]], gap: int, valign_css:
         ' cellspacing="0" border="0"><tr><![endif]-->'
     ]
     for idx, (inner, gw, div_before, div_color) in enumerate(cols):
-        next_div = idx + 1 < n and cols[idx + 1][2]
-        left  = 0 if idx == 0     else (div_pad if div_before else half)
-        right = 0 if idx == n - 1 else (div_pad if next_div  else half)
-        col_w = round(100 * gw / total_gw)
+        left, right = _pad_for(idx)
+        col_w = round(100 * padded_gw[idx] / total_gw)
         cls = up_cls + (" ltr-coldiv" if div_before else "")
         # Border colour+style on all sides, width only on the left: a full-height
         # vertical rule between the side-by-side cells. The media query flips the
@@ -219,7 +242,39 @@ class ContainerRenderer(BlockRenderer):
 
             explicit_widths  = [_child_width(c) for c in children]
             content_count    = sum(1 for c in children if not _is_vdivider(c)) or 1
-            default_width    = f"{round(100 / content_count)}%"  # equal share among real content cells
+
+            def _cell_ref_width(w: str) -> int:
+                # Resolve this cell's own width (percent or px) against the
+                # row's actual available content width (this container's own
+                # width minus its own padding) — not a fixed 600px
+                # assumption — otherwise a narrow column's images compute
+                # their cover-fit aspect-ratio against too much width and
+                # end up over-cropped/zoomed.
+                if w.endswith("px"):
+                    try:
+                        return max(int(w[:-2]), 1)
+                    except ValueError:
+                        return content_ref
+                if w.endswith("%"):
+                    try:
+                        return max(round(content_ref * int(w[:-1]) / 100), 1)
+                    except ValueError:
+                        return content_ref
+                return content_ref
+
+            # Reserve space for children with an explicit width, then split
+            # whatever's left evenly among the flexible ones — matching the
+            # canvas, where a fixed-width child gets flex:0 0 <px> and the
+            # rest share flex:1 1 0 of what remains. A flat 100/content_count
+            # share sized against the FULL row (the previous behaviour) made a
+            # 24px icon column next to one flexible label render with a huge
+            # gap in the actual email: the label's "50%" cell was 50% of the
+            # row's full width, not 50% of what's left after the icon.
+            explicit_px    = [_cell_ref_width(w) for w in explicit_widths if w]
+            flexible_count = sum(1 for w in explicit_widths if w is None)
+            remaining_ref  = max(content_ref - sum(explicit_px), 0)
+            default_width_px = max(remaining_ref // flexible_count, 1) if flexible_count else remaining_ref
+            default_width    = f"{default_width_px}px"
 
             # Map the parent container's vertical_align to HTML valign for all cells
             _va_map = {"center": "middle", "flex-start": "top", "top": "top",
@@ -252,25 +307,6 @@ class ContainerRenderer(BlockRenderer):
             else:
                 stack_cls = "ltr-stack"
 
-            def _cell_ref_width(w: str) -> int:
-                # Resolve this cell's own width (percent or px) against the
-                # row's actual available content width (this container's own
-                # width minus its own padding) — not a fixed 600px
-                # assumption — otherwise a narrow column's images compute
-                # their cover-fit aspect-ratio against too much width and
-                # end up over-cropped/zoomed.
-                if w.endswith("px"):
-                    try:
-                        return max(int(w[:-2]), 1)
-                    except ValueError:
-                        return content_ref
-                if w.endswith("%"):
-                    try:
-                        return max(round(content_ref * int(w[:-1]) / 100), 1)
-                    except ValueError:
-                        return content_ref
-                return content_ref
-
             if stack_cls == "ltr-stack":
                 # Flexbox fluid columns: side-by-side while they fit, wrapping to
                 # full-width stacked columns (that grow to fill the container)
@@ -281,7 +317,31 @@ class ContainerRenderer(BlockRenderer):
                 # it to a horizontal rule when stacked, where supported). Stat
                 # grids and explicit no-stack rows keep the table path below.
                 content_cols  = sum(1 for c in children if not _is_vdivider(c)) or 1
-                fluid_default = f"{round(100 / content_cols)}%"
+                # Reserve space for children with an explicit width, then split
+                # whatever's left evenly among the flexible ones — matching the
+                # canvas, where a fixed-width child gets flex:0 0 <px> and the
+                # rest share flex:1 1 0 of what remains. A flat 100/content_cols
+                # share sized against the FULL row (the previous behaviour) made
+                # a 24px icon column next to one flexible label render 2x wider
+                # in the inbox than its exact-pixel canvas counterpart, since the
+                # icon's real fixed width barely factored into the split.
+                explicit_px = [
+                    _cell_ref_width(_child_width(c)) for c in children
+                    if not _is_vdivider(c) and _child_width(c)
+                ]
+                flexible_count = content_cols - len(explicit_px)
+                # The row's own gap also has to come out of what's left for the
+                # flexible sibling(s) — canvas's flexbox `gap` is real spacing
+                # subtracted once from the available space, not something a
+                # fixed-width sibling alone accounts for. Missing this made the
+                # flexible column report a "true content width" ~gap px too
+                # wide, which (combined with _fluid_columns' own padding-aware
+                # percentage split below) still landed the fixed sibling short
+                # of its real pixel size.
+                gap_count      = max(content_cols - 1, 0)
+                remaining_ref  = max(content_ref - sum(explicit_px) - gap * gap_count, 0)
+                fluid_default_px = max(remaining_ref // flexible_count, 1) if flexible_count else remaining_ref
+                fluid_default = f"{fluid_default_px}px"
                 cols = []
                 pending_divider = None
                 for child in children:
