@@ -28,6 +28,7 @@ from .letters_api import (
     get_templates,
     render_preview,
     duplicate_letter,
+    save_letter_as_template,
     _unique_letter_title,
 )
 from .sending import (

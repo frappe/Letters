@@ -29,6 +29,9 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
   const sending     = ref(false);
   const duplicating = ref(false);
   const scheduling  = ref(false);
+  const savingTemplate      = ref(false);
+  const showSaveAsTemplate  = ref(false);
+  const templateTitle       = ref("");
   const scheduleDate = ref("");
   const scheduleTime = ref("");
 
@@ -489,13 +492,38 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
     }
   }
 
+  // ── Save as Template ─────────────────────────────────────────────────────────
+  function openSaveAsTemplate() {
+    templateTitle.value = editorStore.letterName || "";
+    showSaveAsTemplate.value = true;
+  }
+
+  async function saveAsTemplate() {
+    if (!editorStore.letterDoc?.name || !templateTitle.value.trim()) return;
+    savingTemplate.value = true;
+    try {
+      if (editorStore.isDirty) await saveLetter();
+      const res = await frappe.call({
+        method: "letters.letters.api.save_letter_as_template",
+        args: { letter_name: editorStore.letterDoc.name, title: templateTitle.value.trim() },
+      });
+      toast.success(`Saved as template "${res.message.title}".`);
+      showSaveAsTemplate.value = false;
+    } catch (e) {
+      toast.error("Couldn't save template: " + describeError(e));
+    } finally {
+      savingTemplate.value = false;
+    }
+  }
+
   return {
     // editable fields
     subject, previewText, senderName, senderEmail, recipientConfig, includeUnsubscribe,
     // ui visibility
     showSettings, showTemplatePicker, showScheduleModal, settingsInitialTab,
+    showSaveAsTemplate, templateTitle,
     // status flags
-    saving, savedFlash, loadingLetter, sending, duplicating, scheduling,
+    saving, savedFlash, loadingLetter, sending, duplicating, scheduling, savingTemplate,
     // schedule modal
     scheduleDate, scheduleTime, minScheduleDate, openScheduleModal,
     // progress
@@ -503,5 +531,6 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
     // actions
     loadLetter, onTemplateSubmit, onTemplateClose, saveLetter, saveNow,
     sendLetter, scheduleLetter, duplicateLetter, resumeSend,
+    openSaveAsTemplate, saveAsTemplate,
   };
 }

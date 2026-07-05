@@ -47,6 +47,7 @@ declare module 'vue' {
     Rich_text: typeof import('./src/components/blocks/rich_text.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SaveAsTemplateDialog: typeof import('./src/components/dialogs/SaveAsTemplateDialog.vue')['default']
     ScheduleDialog: typeof import('./src/components/dialogs/ScheduleDialog.vue')['default']
     Section_label: typeof import('./src/components/blocks/section_label.vue')['default']
     ShortcutsDialog: typeof import('./src/components/dialogs/ShortcutsDialog.vue')['default']

@@ -181,6 +181,26 @@ def get_letters(folder: str | None = None):
 
 
 @frappe.whitelist(methods=["POST"])
+def save_letter_as_template(letter_name: str, title: str):
+    """Create a Letters Template from an existing Letter's current blocks."""
+    letter = frappe.get_doc("Letter", letter_name)
+    frappe.has_permission("Letter", "read", doc=letter, throw=True)
+    frappe.has_permission("Letters Template", "create", throw=True)
+
+    title = (title or "").strip() or letter.title
+    if frappe.db.exists("Letters Template", title):
+        frappe.throw(_("A template named {0} already exists").format(frappe.bold(title)))
+
+    doc = frappe.get_doc({
+        "doctype": "Letters Template",
+        "title": title,
+        "blocks_json": letter.blocks_json,
+    })
+    doc.insert()
+    return {"name": doc.name, "title": doc.title}
+
+
+@frappe.whitelist(methods=["POST"])
 def duplicate_letter(name: str):
     """Create an exact copy of a letter as a new Draft."""
     original = frappe.get_doc("Letter", name)

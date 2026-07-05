@@ -199,6 +199,14 @@
 
   <ShortcutsDialog v-model="showShortcuts" />
 
+  <SaveAsTemplateDialog
+    v-model="showSaveAsTemplate"
+    :title="templateTitle"
+    :saving="savingTemplate"
+    @update:title="templateTitle = $event"
+    @save="saveAsTemplate"
+  />
+
   <TestEmailDialog
     v-model="showTestModal"
     :recipient="testRecipient"
@@ -242,6 +250,7 @@ import ShortcutsDialog from "../components/dialogs/ShortcutsDialog.vue";
 import TestEmailDialog from "../components/dialogs/TestEmailDialog.vue";
 import LinkCheckerDialog from "../components/dialogs/LinkCheckerDialog.vue";
 import ScheduleDialog from "../components/dialogs/ScheduleDialog.vue";
+import SaveAsTemplateDialog from "../components/dialogs/SaveAsTemplateDialog.vue";
 import { useZoom } from "../composables/useZoom";
 import { usePanelResize } from "../composables/usePanelResize";
 import { useBlockPicker } from "../composables/useBlockPicker";
@@ -265,11 +274,13 @@ const showShortcuts = ref(false);
 const {
   subject, previewText, senderName, senderEmail, recipientConfig, includeUnsubscribe,
   showSettings, showTemplatePicker, showScheduleModal, settingsInitialTab,
-  saving, savedFlash, loadingLetter, duplicating, scheduling,
+  showSaveAsTemplate, templateTitle,
+  saving, savedFlash, loadingLetter, duplicating, scheduling, savingTemplate,
   scheduleDate, scheduleTime, minScheduleDate, openScheduleModal,
   sendProgress, letterStatus, sendStalled, resuming,
   onTemplateSubmit, onTemplateClose, saveNow, saveLetter,
   sendLetter, scheduleLetter, duplicateLetter, resumeSend,
+  openSaveAsTemplate, saveAsTemplate,
 } = useLetter(editorStore, { initialName: props.initialName, onClose: () => emit("close") });
 
 const { openPreview } = usePreview(editorStore, previewText);
@@ -303,6 +314,12 @@ const menuOptions = computed(() => [
         icon: "lucide-copy",
         onClick: duplicateLetter,
         disabled: !editorStore.letterDoc || duplicating.value,
+      },
+      {
+        label: "Save as Template",
+        icon: "lucide-save",
+        onClick: openSaveAsTemplate,
+        disabled: !editorStore.letterDoc,
       },
       {
         label: "Settings",
