@@ -264,6 +264,7 @@ import { formatScheduledAt, collectFontFamilies } from "../utils/builderHelpers"
 
 const props = defineProps({
   initialName: { type: String, default: null },
+  skipTemplatePrompt: { type: Boolean, default: false },
   isDark: { type: Boolean, default: false },
   toggleDark: { type: Function, default: () => {} },
 });
@@ -282,7 +283,11 @@ const {
   onTemplateSubmit, onTemplateClose, saveNow, saveLetter,
   sendLetter, scheduleLetter, duplicateLetter, resumeSend,
   openSaveAsTemplate, saveAsTemplate,
-} = useLetter(editorStore, { initialName: props.initialName, onClose: () => emit("close") });
+} = useLetter(editorStore, {
+  initialName: props.initialName,
+  skipTemplatePrompt: props.skipTemplatePrompt,
+  onClose: () => emit("close"),
+});
 
 const { openPreview } = usePreview(editorStore, previewText);
 const { showLinkChecker, linkResults, checkingLinks, openLinkChecker, applyLinkFix } = useLinkChecker(editorStore, { flushSave: saveLetter });

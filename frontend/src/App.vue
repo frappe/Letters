@@ -1,7 +1,7 @@
 <template>
   <FrappeUIProvider>
     <LettersDashboard v-if="!activeLetter" :is-dark="isDark" :toggle-dark="toggleDark" @open-letter="openLetter" @new-letter="showNewLetterPicker = true" />
-    <BuilderPage v-else :initial-name="activeLetter" :is-dark="isDark" :toggle-dark="toggleDark" @close="closeLetter" />
+    <BuilderPage v-else :initial-name="activeLetter" :skip-template-prompt="skipTemplatePrompt" :is-dark="isDark" :toggle-dark="toggleDark" @close="closeLetter" />
     <TemplatePicker v-if="showNewLetterPicker" :submit="onNewLetterSubmit" @close="showNewLetterPicker = false" />
   </FrappeUIProvider>
 </template>
@@ -39,6 +39,7 @@ watch(isDark, (dark) => {
 }, { immediate: true });
 
 const activeLetter = ref(null);
+const skipTemplatePrompt = ref(false);
 const showNewLetterPicker = ref(false);
 
 function getRouteParam() {
@@ -49,8 +50,9 @@ function getRouteParam() {
   return new URLSearchParams(window.location.search).get("name") || null;
 }
 
-function openLetter(name) {
+function openLetter(name, { skipTemplatePrompt: skip = false } = {}) {
   activeLetter.value = name;
+  skipTemplatePrompt.value = skip;
   // A real pushState (default for set_route): opening a letter is a
   // meaningful navigation the user should be able to step back out of one at
   // a time, same as List → Form elsewhere in Desk.
@@ -85,11 +87,18 @@ async function onNewLetterSubmit(blocks) {
     },
   });
   showNewLetterPicker.value = false;
-  openLetter(res.message.name);
+  // The user just made this exact choice (blank canvas or a specific
+  // template) in the dashboard's picker — the builder's OWN empty-letter
+  // prompt (useLetter.js, triggered whenever a loaded letter has zero
+  // blocks) would otherwise pop straight back up for a blank canvas,
+  // showing what looks like the identical picker a second time and making
+  // the very click that just worked look like it silently failed.
+  openLetter(res.message.name, { skipTemplatePrompt: true });
 }
 
 function closeLetter() {
   activeLetter.value = null;
+  skipTemplatePrompt.value = false;
   if (typeof frappe !== "undefined" && frappe.set_route) {
     _ignoreNextPageShow = true;
     frappe.set_route("letter-builder");

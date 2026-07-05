@@ -7,7 +7,7 @@ import { describeError, stripIds } from "../utils/builderHelpers";
 // debounced autosave), and the send / schedule / duplicate actions plus their
 // progress polling. BuilderPage wires the returned state straight into its
 // template; the editor store still owns the block tree itself.
-export function useLetter(editorStore, { initialName = null, onClose = null } = {}) {
+export function useLetter(editorStore, { initialName = null, skipTemplatePrompt = false, onClose = null } = {}) {
   const subject       = ref("");
   const previewText   = ref("");
   const senderName    = ref("");
@@ -135,7 +135,13 @@ export function useLetter(editorStore, { initialName = null, onClose = null } = 
       const ok = await loadLetter(name, { silent: !initialName });
       if (ok) {
         setRouteParam(name);
-        if (!editorStore.blocks.length) showTemplatePicker.value = true;
+        // Skipped when the caller (App.vue, after the dashboard's own New
+        // Letter picker) already just asked this exact question — otherwise
+        // picking "Blank canvas" there immediately re-triggers this same
+        // prompt the instant the builder mounts, since the letter it just
+        // created has zero blocks. Looks identical to the picker that just
+        // worked, making that first click look like it silently failed.
+        if (!editorStore.blocks.length && !skipTemplatePrompt) showTemplatePicker.value = true;
         if (tabParam) {
           settingsInitialTab.value = tabParam;
           showSettings.value = true;

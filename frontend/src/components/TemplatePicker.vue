@@ -13,24 +13,14 @@
 
       <!-- Grid -->
       <div class="flex-1 overflow-y-auto px-8 py-6">
-        <div v-if="loading" class="grid grid-cols-3 gap-5">
-          <div v-for="i in 6" :key="i" class="rounded-xl border border-outline-gray-1 overflow-hidden animate-pulse">
-            <div class="bg-surface-gray-2 h-48" />
-            <div class="p-4 space-y-2">
-              <div class="h-3.5 bg-surface-gray-3 rounded w-1/2" />
-              <div class="h-2.5 bg-surface-gray-2 rounded w-3/4" />
-            </div>
-          </div>
-        </div>
-
-        <!-- Error state -->
-        <div v-else-if="loadError" class="flex flex-col items-center justify-center py-16 gap-4">
-          <p class="text-sm text-ink-gray-6">Couldn't load templates.</p>
-          <Button variant="subtle" size="sm" label="Try again" icon="refresh-cw" @click="loadTemplates" />
-        </div>
-
-        <div v-else class="grid grid-cols-3 gap-5">
-          <!-- Blank tile: single always-visible action, no hover overlay needed -->
+        <div class="grid grid-cols-3 gap-5">
+          <!-- Blank tile: single always-visible action, no hover overlay needed.
+               Rendered unconditionally — it doesn't depend on the templates
+               fetch below, so it must never sit behind the `loading` check.
+               It used to live inside the same v-else as the fetched tiles,
+               so a click made before that fetch resolved landed on a skeleton
+               placeholder in the same grid slot instead of this tile, doing
+               nothing until a second click found the tile actually there. -->
           <div
             role="button"
             tabindex="0"
@@ -50,10 +40,27 @@
             </div>
           </div>
 
+          <template v-if="loading">
+            <div v-for="i in 5" :key="i" class="rounded-xl border border-outline-gray-1 overflow-hidden animate-pulse">
+              <div class="bg-surface-gray-2 h-48" />
+              <div class="p-4 space-y-2">
+                <div class="h-3.5 bg-surface-gray-3 rounded w-1/2" />
+                <div class="h-2.5 bg-surface-gray-2 rounded w-3/4" />
+              </div>
+            </div>
+          </template>
+
+          <!-- Error state -->
+          <div v-else-if="loadError" class="col-span-2 flex flex-col items-center justify-center py-16 gap-4">
+            <p class="text-sm text-ink-gray-6">Couldn't load templates.</p>
+            <Button variant="subtle" size="sm" label="Try again" icon="refresh-cw" @click="loadTemplates" />
+          </div>
+
           <!-- Template tiles: hover overlay reveals Select/Preview. Overlay is
                pointer-events-none while hidden so it never eats the first
                click before hover state applies (that caused a double-click
                bug in an earlier version). -->
+          <template v-else>
           <div
             v-for="tpl in templates"
             :key="tpl.name"
@@ -96,6 +103,7 @@
               <p class="text-ink-gray-9 text-sm font-medium truncate">{{ tpl.title }}</p>
             </div>
           </div>
+          </template>
         </div>
       </div>
 

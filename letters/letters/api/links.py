@@ -177,7 +177,13 @@ def _run_link_check(blocks_data, preview_text, email_width):
     from ..utils.email_compiler import EmailCompiler
     html = EmailCompiler(blocks_data, preview_text=preview_text, email_width=email_width).compile()
 
-    urls = list(dict.fromkeys(re.findall(r'href=["\']([^"\'#][^"\']*)["\']', html)))
+    # Scoped to <a> tags only: a bare href= scan also picks up the Google
+    # Fonts <link rel="preconnect"/"stylesheet"> tags the compiler injects
+    # (see fonts.py google_fonts_link_tags) — those aren't destinations a
+    # recipient could ever click, and the preconnect ones 404 by design
+    # (they're resource hints, not real pages), so they showed up as false
+    # "broken links" for something the author never added.
+    urls = list(dict.fromkeys(re.findall(r'<a\b[^>]*\shref=["\']([^"\'#][^"\']*)["\']', html, re.IGNORECASE)))
     results = {}
     deadline = time.monotonic() + _LINK_CHECK_TIME_BUDGET
 

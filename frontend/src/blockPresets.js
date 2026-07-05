@@ -18,7 +18,7 @@ export const BLOCK_PRESET_DEFS = {
   // Outer column container → inner containers for logo area and tagline area
   header: {
     type: "container", label: "Logo",
-    props: { layout: "column", background_color: "#ffffff", align: "center", gap: 0,
+    props: { layout: "column", background_color: "transparent", align: "center", gap: 0,
              padding_top: 20, padding_right: 0, padding_bottom: 20, padding_left: 0 },
     children: [
       { type: "image", label: "Logo",
@@ -31,7 +31,7 @@ export const BLOCK_PRESET_DEFS = {
   // Outer column container → inner containers for heading area and body area
   hero: {
     type: "container", label: "Hero",
-    props: { layout: "column", background_color: "#ffffff", align: "center", gap: 0,
+    props: { layout: "column", background_color: "transparent", align: "center", gap: 0,
              padding_top: 0, padding_right: 0, padding_bottom: 0, padding_left: 0 },
     children: [
       {
@@ -63,7 +63,7 @@ export const BLOCK_PRESET_DEFS = {
   // Outer row container → left container (image) + right container (text)
   image_text: {
     type: "container", label: "Image + Text",
-    props: { layout: "row", background_color: "#ffffff", vertical_align: "center", gap: 0,
+    props: { layout: "row", background_color: "transparent", vertical_align: "center", gap: 0,
              padding_top: 0, padding_right: 0, padding_bottom: 0, padding_left: 0 },
     children: [
       {
@@ -97,7 +97,7 @@ export const BLOCK_PRESET_DEFS = {
   // Image (full-width, no padding) → content: name, description, price + CTA row
   product_card: {
     type: "container", label: "Product Card",
-    props: { layout: "column", background_color: "#ffffff", gap: 0,
+    props: { layout: "column", background_color: "transparent", gap: 0,
              padding_top: 24, padding_right: 0, padding_bottom: 0, padding_left: 0 },
     children: [
       {
@@ -146,7 +146,7 @@ export const BLOCK_PRESET_DEFS = {
   // Outer container → quote section + author section
   quote: {
     type: "container", label: "Quote",
-    props: { layout: "column", background_color: "#f9fafb", gap: 0,
+    props: { layout: "column", background_color: "transparent", gap: 0,
              padding_top: 0, padding_right: 0, padding_bottom: 0, padding_left: 0 },
     children: [
       {
@@ -179,7 +179,7 @@ export const BLOCK_PRESET_DEFS = {
   // gap:0 + compact divider padding keeps the layout tight without manual fiddling.
   text_cols: {
     type: "container", label: "Text Columns",
-    props: { layout: "row", background_color: "#ffffff", vertical_align: "center", gap: 0,
+    props: { layout: "row", background_color: "transparent", vertical_align: "center", gap: 0,
              padding_top: 0, padding_right: 0, padding_bottom: 0, padding_left: 0 },
     children: [
       {
@@ -222,7 +222,7 @@ export const BLOCK_PRESET_DEFS = {
   // Outer container → heading section + links section
   link_list: {
     type: "container", label: "Link List",
-    props: { layout: "column", background_color: "#ffffff", gap: 0,
+    props: { layout: "column", background_color: "transparent", gap: 0,
              padding_top: 0, padding_right: 0, padding_bottom: 0, padding_left: 0 },
     children: [
       {
@@ -265,7 +265,7 @@ export const BLOCK_PRESET_DEFS = {
   // add/remove rows) like any other block.
   icon_list: {
     type: "container", label: "Icon List",
-    props: { layout: "column", background_color: "#ffffff", gap: 12,
+    props: { layout: "column", background_color: "transparent", gap: 12,
              padding_top: 20, padding_right: 24, padding_bottom: 20, padding_left: 24 },
     children: [
       {
@@ -317,7 +317,7 @@ export const BLOCK_PRESET_DEFS = {
   // Row container with two equal inner containers
   two_col: {
     type: "container", label: "2 Columns",
-    props: { layout: "row", background_color: "#ffffff", vertical_align: "flex-start", gap: 16,
+    props: { layout: "row", background_color: "transparent", vertical_align: "flex-start", gap: 16,
              ...noPad },
     children: [
       {
@@ -338,7 +338,7 @@ export const BLOCK_PRESET_DEFS = {
   // ── 3 Columns ──────────────────────────────────────────────────────────────
   three_col: {
     type: "container", label: "3 Columns",
-    props: { layout: "row", background_color: "#ffffff", vertical_align: "flex-start", gap: 16,
+    props: { layout: "row", background_color: "transparent", vertical_align: "flex-start", gap: 16,
              ...noPad },
     children: [
       {
@@ -366,7 +366,7 @@ export const BLOCK_PRESET_DEFS = {
   // Container → image block (thumbnail, links to video) + text block (caption)
   video_thumb: {
     type: "container", label: "Video",
-    props: { layout: "column", background_color: "#ffffff", gap: 0,
+    props: { layout: "column", background_color: "transparent", gap: 0,
              padding_top: 16, padding_right: 16, padding_bottom: 16, padding_left: 16 },
     children: [
       { type: "video_thumb", label: "Thumbnail",
@@ -403,7 +403,7 @@ export const BLOCK_PRESET_DEFS = {
   // Simple: outer container → text section
   footer: {
     type: "container", label: "Footer",
-    props: { layout: "column", background_color: "#f9fafb", align: "center", gap: 0,
+    props: { layout: "column", background_color: "transparent", align: "center", gap: 0,
              padding_top: 0, padding_right: 0, padding_bottom: 0, padding_left: 0 },
     children: [
       {
