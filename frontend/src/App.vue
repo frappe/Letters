@@ -14,6 +14,19 @@ import LettersDashboard from "./pages/LettersDashboard.vue";
 import BuilderPage from "./pages/BuilderPage.vue";
 import TemplatePicker from "./components/TemplatePicker.vue";
 
+// Desk already knows the real theme — it sets data-theme on <html> during
+// boot (frappe/public/js/frappe/ui/theme_switcher.js) before any page loads.
+// Read that as our starting point instead of an independent default, so a
+// letter opened on a dark-themed site doesn't come up light (or vice versa)
+// and mismatch every frappe-ui color token, which flips meaning between
+// modes (e.g. --outline-gray-1 is near-white in light mode, near-black in
+// dark) — a wrong guess here made borders/buttons render inverted.
+function getDeskTheme() {
+  const theme = document.documentElement.getAttribute("data-theme");
+  if (theme === "light" || theme === "dark") return theme;
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
 const isDark = useDark({
   // Scope to our own mount root (main.js), not the default 'html' — this page
   // shares the DOM with the rest of Frappe Desk, and setting data-theme on
@@ -22,7 +35,13 @@ const isDark = useDark({
   attribute: "data-theme",
   valueDark: "dark",
   valueLight: "light",
-  initialValue: "dark",
+  initialValue: getDeskTheme(),
+  // No cross-session persistence: a stored preference from a previous visit
+  // could outlive Desk's own theme and silently disagree with it again next
+  // time (that mismatch is exactly what caused the white borders/washed-out
+  // buttons). Each load re-reads Desk's current theme instead; the toggle
+  // below still overrides it for the rest of the session.
+  storageKey: null,
 });
 const toggleDark = useToggle(isDark);
 
