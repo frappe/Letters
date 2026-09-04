@@ -80,7 +80,7 @@
     },
     {
       "fieldname": "snapshot_blocks",
-      "fieldtype": "Long Text",
+      "fieldtype": "Code",
       "label": "Blocks JSON (snapshot)",
       "read_only": 1
     },
