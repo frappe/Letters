@@ -39,7 +39,6 @@ from .sending import (
     get_letter_analytics,
     get_letter_recipients,
     get_send_progress,
-    resume_send,
     schedule_letter,
     send_letter,
     process_scheduled_sends,
