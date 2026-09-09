@@ -854,8 +854,10 @@ async function startNewFolder() {
 }
 
 async function saveNewFolder() {
+  if (!creatingFolder.value) return; // Prevent double-fire from Enter + blur
   const name = newFolderName.value.trim();
   creatingFolder.value = false;
+  newFolderName.value = ""; // Clear so it doesn't stay around
   if (!name) return;
   try {
     await frappe.call({
