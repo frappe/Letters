@@ -1,3 +1,6 @@
+<p align="center">
+  <img src="./letters/public/images/favicon/favicon.svg" alt="Letters Logo" width="100">
+</p>
 
 # Letters
 

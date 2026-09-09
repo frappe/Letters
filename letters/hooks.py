@@ -34,7 +34,17 @@ doctype_js = {
     "Notification": "public/frappe_customizations/notification.js",
 }
 
-fixtures = ["Letters Template"]
+fixtures = [
+    {
+        "doctype": "Letters Template"
+    },
+    {
+        "doctype": "Workspace Sidebar",
+        "filters": [
+            ["name", "in", ["Letters"]]
+        ]
+    }
+]
 
 after_install = "letters.install.after_install"
 after_migrate = "letters.install.after_migrate"

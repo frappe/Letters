@@ -9,6 +9,7 @@ def after_install():
     _add_notification_letter_field()
     _add_notification_message_type_field()
     sync_letter_builder_page_roles()
+    _set_desktop_icon()
 
 
 def after_migrate():
@@ -17,6 +18,7 @@ def after_migrate():
     _add_notification_letter_field()
     _add_notification_message_type_field()
     sync_letter_builder_page_roles()
+    _set_desktop_icon()
 
 
 def _ensure_letters_manager_role():
@@ -90,4 +92,14 @@ def _add_notification_letter_field():
         "insert_after": "message",
         "translatable": 0,
     }).insert(ignore_permissions=True)
+    frappe.db.commit()
+
+
+def _set_desktop_icon():
+    """Set the custom SVG icon for the Letters workspace / desktop icon."""
+    icon_path = "/assets/letters/images/favicon/favicon.svg"
+    if frappe.db.exists("Workspace", "Letters"):
+        frappe.db.set_value("Workspace", "Letters", "icon", icon_path)
+    if frappe.db.exists("Desktop Icon", "Letters"):
+        frappe.db.set_value("Desktop Icon", "Letters", "icon", icon_path)
     frappe.db.commit()
