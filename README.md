@@ -29,7 +29,7 @@ bench get-app letters https://github.com/palkanp/Letters
 bench install-app letters
 ```
 
-Then restart your bench (or `bench restart` in production) and open **Letters Builder** from Frappe Desk at `/app/letters-builder`.
+Then restart your bench (or `bench restart` in production) and open **Letters Builder** from Frappe Desk at `/app/letter-builder`.
 
 ## Development
 
