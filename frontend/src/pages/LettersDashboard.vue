@@ -854,14 +854,20 @@ async function startNewFolder() {
 }
 
 async function saveNewFolder() {
+  if (!creatingFolder.value) return; // Prevent double-fire from Enter + blur
   const name = newFolderName.value.trim();
-  creatingFolder.value = false;
-  if (!name) return;
+  if (!name) {
+    creatingFolder.value = false;
+    newFolderName.value = "";
+    return;
+  }
   try {
     await frappe.call({
       method: "frappe.client.insert",
       args: { doc: { doctype: "Letter Category", folder_name: name } },
     });
+    creatingFolder.value = false;
+    newFolderName.value = "";
     await load();
     activeFolder.value = name;
   } catch (e) {

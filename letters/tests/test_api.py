@@ -508,6 +508,35 @@ class TestSendLetterEnqueue:
         assert frappe_stub.enqueue.called
 
 
+# ── resume_send ─────────────────────────────────────────────────────────────
+
+class TestResumeSend:
+    def setup_method(self):
+        _reset()
+
+    def test_resume_send_is_whitelisted(self):
+        assert getattr(api_module.resume_send, "__call__", False)
+
+    def test_resume_send_enqueues_failed_send(self):
+        doc = _letter_doc(status="Failed")
+        frappe_stub.get_doc.return_value = doc
+        GETALL["Email Send"] = [FrappeDict(
+            name="SD-OLD",
+            status="Failed",
+            snapshot_blocks="[]",
+            snapshot_preview_text="",
+            snapshot_email_width=600,
+            snapshot_subject="Subj",
+            include_unsubscribe=0,
+            send_mode="direct",
+        )]
+        frappe_stub.db.count.return_value = 1
+
+        result = api_module.resume_send("CAMP-001")
+        assert result.get("resumed") is True
+        assert frappe_stub.enqueue.called
+
+
 # ── _execute_send ──────────────────────────────────────────────────────────────
 
 def _recipient(email, status="Pending"):

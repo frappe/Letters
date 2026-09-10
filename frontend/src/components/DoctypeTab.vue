@@ -3,13 +3,13 @@
 
     <!-- DocType selector + Filter button on same row -->
     <div class="flex items-center gap-2">
-      <Select
-        v-model="selectedDoctype"
+      <Autocomplete
+        :model-value="doctypeValue"
         :options="doctypes"
-        placeholder="Select DocType"
+        placeholder="Search DocType"
         size="sm"
         class="flex-1"
-        @update:modelValue="onDoctypeChange"
+        @update:model-value="updateDoctype"
       />
       <Button
         v-if="selectedDoctype && selectedField"
@@ -30,11 +30,11 @@
 
     <Select
       v-if="emailFields.length > 1"
-      v-model="selectedField"
+      :model-value="selectedField"
       :options="emailFields.map(f => ({ label: `${f.label} (${f.fieldname})`, value: f.fieldname }))"
       placeholder="Select email field"
       size="sm"
-      @update:modelValue="onFieldChange"
+      @update:model-value="updateEmailField"
     />
 
     <div v-if="selectedDoctype && selectedField">
@@ -227,6 +227,21 @@ const filterRows      = ref([]);
 const activeFilters   = ref({});
 const linkOptions     = ref({});
 
+const doctypeValue = computed(() => {
+  return selectedDoctype.value ? { label: selectedDoctype.value, value: selectedDoctype.value } : null;
+});
+
+function updateDoctype(v) {
+  selectedDoctype.value = v?.value || '';
+  onDoctypeChange();
+}
+
+function updateEmailField(v) {
+  selectedField.value = v;
+  onFieldChange();
+}
+
+
 const appliedCount       = computed(() => Object.keys(activeFilters.value).length);
 const filterFieldOptions = computed(() =>
   filterFields.value.map(ff => ({ label: ff.label, value: ff.fieldname }))
@@ -412,16 +427,12 @@ async function loadFilterFields() {
 }
 
 function emitConfig() {
-  if (selectedDoctype.value && selectedField.value) {
-    emit("update:modelValue", {
-      type:        "doctype",
-      doctype:     selectedDoctype.value,
-      email_field: selectedField.value,
-      filters:     activeFilters.value,
-    });
-  } else {
-    emit("update:modelValue", null);
-  }
+  emit("update:modelValue", {
+    type:        "doctype",
+    doctype:     selectedDoctype.value || "",
+    email_field: selectedField.value || "",
+    filters:     activeFilters.value || {},
+  });
 }
 
 // ── Hydrate from saved config ─────────────────────────────────────────────────

@@ -44,6 +44,7 @@ from .sending import (
     process_scheduled_sends,
     reconcile_active_sends,
     _record_open,
+    resume_send,
     _resume_send,
     _bulk_insert_recipients,
     _enqueue_send,
