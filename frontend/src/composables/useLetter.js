@@ -16,6 +16,18 @@ export function useLetter(editorStore, { initialName = null, skipTemplatePrompt 
   const recipientConfig    = ref(null);
   const includeUnsubscribe = ref(false);
 
+  function isValidRecipientConfig(cfg) {
+    if (!cfg) return false;
+    const list = Array.isArray(cfg) ? cfg : [cfg];
+    if (list.length === 0) return false;
+    return list.every(c => {
+      if (c.type === "group") return !!c.email_group;
+      if (c.type === "paste") return c.recipients && c.recipients.length > 0;
+      if (c.type === "doctype") return !!c.doctype && !!c.email_field;
+      return false;
+    });
+  }
+
   const saving        = ref(false);
   const savedFlash    = ref(false);
   let _savedFlashTimer = null;
@@ -304,7 +316,7 @@ export function useLetter(editorStore, { initialName = null, skipTemplatePrompt 
       toast.warning("Your canvas is empty. Add some blocks before sending.");
       return;
     }
-    if (!recipientConfig.value) {
+    if (!isValidRecipientConfig(recipientConfig.value)) {
       showSettings.value = true;
       toast.warning("Choose recipients before sending.");
       return;
@@ -472,7 +484,7 @@ export function useLetter(editorStore, { initialName = null, skipTemplatePrompt 
       toast.warning("Add a subject line before scheduling.");
       return;
     }
-    if (!recipientConfig.value) {
+    if (!isValidRecipientConfig(recipientConfig.value)) {
       showScheduleModal.value = false;
       showSettings.value = true;
       toast.warning("Choose recipients before scheduling.");
