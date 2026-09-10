@@ -49,13 +49,19 @@ def send_test(blocks: str | None = None, subject: str | None = None, preview_tex
     html = neutralize_unresolved_merge_tags(html)
     subject = neutralize_unresolved_merge_tags(subject) if subject else subject
 
+    try:
+        html = frappe.render_template(html, {})
+        subject = frappe.render_template(subject, {}) if subject else subject
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback(), "Letters send_test jinja render error")
+
     email = (recipient or "").strip() or frappe.session.user
     if not frappe.utils.validate_email_address(email, throw=False):
         frappe.throw(_("'{0}' is not a valid email address.").format(email))
 
     frappe.sendmail(
         recipients=[email],
-        subject=f"[TEST] {subject or 'Email Preview'}",
+        subject=f"[TEST] {subject or 'Email Preview'} - {frappe.utils.now()}",
         message=html,
         now=False,
         add_css=False,    # skip Frappe's email CSS (Gmail drops all styles on it)
@@ -371,6 +377,13 @@ def _execute_send(send_doc_name, letter_name):
         from letters.letters.utils.email_compiler import EmailCompiler
         compiler = EmailCompiler(blocks_json, preview_text=preview_text, email_width=email_width)
         html = compiler.compile()
+
+        try:
+            from letters.letters.api.notifications import neutralize_unresolved_merge_tags
+            html = neutralize_unresolved_merge_tags(html)
+            html = frappe.render_template(html, {})
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), "Letters _execute_send jinja render error")
 
         # Invalid rows were never resolved to an address worth queuing — they
         # exist purely so the Recipients tab can show them, not to be sent.
